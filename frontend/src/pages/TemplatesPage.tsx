@@ -9,16 +9,10 @@ export function TemplatesPage() {
 
   return (
     <div className="page">
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-      }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700 }}>Workouts</h1>
+      <div style={{ marginBottom: 16 }}>
         <Link to="/templates/new">
-          <button className="btn btn-primary" style={{ fontSize: 13, minHeight: 36, padding: '6px 16px' }}>
-            + New
+          <button className="btn btn-primary btn-full" style={{ fontSize: 13, minHeight: 44 }}>
+            + New Workout
           </button>
         </Link>
       </div>

@@ -1,16 +1,39 @@
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-surface: #12121a;
-  --bg-elevated: #1a1a25;
-  --text-primary: #e0e0e8;
-  --text-secondary: #8888a0;
+  /* Backgrounds — deeper, darker */
+  --bg-primary: #07070d;
+  --bg-surface: #0c0c14;
+  --bg-elevated: #14141f;
+
+  /* Text */
+  --text-primary: #d4d4e0;
+  --text-secondary: #6a6a82;
+
+  /* Accents */
   --accent-amber: #e8a832;
   --accent-cyan: #32c8e8;
   --accent-green: #32e868;
   --accent-red: #e83232;
-  --border-subtle: #252535;
-  --font-body: 'Inter', sans-serif;
+
+  /* Glow shadows */
+  --glow-amber: 0 0 8px rgba(232, 168, 50, 0.5), 0 0 24px rgba(232, 168, 50, 0.12);
+  --glow-amber-text: 0 0 10px rgba(232, 168, 50, 0.6);
+  --glow-amber-soft: 0 0 4px rgba(232, 168, 50, 0.2);
+  --glow-cyan-text: 0 0 10px rgba(50, 200, 232, 0.5);
+  --glow-green: 0 0 8px rgba(50, 232, 104, 0.4), 0 0 20px rgba(50, 232, 104, 0.1);
+  --glow-green-text: 0 0 10px rgba(50, 232, 104, 0.5);
+  --glow-red: 0 0 8px rgba(232, 50, 50, 0.4), 0 0 20px rgba(232, 50, 50, 0.1);
+  --glow-red-text: 0 0 10px rgba(232, 50, 50, 0.5);
+
+  /* Borders — warm amber tint instead of cool gray */
+  --border-subtle: rgba(232, 168, 50, 0.1);
+  --border-active: rgba(232, 168, 50, 0.35);
+
+  /* Typography — monospace everywhere for the NERV feel */
+  --font-body: 'JetBrains Mono', monospace;
   --font-data: 'JetBrains Mono', monospace;
+
+  /* Hex pattern */
+  --hex-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.35 11-6.35V17.9l-11-6.35L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='rgba(232%2C168%2C50%2C0.05)' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
 * {
@@ -29,15 +52,36 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  overflow-y: scroll;
+}
+
+/* Scan line CRT overlay */
 #root {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
+#root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 10000;
+}
+
 a {
   color: var(--accent-cyan);
   text-decoration: none;
+  text-shadow: var(--glow-cyan-text);
 }
 
 a:hover {
@@ -58,13 +102,15 @@ input, textarea, select {
   background: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 10px 12px;
   outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent-amber);
+  box-shadow: var(--glow-amber-soft), inset 0 0 12px rgba(232, 168, 50, 0.04);
 }
 
 /* Data numbers always monospace */
@@ -79,19 +125,32 @@ input:focus, textarea:focus, select:focus {
   justify-content: center;
   min-height: 44px;
   padding: 10px 20px;
-  border-radius: 4px;
+  border-radius: 0;
   font-weight: 600;
-  font-size: 14px;
-  transition: opacity 0.15s;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: opacity 0.15s, box-shadow 0.2s, border-color 0.2s, filter 0.2s;
 }
 
 .btn:active {
   opacity: 0.8;
 }
 
+/* Cut-corner buttons (top-left + bottom-right chamfer) */
 .btn-primary {
+  --btn-cut: 8px;
   background: var(--accent-amber);
-  color: #0a0a0f;
+  color: #07070d;
+  clip-path: polygon(
+    var(--btn-cut) 0,
+    100% 0,
+    100% calc(100% - var(--btn-cut)),
+    calc(100% - var(--btn-cut)) 100%,
+    0 100%,
+    0 var(--btn-cut)
+  );
+  filter: drop-shadow(0 0 6px rgba(232, 168, 50, 0.5)) drop-shadow(0 0 16px rgba(232, 168, 50, 0.1));
 }
 
 .btn-secondary {
@@ -99,14 +158,36 @@ input:focus, textarea:focus, select:focus {
   border: 1px solid var(--border-subtle);
 }
 
+.btn-secondary:active {
+  border-color: var(--border-active);
+  box-shadow: var(--glow-amber-soft);
+}
+
 .btn-danger {
-  background: var(--accent-red);
-  color: white;
+  background: transparent;
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  text-shadow: var(--glow-red-text);
+  box-shadow: 0 0 6px rgba(232, 50, 50, 0.12);
+}
+
+.btn-danger:active {
+  box-shadow: var(--glow-red);
 }
 
 .btn-success {
+  --btn-cut: 8px;
   background: var(--accent-green);
-  color: #0a0a0f;
+  color: #07070d;
+  clip-path: polygon(
+    var(--btn-cut) 0,
+    100% 0,
+    100% calc(100% - var(--btn-cut)),
+    calc(100% - var(--btn-cut)) 100%,
+    0 100%,
+    0 var(--btn-cut)
+  );
+  filter: drop-shadow(0 0 6px rgba(50, 232, 104, 0.5)) drop-shadow(0 0 16px rgba(50, 232, 104, 0.1));
 }
 
 .btn-ghost {
@@ -130,9 +211,10 @@ input:focus, textarea:focus, select:focus {
 .card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .card-header {
@@ -143,10 +225,10 @@ input:focus, textarea:focus, select:focus {
 }
 
 .label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   margin-bottom: 4px;
 }
 
@@ -187,4 +269,45 @@ input:focus, textarea:focus, select:focus {
   .page {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
+}
+
+/* NERV decorative elements */
+
+.nerv-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nerv-divider::before,
+.nerv-divider::after {
+  content: '';
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.nerv-divider::before {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.nerv-divider::after {
+  flex: 1;
+}
+
+.nerv-divider span {
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Hex pattern background — full width on desktop */
+.hex-bg {
+  background-image: var(--hex-pattern);
+  max-width: none;
+  margin: 0;
+  padding-left: max(16px, calc((100% - 568px) / 2));
+  padding-right: max(16px, calc((100% - 568px) / 2));
 }

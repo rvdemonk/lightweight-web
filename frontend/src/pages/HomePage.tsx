@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 
+
 type Mode = 'choose' | 'template';
 
 export function HomePage() {
@@ -52,7 +53,14 @@ export function HomePage() {
           >
             ←
           </button>
-          <h1 style={{ fontSize: 20, fontWeight: 700 }}>Select Workout</h1>
+          <h1 style={{
+            fontSize: 18,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Select Workout
+          </h1>
         </div>
 
         {templates && templates.map(t => {
@@ -73,7 +81,7 @@ export function HomePage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{t.name}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{
                     fontSize: 12,
@@ -99,8 +107,8 @@ export function HomePage() {
                   {t.exercises.map(ex => {
                     const reps = ex.target_reps_min
                       ? (ex.target_reps_max && ex.target_reps_max !== ex.target_reps_min
-                          ? `${ex.target_sets}×${ex.target_reps_min}-${ex.target_reps_max}`
-                          : `${ex.target_sets}×${ex.target_reps_min}`)
+                          ? `${ex.target_sets}s | ${ex.target_reps_min}-${ex.target_reps_max}r`
+                          : `${ex.target_sets}s | ${ex.target_reps_min}r`)
                       : '';
                     return (
                       <div
@@ -113,9 +121,9 @@ export function HomePage() {
                           borderTop: '1px solid var(--border-subtle)',
                         }}
                       >
-                        <span style={{ fontSize: 14 }}>{ex.exercise_name}</span>
+                        <span style={{ fontSize: 13 }}>{ex.exercise_name}</span>
                         <span className="data" style={{
-                          fontSize: 13,
+                          fontSize: 12,
                           color: 'var(--text-secondary)',
                         }}>
                           {reps}
@@ -131,7 +139,7 @@ export function HomePage() {
                   }}>
                     <button
                       className="btn btn-primary btn-full"
-                      style={{ fontSize: 14, minHeight: 44 }}
+                      style={{ fontSize: 14, minHeight: 48 }}
                       onClick={() => startWorkout(t.id)}
                       disabled={starting}
                     >
@@ -153,25 +161,39 @@ export function HomePage() {
 
   // Main choice view
   return (
-    <div className="page" style={{
+    <div className="page hex-bg" style={{
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       minHeight: 'calc(100dvh - 48px)',
     }}>
+      {/* Decorative divider */}
+      <div className="nerv-divider" style={{ marginBottom: 32 }}>
+        <span>INITIATE</span>
+      </div>
+
       <h1 style={{
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 700,
-        marginBottom: 24,
+        marginBottom: 32,
         textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: '4px',
+        color: 'var(--accent-amber)',
+        textShadow: 'var(--glow-amber-text)',
       }}>
-        Start Workout
+        START WORKOUT
       </h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <button
           className="btn btn-primary btn-full"
-          style={{ minHeight: 56, fontSize: 16 }}
+          style={{
+            minHeight: 64,
+            fontSize: 16,
+            letterSpacing: '2px',
+            ['--btn-cut' as string]: '12px',
+          }}
           onClick={() => setMode('template')}
           disabled={!templates || templates.length === 0}
         >
@@ -179,12 +201,17 @@ export function HomePage() {
         </button>
         <button
           className="btn btn-secondary btn-full"
-          style={{ minHeight: 56, fontSize: 16 }}
+          style={{ minHeight: 64, fontSize: 16, letterSpacing: '2px' }}
           onClick={() => startWorkout()}
           disabled={starting}
         >
           Freeform
         </button>
+      </div>
+
+      {/* Decorative bottom divider */}
+      <div className="nerv-divider" style={{ marginTop: 32 }}>
+        <span>READY</span>
       </div>
     </div>
   );

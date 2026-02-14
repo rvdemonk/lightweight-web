@@ -18,7 +18,7 @@ export function PreviousData({ sets }: PreviousDataProps) {
       fontFamily: 'var(--font-data)',
       marginBottom: 8,
     }}>
-      Last: {weight} × {reps}
+      Last: {weight} | {reps}
     </div>
   );
 }

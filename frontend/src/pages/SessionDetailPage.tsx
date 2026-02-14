@@ -32,23 +32,41 @@ export function SessionDetailPage() {
     <div className="page">
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+        gap: 12,
         marginBottom: 16,
       }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700 }}>
-            {session.template_name || session.name || 'Freeform'}
-          </h1>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            {new Date(session.started_at + 'Z').toLocaleDateString('en-AU', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-            {duration !== null && ` · ${formatDuration(duration)}`}
-          </div>
+        <button
+          className="btn btn-ghost"
+          style={{ fontSize: 16, padding: '4px 0', minHeight: 'auto' }}
+          onClick={() => navigate('/history')}
+        >
+          ←
+        </button>
+        <h1 style={{
+          fontSize: 18,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+        }}>
+          {session.template_name || session.name || 'Freeform'}
+        </h1>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+      }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          {new Date(session.started_at + 'Z').toLocaleDateString('en-AU', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+          {duration !== null && ` · ${formatDuration(duration)}`}
         </div>
         <button
           className="btn btn-ghost"
@@ -89,8 +107,14 @@ export function SessionDetailPage() {
               }}
             >
               <span>Set {set.set_number}</span>
-              <span>
-                {set.weight_kg !== null ? `${set.weight_kg}kg` : 'BW'} × {set.reps}
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ minWidth: 52, textAlign: 'right' }}>
+                  {set.weight_kg !== null ? `${set.weight_kg}kg` : 'BW'}
+                </span>
+                <span style={{ width: 20, textAlign: 'center', color: 'var(--text-secondary)' }}>|</span>
+                <span style={{ minWidth: 20, textAlign: 'right' }}>
+                  {set.reps}
+                </span>
               </span>
             </div>
           ))}
@@ -103,13 +127,6 @@ export function SessionDetailPage() {
         </div>
       ))}
 
-      <button
-        className="btn btn-ghost"
-        style={{ marginTop: 8 }}
-        onClick={() => navigate('/history')}
-      >
-        ← Back to History
-      </button>
     </div>
   );
 }

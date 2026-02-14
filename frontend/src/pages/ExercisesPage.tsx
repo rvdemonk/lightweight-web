@@ -6,6 +6,7 @@ import { useApi } from '../hooks/useApi';
 export function ExercisesPage() {
   const { data: exercises, refetch } = useApi(() => api.listExercises(), []);
   const [showForm, setShowForm] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [equipment, setEquipment] = useState('');
@@ -43,19 +44,13 @@ export function ExercisesPage() {
 
   return (
     <div className="page">
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-      }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700 }}>Exercises</h1>
+      <div style={{ marginBottom: 16 }}>
         <button
-          className="btn btn-primary"
-          style={{ fontSize: 13, minHeight: 36, padding: '6px 16px' }}
+          className="btn btn-primary btn-full"
+          style={{ fontSize: 13, minHeight: 44 }}
           onClick={() => setShowForm(!showForm)}
         >
-          {showForm ? 'Cancel' : '+ New'}
+          {showForm ? 'Cancel' : '+ New Exercise'}
         </button>
       </div>
 
@@ -91,30 +86,71 @@ export function ExercisesPage() {
         .map(([group, exs]) => (
           <div key={group} style={{ marginBottom: 20 }}>
             <div className="label" style={{ marginBottom: 8 }}>{group}</div>
-            {exs.map(ex => (
-              <div key={ex.id} className="card" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 16px',
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{ex.name}</div>
-                  {ex.equipment && (
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      {ex.equipment}
+            {exs.map(ex => {
+              const expanded = expandedId === ex.id;
+              return (
+                <div
+                  key={ex.id}
+                  className="card"
+                  style={{
+                    cursor: 'pointer',
+                    padding: '12px 16px',
+                    background: expanded ? 'var(--bg-elevated)' : undefined,
+                  }}
+                  onClick={() => setExpandedId(expanded ? null : ex.id)}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <div style={{ fontWeight: 600 }}>{ex.name}</div>
+                    {!expanded && ex.equipment && (
+                      <span style={{
+                        fontSize: 12,
+                        color: 'var(--text-secondary)',
+                        fontFamily: 'var(--font-data)',
+                      }}>
+                        {ex.equipment}
+                      </span>
+                    )}
+                  </div>
+
+                  {expanded && (
+                    <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                      {ex.equipment && (
+                        <div style={{
+                          fontSize: 12,
+                          color: 'var(--text-secondary)',
+                          marginBottom: 4,
+                        }}>
+                          {ex.equipment}
+                        </div>
+                      )}
+                      <div style={{
+                        fontSize: 12,
+                        color: 'var(--text-secondary)',
+                        marginBottom: 12,
+                      }}>
+                        {group}
+                      </div>
+                      <button
+                        className="btn btn-ghost"
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--accent-red)',
+                          textShadow: 'var(--glow-red-text)',
+                          padding: '4px 0',
+                        }}
+                        onClick={() => handleDelete(ex.id)}
+                      >
+                        Archive
+                      </button>
                     </div>
                   )}
                 </div>
-                <button
-                  className="btn btn-ghost"
-                  style={{ fontSize: 12, color: 'var(--accent-red)' }}
-                  onClick={() => handleDelete(ex.id)}
-                >
-                  Archive
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
 

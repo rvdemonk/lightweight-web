@@ -30,7 +30,7 @@ export function SetLogger({ defaultWeight, defaultReps, onLog, onRepeatLast, has
         label="reps"
         min={1}
       />
-      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button
           className="btn btn-primary btn-full"
           onClick={() => onLog(isBodyweight ? null : weight, reps)}

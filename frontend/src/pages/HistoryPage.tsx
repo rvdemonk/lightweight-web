@@ -9,11 +9,11 @@ export function HistoryPage() {
 
   return (
     <div className="page">
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>History</h1>
-
       {sessions && sessions.map(s => {
         const name = s.template_name || s.name || 'Freeform';
-        const date = new Date(s.started_at + 'Z').toLocaleDateString('en-AU', {
+        const date = new Date(s.started_at + 'Z');
+        const dayName = date.toLocaleDateString('en-AU', { weekday: 'short' });
+        const dateStr = date.toLocaleDateString('en-AU', {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
@@ -32,13 +32,28 @@ export function HistoryPage() {
               alignItems: 'center',
             }}>
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{name}</div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{date}</div>
+                <div style={{
+                  fontWeight: 700,
+                  fontSize: 15,
+                  color: 'var(--text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>{name}</div>
+                <div style={{
+                  fontSize: 12,
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-data)',
+                  marginTop: 2,
+                }}>
+                  {dayName} {dateStr}
+                </div>
               </div>
               <span className="data" style={{
-                fontSize: 12,
+                fontSize: 11,
                 color: statusColor,
                 textTransform: 'uppercase',
+                letterSpacing: '1px',
+                textShadow: `0 0 10px ${statusColor}`,
               }}>
                 {s.status}
               </span>

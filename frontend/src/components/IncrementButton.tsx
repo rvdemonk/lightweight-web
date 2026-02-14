@@ -15,7 +15,7 @@ export function IncrementButton({ value, onChange, step, label, min = 0 }: Incre
     }}>
       <button
         className="btn btn-secondary"
-        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 18 }}
+        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 14 }}
         onClick={() => onChange(Math.max(min, value - step))}
       >
         -{step}
@@ -24,14 +24,29 @@ export function IncrementButton({ value, onChange, step, label, min = 0 }: Incre
         flex: 1,
         textAlign: 'center',
         fontFamily: 'var(--font-data)',
-        fontSize: 16,
+        padding: '8px 0',
       }}>
-        <div className="label">{label}</div>
-        <div style={{ fontWeight: 700 }}>{value}</div>
+        <div style={{
+          fontSize: 10,
+          color: 'var(--text-secondary)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          marginBottom: 2,
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontWeight: 700,
+          color: 'var(--accent-amber)',
+          textShadow: 'var(--glow-amber-text)',
+          fontSize: 20,
+        }}>
+          {value}
+        </div>
       </div>
       <button
         className="btn btn-secondary"
-        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 18 }}
+        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 14 }}
         onClick={() => onChange(value + step)}
       >
         +{step}
