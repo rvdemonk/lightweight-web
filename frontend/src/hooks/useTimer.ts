@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import { parseDate } from '../utils/date';
 
 export function useTimer(startedAt: string, pausedDuration: number, isPaused: boolean) {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const startTime = new Date(startedAt + 'Z').getTime();
+    const startTime = parseDate(startedAt).getTime();
 
     const tick = () => {
       const now = Date.now();

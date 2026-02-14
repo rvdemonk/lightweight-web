@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
+import { parseDate } from '../utils/date';
 
 export function SessionDetailPage() {
   const { id } = useParams();
@@ -11,7 +12,7 @@ export function SessionDetailPage() {
 
   const duration = session.ended_at
     ? Math.floor(
-        (new Date(session.ended_at + 'Z').getTime() - new Date(session.started_at + 'Z').getTime()) / 1000
+        (parseDate(session.ended_at).getTime() - parseDate(session.started_at).getTime()) / 1000
         - session.paused_duration
       )
     : null;
@@ -60,7 +61,7 @@ export function SessionDetailPage() {
         marginBottom: 16,
       }}>
         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-          {new Date(session.started_at + 'Z').toLocaleDateString('en-AU', {
+          {parseDate(session.started_at).toLocaleDateString('en-AU', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',

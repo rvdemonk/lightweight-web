@@ -174,6 +174,37 @@ pub struct UpdateSet {
     pub set_type: Option<String>,
 }
 
+// ── Import ──
+
+#[derive(Debug, Deserialize)]
+pub struct ImportSession {
+    pub template: Option<String>,
+    pub date: String,
+    pub notes: Option<String>,
+    pub exercises: Vec<ImportExercise>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ImportExercise {
+    pub name: String,
+    pub notes: Option<String>,
+    pub sets: Vec<ImportSet>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ImportSet {
+    pub weight_kg: Option<f64>,
+    pub reps: i32,
+    pub set_type: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ImportResult {
+    pub sessions: Vec<Session>,
+    pub exercises_created: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
 // ── Auth ──
 
 #[derive(Debug, Deserialize)]

@@ -9,31 +9,49 @@ pub async fn handle(client: &Client, file: &str) -> Result<(), String> {
     let data: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
 
-    let sessions = data
-        .as_array()
-        .ok_or("Expected JSON array of sessions")?;
-
-    for (i, session) in sessions.iter().enumerate() {
-        let resp = client
-            .http
-            .post(client.url("/sessions"))
-            .header("Authorization", &auth)
-            .json(session)
-            .send()
-            .await
-            .map_err(|e| format!("Request failed: {}", e))?;
-
-        if resp.status().is_success() {
-            println!("Imported session {}/{}", i + 1, sessions.len());
-        } else {
-            eprintln!(
-                "Failed to import session {}: {}",
-                i + 1,
-                resp.status()
-            );
-        }
+    if !data.is_array() {
+        return Err("Expected JSON array of sessions".to_string());
     }
 
-    println!("Import complete.");
+    let resp = client
+        .http
+        .post(client.url("/sessions/import"))
+        .header("Authorization", &auth)
+        .json(&data)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if resp.status().is_success() {
+        let result: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Invalid response: {}", e))?;
+
+        let session_count = result["sessions"].as_array().map(|a| a.len()).unwrap_or(0);
+        println!("Imported {} session(s).", session_count);
+
+        if let Some(created) = result["exercises_created"].as_array() {
+            if !created.is_empty() {
+                println!("Created exercises: {}", created.iter()
+                    .filter_map(|v| v.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", "));
+            }
+        }
+
+        if let Some(warnings) = result["warnings"].as_array() {
+            for w in warnings {
+                if let Some(msg) = w.as_str() {
+                    println!("  warning: {}", msg);
+                }
+            }
+        }
+    } else {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("Import failed ({}): {}", status, body));
+    }
+
     Ok(())
 }

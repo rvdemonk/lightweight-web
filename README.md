@@ -104,10 +104,32 @@ lw sessions end
 
 #### Data Import
 
+Bulk import complete sessions from a JSON file. Exercise names are fuzzy-matched against existing exercises; unrecognised names are auto-created.
+
 ```bash
-# Import workout data from JSON
-lw import --file workout_data.json
+lw import --file workouts.json
 ```
+
+JSON format — array of sessions with exercises and sets inline:
+
+```json
+[{
+  "template": "Upper A",
+  "date": "2026-02-02",
+  "notes": "Felt strong",
+  "exercises": [{
+    "name": "Incline Barbell Bench",
+    "sets": [
+      { "weight_kg": 60, "reps": 8 },
+      { "weight_kg": 60, "reps": 8 }
+    ]
+  }]
+}]
+```
+
+Fields: `template` (optional, matched by name), `date` (YYYY-MM-DD, required), `notes` (optional), `exercises[].name` (fuzzy-matched), `exercises[].sets[].set_type` (optional, defaults to "working").
+
+The same payload can be POSTed directly to `POST /api/v1/sessions/import`.
 
 ## Development
 

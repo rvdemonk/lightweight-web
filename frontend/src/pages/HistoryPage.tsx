@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
+import { parseDate } from '../utils/date';
 
 export function HistoryPage() {
   const { data: sessions, loading } = useApi(() => api.listSessions({ limit: 50 }), []);
@@ -11,7 +12,7 @@ export function HistoryPage() {
     <div className="page">
       {sessions && sessions.map(s => {
         const name = s.template_name || s.name || 'Freeform';
-        const date = new Date(s.started_at + 'Z');
+        const date = parseDate(s.started_at);
         const dayName = date.toLocaleDateString('en-AU', { weekday: 'short' });
         const dateStr = date.toLocaleDateString('en-AU', {
           day: 'numeric',

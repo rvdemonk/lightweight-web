@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::db::DbPool;
 use crate::error::AppError;
 use crate::models::*;
@@ -439,6 +441,231 @@ pub fn template_previous(db: &DbPool, template_id: i64) -> Result<Option<Session
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::Database(e)),
     }
+}
+
+// ── Import ──
+
+fn parse_import_date(date: &str) -> Result<String, AppError> {
+    let date = date.trim();
+    if date.len() != 10 {
+        return Err(AppError::BadRequest(format!("Invalid date format: '{}', expected YYYY-MM-DD", date)));
+    }
+    let parts: Vec<&str> = date.split('-').collect();
+    if parts.len() != 3 {
+        return Err(AppError::BadRequest(format!("Invalid date format: '{}', expected YYYY-MM-DD", date)));
+    }
+    let year: u32 = parts[0].parse().map_err(|_| AppError::BadRequest(format!("Invalid year in date: '{}'", date)))?;
+    let month: u32 = parts[1].parse().map_err(|_| AppError::BadRequest(format!("Invalid month in date: '{}'", date)))?;
+    let day: u32 = parts[2].parse().map_err(|_| AppError::BadRequest(format!("Invalid day in date: '{}'", date)))?;
+    if year < 2000 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31 {
+        return Err(AppError::BadRequest(format!("Date out of range: '{}'", date)));
+    }
+    Ok(format!("{} 00:00:00", date))
+}
+
+fn resolve_exercise(conn: &rusqlite::Connection, name: &str, warnings: &mut Vec<String>) -> Result<Option<(i64, String)>, AppError> {
+    // Phase 1: exact case-insensitive match
+    let exact: Result<(i64, String), _> = conn.query_row(
+        "SELECT id, name FROM exercises WHERE LOWER(name) = LOWER(?1) AND archived = 0",
+        [name],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    );
+    if let Ok(result) = exact {
+        return Ok(Some(result));
+    }
+
+    // Phase 2: fuzzy word match — all words must appear
+    let words: Vec<String> = name.split_whitespace()
+        .map(|w| w.to_lowercase())
+        .filter(|w| w.len() > 1)
+        .collect();
+    if words.is_empty() {
+        return Ok(None);
+    }
+
+    let conditions: Vec<String> = words.iter()
+        .enumerate()
+        .map(|(i, _)| format!("LOWER(name) LIKE ?{}", i + 1))
+        .collect();
+    let sql = format!(
+        "SELECT id, name FROM exercises WHERE {} AND archived = 0",
+        conditions.join(" AND ")
+    );
+
+    let mut stmt = conn.prepare(&sql)?;
+    let params: Vec<String> = words.iter().map(|w| format!("%{}%", w)).collect();
+    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter()
+        .map(|p| p as &dyn rusqlite::types::ToSql)
+        .collect();
+
+    let matches: Vec<(i64, String)> = stmt.query_map(param_refs.as_slice(), |row| {
+        Ok((row.get(0)?, row.get(1)?))
+    })?
+    .filter_map(|r| r.ok())
+    .collect();
+
+    match matches.len() {
+        0 => Ok(None),
+        1 => {
+            warnings.push(format!("Matched '{}' -> '{}'", name, matches[0].1));
+            Ok(Some(matches[0].clone()))
+        }
+        _ => {
+            let names: Vec<&str> = matches.iter().map(|(_, n)| n.as_str()).collect();
+            Err(AppError::BadRequest(format!(
+                "Ambiguous exercise '{}': matches [{}]", name, names.join(", ")
+            )))
+        }
+    }
+}
+
+pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportResult, AppError> {
+    let conn = db.lock().unwrap();
+    let mut warnings: Vec<String> = Vec::new();
+
+    // ── Validation pass (read-only) ──
+
+    // Resolve template names -> IDs
+    let mut template_ids: Vec<Option<i64>> = Vec::new();
+    for session in &input {
+        parse_import_date(&session.date)?;
+
+        let tid = if let Some(ref tname) = session.template {
+            let id: Result<i64, _> = conn.query_row(
+                "SELECT id FROM templates WHERE LOWER(name) = LOWER(?1)",
+                [tname],
+                |row| row.get(0),
+            );
+            match id {
+                Ok(id) => Some(id),
+                Err(_) => return Err(AppError::BadRequest(format!("Template not found: '{}'", tname))),
+            }
+        } else {
+            None
+        };
+        template_ids.push(tid);
+    }
+
+    // Resolve exercise names -> IDs, tracking auto-creates
+    // Key: lowercased name, Value: (exercise_id or None, canonical_name)
+    let mut exercise_cache: HashMap<String, Option<(i64, String)>> = HashMap::new();
+    let mut exercises_to_create: Vec<String> = Vec::new();
+
+    for session in &input {
+        for exercise in &session.exercises {
+            let key = exercise.name.to_lowercase();
+            if exercise_cache.contains_key(&key) {
+                continue;
+            }
+            let resolved = resolve_exercise(&conn, &exercise.name, &mut warnings)?;
+            if resolved.is_none() {
+                exercises_to_create.push(exercise.name.clone());
+            }
+            exercise_cache.insert(key, resolved);
+        }
+    }
+
+    // ── Insertion pass (single transaction) ──
+
+    conn.execute_batch("BEGIN")?;
+
+    // Auto-create exercises that weren't found
+    let mut exercises_created: Vec<String> = Vec::new();
+    for name in &exercises_to_create {
+        let key = name.to_lowercase();
+        conn.execute(
+            "INSERT INTO exercises (name) VALUES (?1)",
+            rusqlite::params![name],
+        )?;
+        let id = conn.last_insert_rowid();
+        exercise_cache.insert(key, Some((id, name.clone())));
+        exercises_created.push(name.clone());
+        warnings.push(format!("Created new exercise: '{}'", name));
+    }
+
+    let mut session_ids: Vec<i64> = Vec::new();
+
+    for (i, session) in input.iter().enumerate() {
+        let date = parse_import_date(&session.date)?;
+        let template_id = template_ids[i];
+
+        conn.execute(
+            "INSERT INTO sessions (template_id, started_at, ended_at, status, notes, paused_duration)
+             VALUES (?1, ?2, ?3, 'completed', ?4, 0)",
+            rusqlite::params![template_id, &date, &date, session.notes],
+        )?;
+        let session_id = conn.last_insert_rowid();
+        session_ids.push(session_id);
+
+        for (pos, exercise) in session.exercises.iter().enumerate() {
+            let key = exercise.name.to_lowercase();
+            let (exercise_id, _) = exercise_cache.get(&key)
+                .and_then(|v| v.clone())
+                .ok_or_else(|| AppError::BadRequest(format!("Exercise resolution failed: '{}'", exercise.name)))?;
+
+            conn.execute(
+                "INSERT INTO session_exercises (session_id, exercise_id, position, notes)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![session_id, exercise_id, (pos + 1) as i32, exercise.notes],
+            )?;
+            let se_id = conn.last_insert_rowid();
+
+            for (set_idx, set) in exercise.sets.iter().enumerate() {
+                let set_type = set.set_type.as_deref().unwrap_or("working");
+                conn.execute(
+                    "INSERT INTO sets (session_exercise_id, set_number, weight_kg, reps, set_type, completed_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![se_id, (set_idx + 1) as i32, set.weight_kg, set.reps, set_type, &date],
+                )?;
+            }
+        }
+    }
+
+    conn.execute_batch("COMMIT")?;
+
+    // Fetch full session objects for response
+    let mut sessions: Vec<Session> = Vec::new();
+    for id in session_ids {
+        let exercises = get_session_exercises(&conn, id)?;
+        let (template_id, template_name, name, started_at, ended_at, paused_duration, notes, status) = conn
+            .query_row(
+                "SELECT s.template_id, t.name, s.name, s.started_at, s.ended_at, s.paused_duration, s.notes, s.status
+                 FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
+                 WHERE s.id = ?1",
+                [id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, Option<String>>(6)?,
+                        row.get::<_, String>(7)?,
+                    ))
+                },
+            )?;
+
+        sessions.push(Session {
+            id,
+            template_id,
+            template_name,
+            name,
+            started_at,
+            ended_at,
+            paused_duration,
+            notes,
+            status,
+            exercises,
+        });
+    }
+
+    Ok(ImportResult {
+        sessions,
+        exercises_created,
+        warnings,
+    })
 }
 
 // ── Helpers ──
