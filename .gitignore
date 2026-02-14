@@ -1,6 +1,5 @@
 # Rust
 /target/
-Cargo.lock
 
 # Node
 frontend/node_modules/
@@ -20,3 +19,6 @@ frontend/dist/
 
 # Env
 .env
+
+# Archive
+archive/
