@@ -30,7 +30,11 @@ export function ExerciseCard({
   const defaultReps = lastSet?.reps ?? (previousSets[0]?.reps ?? 8);
 
   return (
-    <div className="card" style={{ cursor: expanded ? 'default' : 'pointer' }}>
+    <div className="card" style={{
+      cursor: expanded ? 'default' : 'pointer',
+      background: expanded ? undefined : 'transparent',
+      borderColor: expanded ? 'var(--border-active)' : undefined,
+    }}>
       <div className="card-header" style={{ marginBottom: expanded ? 8 : 0 }} onClick={onToggle}>
         <div>
           <div style={{

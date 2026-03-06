@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
 import splashImg from '../assets/splash-schematic.jpg';
+import { APP_VERSION } from '../version';
 
 const fieldLabelStyle = {
   fontSize: 10,
@@ -191,7 +192,7 @@ export function LoginPage() {
         letterSpacing: '2px',
         opacity: 0.5,
       }}>
-        LIGHTWEIGHT v0.1.0
+        LIGHTWEIGHT v{APP_VERSION}
       </div>
     </div>
   );

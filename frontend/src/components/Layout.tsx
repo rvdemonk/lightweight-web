@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { APP_VERSION } from '../version';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'HOME',
@@ -51,7 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             textShadow: 'var(--glow-amber-text)',
             letterSpacing: '2px',
           }}>
-            LW<span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>v0.1</span>
+            LW
           </span>
         </Link>
 
@@ -284,12 +285,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           bottom: 16,
           left: 24,
           fontFamily: 'var(--font-data)',
-          fontSize: 10,
-          color: 'var(--text-secondary)',
-          letterSpacing: '1px',
-          opacity: 0.6,
+          fontSize: 13,
+          color: 'var(--accent-amber)',
+          letterSpacing: '2px',
+          opacity: 0.7,
+          textShadow: 'var(--glow-amber-text)',
         }}>
-          LIGHTWEIGHT v0.1.0
+          LIGHTWEIGHT v{APP_VERSION}
         </div>
       </div>
 

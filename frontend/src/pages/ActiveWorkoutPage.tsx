@@ -5,6 +5,7 @@ import type { Session, WorkoutSet, TemplateExercise } from '../api/types';
 import { Timer } from '../components/Timer';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { ExercisePicker } from '../components/ExercisePicker';
+import { WorkoutProgressBar } from '../components/WorkoutProgressBar';
 
 export function ActiveWorkoutPage() {
   const navigate = useNavigate();
@@ -143,6 +144,17 @@ export function ActiveWorkoutPage() {
             End Workout
           </button>
         </div>
+
+        {/* Workout progress bar */}
+        {(() => {
+          const totalTarget = templateExercises.reduce((sum, te) => sum + (te.target_sets ?? 0), 0);
+          const totalDone = session.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+          return totalTarget > 0 ? (
+            <div style={{ marginTop: 8 }}>
+              <WorkoutProgressBar completedSets={totalDone} targetSets={totalTarget} />
+            </div>
+          ) : null;
+        })()}
       </div>
 
       <div style={{ height: 16 }} />

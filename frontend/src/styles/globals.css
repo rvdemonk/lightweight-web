@@ -25,7 +25,7 @@
   --glow-red-text: 0 0 10px rgba(232, 50, 50, 0.5);
 
   /* Borders — warm amber tint instead of cool gray */
-  --border-subtle: rgba(212, 118, 44, 0.1);
+  --border-subtle: rgba(212, 118, 44, 0.2);
   --border-active: rgba(212, 118, 44, 0.35);
 
   /* Typography — monospace everywhere for the NERV feel */

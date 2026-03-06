@@ -16,10 +16,10 @@ export function IncrementButton({ value, onChange, step, label, min = 0, muted =
     }}>
       <button
         className="btn btn-secondary"
-        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 14 }}
+        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 18, background: 'transparent' }}
         onClick={() => onChange(Math.max(min, value - step))}
       >
-        -{step}
+        −
       </button>
       <div style={{
         flex: 1,
@@ -47,10 +47,10 @@ export function IncrementButton({ value, onChange, step, label, min = 0, muted =
       </div>
       <button
         className="btn btn-secondary"
-        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 14 }}
+        style={{ minWidth: 44, minHeight: 44, padding: 0, fontSize: 18, background: 'transparent' }}
         onClick={() => onChange(value + step)}
       >
-        +{step}
+        +
       </button>
     </div>
   );
