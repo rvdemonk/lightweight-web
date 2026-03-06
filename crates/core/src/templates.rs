@@ -2,15 +2,15 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::models::{CreateTemplate, Template, TemplateExercise, UpdateTemplate};
 
-pub fn list(db: &DbPool) -> Result<Vec<Template>, AppError> {
+pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Template>, AppError> {
     let conn = db.lock().unwrap();
     let mut stmt = conn.prepare(
         "SELECT id, name, notes, archived, created_at, updated_at
-         FROM templates WHERE archived = 0 ORDER BY name"
+         FROM templates WHERE archived = 0 AND user_id = ?1 ORDER BY name"
     )?;
 
     let templates: Vec<(i64, String, Option<String>, i32, String, String)> = stmt
-        .query_map([], |row| {
+        .query_map([user_id], |row| {
             Ok((
                 row.get(0)?,
                 row.get(1)?,
@@ -39,12 +39,12 @@ pub fn list(db: &DbPool) -> Result<Vec<Template>, AppError> {
     Ok(result)
 }
 
-pub fn get(db: &DbPool, id: i64) -> Result<Template, AppError> {
+pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Template, AppError> {
     let conn = db.lock().unwrap();
     let (name, notes, archived, created_at, updated_at) = conn
         .query_row(
-            "SELECT name, notes, archived, created_at, updated_at FROM templates WHERE id = ?1",
-            [id],
+            "SELECT name, notes, archived, created_at, updated_at FROM templates WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![id, user_id],
             |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -70,11 +70,24 @@ pub fn get(db: &DbPool, id: i64) -> Result<Template, AppError> {
     })
 }
 
-pub fn create(db: &DbPool, input: &CreateTemplate) -> Result<Template, AppError> {
+pub fn create(db: &DbPool, user_id: i64, input: &CreateTemplate) -> Result<Template, AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify all referenced exercise_ids belong to the user
+    for ex in &input.exercises {
+        let owns: bool = conn.query_row(
+            "SELECT COUNT(*) > 0 FROM exercises WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![ex.exercise_id, user_id],
+            |row| row.get(0),
+        )?;
+        if !owns {
+            return Err(AppError::NotFound);
+        }
+    }
+
     conn.execute(
-        "INSERT INTO templates (name, notes) VALUES (?1, ?2)",
-        rusqlite::params![input.name, input.notes],
+        "INSERT INTO templates (user_id, name, notes) VALUES (?1, ?2, ?3)",
+        rusqlite::params![user_id, input.name, input.notes],
     )
     .map_err(|e| match e {
         rusqlite::Error::SqliteFailure(_, _) => AppError::AlreadyExists,
@@ -95,15 +108,15 @@ pub fn create(db: &DbPool, input: &CreateTemplate) -> Result<Template, AppError>
     }
 
     drop(conn);
-    get(db, template_id)
+    get(db, user_id, template_id)
 }
 
-pub fn update(db: &DbPool, id: i64, input: &UpdateTemplate) -> Result<Template, AppError> {
+pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateTemplate) -> Result<Template, AppError> {
     let conn = db.lock().unwrap();
 
     let exists: bool = conn.query_row(
-        "SELECT COUNT(*) > 0 FROM templates WHERE id = ?1",
-        [id],
+        "SELECT COUNT(*) > 0 FROM templates WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![id, user_id],
         |row| row.get(0),
     )?;
     if !exists {
@@ -118,6 +131,18 @@ pub fn update(db: &DbPool, id: i64, input: &UpdateTemplate) -> Result<Template, 
     }
 
     if let Some(ref exercises) = input.exercises {
+        // Verify all referenced exercise_ids belong to the user
+        for ex in exercises {
+            let owns: bool = conn.query_row(
+                "SELECT COUNT(*) > 0 FROM exercises WHERE id = ?1 AND user_id = ?2",
+                rusqlite::params![ex.exercise_id, user_id],
+                |row| row.get(0),
+            )?;
+            if !owns {
+                return Err(AppError::NotFound);
+            }
+        }
+
         conn.execute("DELETE FROM template_exercises WHERE template_id = ?1", [id])?;
         for ex in exercises {
             conn.execute(
@@ -133,12 +158,15 @@ pub fn update(db: &DbPool, id: i64, input: &UpdateTemplate) -> Result<Template, 
     }
 
     drop(conn);
-    get(db, id)
+    get(db, user_id, id)
 }
 
-pub fn archive(db: &DbPool, id: i64) -> Result<(), AppError> {
+pub fn archive(db: &DbPool, user_id: i64, id: i64) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
-    let rows = conn.execute("UPDATE templates SET archived = 1 WHERE id = ?1", [id])?;
+    let rows = conn.execute(
+        "UPDATE templates SET archived = 1 WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![id, user_id],
+    )?;
     if rows == 0 {
         return Err(AppError::NotFound);
     }

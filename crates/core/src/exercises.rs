@@ -2,14 +2,14 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::models::{CreateExercise, Exercise, UpdateExercise};
 
-pub fn list(db: &DbPool) -> Result<Vec<Exercise>, AppError> {
+pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Exercise>, AppError> {
     let conn = db.lock().unwrap();
     let mut stmt = conn.prepare(
         "SELECT id, name, muscle_group, equipment, notes, archived, created_at
-         FROM exercises WHERE archived = 0 ORDER BY name"
+         FROM exercises WHERE archived = 0 AND user_id = ?1 ORDER BY name"
     )?;
 
-    let rows = stmt.query_map([], |row| {
+    let rows = stmt.query_map([user_id], |row| {
         Ok(Exercise {
             id: row.get(0)?,
             name: row.get(1)?,
@@ -28,12 +28,12 @@ pub fn list(db: &DbPool) -> Result<Vec<Exercise>, AppError> {
     Ok(exercises)
 }
 
-pub fn get(db: &DbPool, id: i64) -> Result<Exercise, AppError> {
+pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Exercise, AppError> {
     let conn = db.lock().unwrap();
     conn.query_row(
         "SELECT id, name, muscle_group, equipment, notes, archived, created_at
-         FROM exercises WHERE id = ?1",
-        [id],
+         FROM exercises WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![id, user_id],
         |row| {
             Ok(Exercise {
                 id: row.get(0)?,
@@ -49,11 +49,11 @@ pub fn get(db: &DbPool, id: i64) -> Result<Exercise, AppError> {
     .map_err(|_| AppError::NotFound)
 }
 
-pub fn create(db: &DbPool, input: &CreateExercise) -> Result<Exercise, AppError> {
+pub fn create(db: &DbPool, user_id: i64, input: &CreateExercise) -> Result<Exercise, AppError> {
     let conn = db.lock().unwrap();
     conn.execute(
-        "INSERT INTO exercises (name, muscle_group, equipment, notes) VALUES (?1, ?2, ?3, ?4)",
-        rusqlite::params![input.name, input.muscle_group, input.equipment, input.notes],
+        "INSERT INTO exercises (user_id, name, muscle_group, equipment, notes) VALUES (?1, ?2, ?3, ?4, ?5)",
+        rusqlite::params![user_id, input.name, input.muscle_group, input.equipment, input.notes],
     )
     .map_err(|e| match e {
         rusqlite::Error::SqliteFailure(_, _) => AppError::AlreadyExists,
@@ -62,17 +62,17 @@ pub fn create(db: &DbPool, input: &CreateExercise) -> Result<Exercise, AppError>
 
     let id = conn.last_insert_rowid();
     drop(conn);
-    get(db, id)
+    get(db, user_id, id)
 }
 
-pub fn update(db: &DbPool, id: i64, input: &UpdateExercise) -> Result<Exercise, AppError> {
+pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateExercise) -> Result<Exercise, AppError> {
     let conn = db.lock().unwrap();
 
-    // Check exists
+    // Check exists for this user
     let exists: bool = conn
         .query_row(
-            "SELECT COUNT(*) > 0 FROM exercises WHERE id = ?1",
-            [id],
+            "SELECT COUNT(*) > 0 FROM exercises WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![id, user_id],
             |row| row.get(0),
         )?;
     if !exists {
@@ -93,12 +93,15 @@ pub fn update(db: &DbPool, id: i64, input: &UpdateExercise) -> Result<Exercise, 
     }
 
     drop(conn);
-    get(db, id)
+    get(db, user_id, id)
 }
 
-pub fn archive(db: &DbPool, id: i64) -> Result<(), AppError> {
+pub fn archive(db: &DbPool, user_id: i64, id: i64) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
-    let rows = conn.execute("UPDATE exercises SET archived = 1 WHERE id = ?1", [id])?;
+    let rows = conn.execute(
+        "UPDATE exercises SET archived = 1 WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![id, user_id],
+    )?;
     if rows == 0 {
         return Err(AppError::NotFound);
     }

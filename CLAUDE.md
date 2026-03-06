@@ -1,13 +1,13 @@
 # Lightweight
 
-Workout tracker for one person. Frictionless mobile logging, progressive overload tracking. Rust/Axum + React/TS + SQLite, single binary.
+Multi-user workout tracker. Frictionless mobile logging, progressive overload tracking. Rust/Axum + React/TS + SQLite, single binary.
 
 ## Product Essence
 
 - Optimised for one-handed phone use between sets
 - Progressive disclosure everywhere — show names first, details on demand
 - NGE-influenced dark aesthetic: angular, monospace data, amber/cyan accents
-- Single-user, single-binary, no cloud dependencies
+- Multi-user with invite-code-gated registration, single binary, no cloud dependencies
 
 ## Memory Principles
 
@@ -23,6 +23,7 @@ Workout tracker for one person. Frictionless mobile logging, progressive overloa
 - Don't show exercise detail by default on list cards — use expandable cards with tap-to-reveal. Information density overwhelms on mobile.
 - Don't use side borders for active/selected states — they look generic and unbalanced. Use background elevation (`--bg-elevated`) instead.
 - Don't change card padding between expanded/collapsed states — causes visible content shift. Keep padding constant.
+- Don't use military jargon in UI copy (callsign, access code, operator, authenticate) — the aesthetic is MAGI/NERV scientific program, not modern military. Think Manhattan Project researchers at a classified terminal, not Pentagon. Labels should be clinical and functional: "USERNAME", "PASSWORD", "Login". Computer science and research lab language, not combat ops.
 
 ## Design Tokens
 
@@ -35,6 +36,10 @@ Workout tracker for one person. Frictionless mobile logging, progressive overloa
 
 Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Dark backgrounds only.
 
+## Product Direction
+
+Web app is a prototype — mid-term goal is Android native. The Rust/Axum API server stays as the backend, serving a read-only web interface for desktop viewing of lift metrics, progressions, and account data. Keep the server simple accordingly.
+
 ## Dev
 
 - Backend: `cargo run -p lightweight-server` (port 3000, env: LW_DB_PATH, LW_PORT)
@@ -42,3 +47,5 @@ Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Da
 - Check: `cargo check` then `cd frontend && npx tsc --noEmit`
 - Build frontend before Rust release — `rust-embed` embeds `frontend/dist/`
 - A placeholder `frontend/dist/index.html` must exist or rust-embed won't compile
+- Deploy: `./deploy.sh` — builds frontend, cross-compiles via cargo-zigbuild, SCPs to droplet, restarts service
+- Production: `https://lightweight.3rigby.xyz` (DO droplet 170.64.189.221, systemd + nginx + Let's Encrypt)

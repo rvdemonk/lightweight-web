@@ -17,6 +17,12 @@ pub enum AppError {
     #[error("Bad request: {0}")]
     BadRequest(String),
 
-    #[error("Auth already configured")]
-    AuthAlreadyConfigured,
+    #[error("Invalid invite code")]
+    InvalidInviteCode,
+
+    #[error("Username already taken")]
+    UsernameTaken,
+
+    #[error("Invalid username: {0}")]
+    InvalidUsername(String),
 }

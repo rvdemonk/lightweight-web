@@ -2,11 +2,12 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::get,
-    Json, Router,
+    Extension, Json, Router,
 };
 use std::sync::Arc;
 
 use crate::app::AppState;
+use crate::auth::UserId;
 use lightweight_core::models::*;
 
 pub fn routes() -> Router<Arc<AppState>> {
@@ -17,9 +18,10 @@ pub fn routes() -> Router<Arc<AppState>> {
 
 async fn exercise_history(
     State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
     Path(id): Path<i64>,
 ) -> Result<Json<ExerciseHistory>, StatusCode> {
-    lightweight_core::sessions::exercise_history(&state.db, id, 10)
+    lightweight_core::sessions::exercise_history(&state.db, user_id, id, 10)
         .map(Json)
         .map_err(|e| match e {
             lightweight_core::error::AppError::NotFound => StatusCode::NOT_FOUND,
@@ -29,9 +31,10 @@ async fn exercise_history(
 
 async fn template_previous(
     State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
     Path(id): Path<i64>,
 ) -> Result<Json<Option<Session>>, StatusCode> {
-    lightweight_core::sessions::template_previous(&state.db, id)
+    lightweight_core::sessions::template_previous(&state.db, user_id, id)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

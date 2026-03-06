@@ -33,11 +33,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (resp.status === 401) {
-    clearToken();
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+    // Don't auto-redirect for auth endpoints — let the caller handle the error
+    const isAuthEndpoint = path.startsWith('/auth/');
+    if (!isAuthEndpoint) {
+      clearToken();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
-    throw new Error('Unauthorized');
+    const err = new Error('Unauthorized');
+    (err as any).status = 401;
+    throw err;
   }
 
   if (resp.status === 204) {
@@ -45,7 +51,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!resp.ok) {
-    throw new Error(`HTTP ${resp.status}`);
+    const err = new Error(`HTTP ${resp.status}`);
+    (err as any).status = resp.status;
+    throw err;
   }
 
   return resp.json();
@@ -53,15 +61,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   // Auth
-  setup: (password: string) =>
-    request<{ token: string }>('/auth/setup', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-    }),
-  login: (password: string) =>
+  login: (username: string, password: string) =>
     request<{ token: string }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
+    }),
+  register: (username: string, password: string, invite_code?: string) =>
+    request<{ token: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, invite_code }),
     }),
   checkAuth: () => request<void>('/auth/check'),
 
@@ -135,7 +143,7 @@ export const api = {
     request<void>(`/sessions/${sessionId}/exercises/${seId}`, { method: 'DELETE' }),
 
   // Sets
-  addSet: (sessionId: number, seId: number, data: { weight_kg?: number | null; reps: number; set_type?: string }) =>
+  addSet: (sessionId: number, seId: number, data: { weight_kg?: number | null; reps: number; set_type?: string; rir?: number | null }) =>
     request<import('./types').WorkoutSet>(`/sessions/${sessionId}/exercises/${seId}/sets`, {
       method: 'POST',
       body: JSON.stringify(data),

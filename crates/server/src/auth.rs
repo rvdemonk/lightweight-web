@@ -8,9 +8,12 @@ use std::sync::Arc;
 
 use crate::app::AppState;
 
+#[derive(Clone, Copy)]
+pub struct UserId(pub i64);
+
 pub async fn auth_middleware(
     state: axum::extract::State<Arc<AppState>>,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
     let auth_header = request
@@ -24,7 +27,10 @@ pub async fn auth_middleware(
     };
 
     match lightweight_core::auth::verify_token(&state.db, token) {
-        Ok(true) => Ok(next.run(request).await),
+        Ok(Some(user_id)) => {
+            request.extensions_mut().insert(UserId(user_id));
+            Ok(next.run(request).await)
+        }
         _ => Err(StatusCode::UNAUTHORIZED),
     }
 }

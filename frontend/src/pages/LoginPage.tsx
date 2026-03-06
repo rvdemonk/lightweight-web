@@ -1,16 +1,34 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
 import splashImg from '../assets/splash-schematic.jpg';
 
+const fieldLabelStyle = {
+  fontSize: 10,
+  color: 'var(--text-secondary)',
+  letterSpacing: '1px',
+  textTransform: 'uppercase' as const,
+};
+
+function errorMessage(status: number): string {
+  switch (status) {
+    case 401: return 'INVALID CREDENTIALS';
+    case 409: return 'USERNAME TAKEN';
+    case 403: return 'INVALID INVITE CODE';
+    default: return 'AUTHENTICATION FAILED';
+  }
+}
+
 export function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   if (isLoggedIn()) {
-    navigate('/');
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,21 +36,32 @@ export function LoginPage() {
     setError('');
 
     try {
-      // Try login first, fall back to setup
-      try {
-        const { token } = await api.login(password);
+      if (isRegistering) {
+        const { token } = await api.register(username, password, inviteCode || undefined);
         setToken(token);
         navigate('/');
-      } catch {
-        // Maybe it's first run — try setup
-        const { token } = await api.setup(password);
+      } else {
+        const { token } = await api.login(username, password);
         setToken(token);
         navigate('/');
       }
-    } catch (err) {
-      setError('Invalid password');
+    } catch (err: any) {
+      const status = err?.status || 0;
+      setError(errorMessage(status));
     }
   };
+
+  const toggleMode = () => {
+    setIsRegistering(!isRegistering);
+    setError('');
+  };
+
+  const inputStyle = (hasError: boolean) => ({
+    width: '100%',
+    marginBottom: 12,
+    borderColor: hasError ? 'var(--accent-red)' : undefined,
+    boxShadow: hasError ? '0 0 6px rgba(232, 50, 50, 0.2)' : undefined,
+  });
 
   return (
     <div style={{
@@ -73,29 +102,50 @@ export function LoginPage() {
 
       {/* Auth form */}
       <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 320 }}>
+        {/* Username field */}
         <div style={{ marginBottom: 4 }}>
-          <span style={{
-            fontSize: 10,
-            color: 'var(--text-secondary)',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-          }}>
-            ACCESS CODE
-          </span>
+          <span style={fieldLabelStyle}>USERNAME</span>
+        </div>
+        <input
+          type="text"
+          placeholder="username"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          autoComplete="username"
+          style={inputStyle(!!error)}
+          autoFocus
+        />
+
+        {/* Password field */}
+        <div style={{ marginBottom: 4 }}>
+          <span style={fieldLabelStyle}>PASSWORD</span>
         </div>
         <input
           type="password"
           placeholder="••••••••"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          style={{
-            width: '100%',
-            marginBottom: 12,
-            borderColor: error ? 'var(--accent-red)' : undefined,
-            boxShadow: error ? '0 0 6px rgba(232, 50, 50, 0.2)' : undefined,
-          }}
-          autoFocus
+          autoComplete={isRegistering ? 'new-password' : 'current-password'}
+          style={inputStyle(!!error)}
         />
+
+        {/* Invite code field (register mode only) */}
+        {isRegistering && (
+          <>
+            <div style={{ marginBottom: 4 }}>
+              <span style={fieldLabelStyle}>INVITE CODE</span>
+            </div>
+            <input
+              type="text"
+              placeholder="required"
+              value={inviteCode}
+              onChange={e => setInviteCode(e.target.value)}
+              autoComplete="off"
+              style={inputStyle(!!error)}
+            />
+          </>
+        )}
+
         {error && (
           <div style={{
             color: 'var(--accent-red)',
@@ -104,14 +154,32 @@ export function LoginPage() {
             textShadow: 'var(--glow-red-text)',
             letterSpacing: '0.5px',
           }}>
-            ACCESS DENIED
+            {error}
           </div>
         )}
+
         <button type="submit" className="btn btn-primary btn-full" style={{
           ['--btn-cut' as string]: '10px',
         }}>
-          Authenticate
+          {isRegistering ? 'Register' : 'Login'}
         </button>
+
+        {/* Mode toggle */}
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <span
+            onClick={toggleMode}
+            style={{
+              fontSize: 11,
+              color: 'var(--text-secondary)',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              fontVariant: 'all-small-caps',
+            }}
+          >
+            {isRegistering ? 'Have an account? Login' : 'New user? Register'}
+          </span>
+        </div>
       </form>
 
       {/* Bottom status */}

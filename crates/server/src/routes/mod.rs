@@ -11,7 +11,7 @@ use crate::app::AppState;
 pub fn public_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/login", post(auth_login))
-        .route("/auth/setup", post(auth_setup))
+        .route("/auth/register", post(auth_register))
 }
 
 pub fn protected_routes() -> Router<Arc<AppState>> {
@@ -26,25 +26,34 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
 // ── Auth handlers ──
 
 use axum::{extract::State, http::StatusCode, Json};
-use lightweight_core::models::{AuthResponse, LoginRequest};
+use lightweight_core::models::{AuthResponse, LoginRequest, RegisterRequest};
 
-async fn auth_setup(
+async fn auth_register(
     State(state): State<Arc<AppState>>,
-    Json(body): Json<LoginRequest>,
-) -> Result<Json<AuthResponse>, StatusCode> {
-    lightweight_core::auth::setup(&state.db, &body.password)
-        .map(Json)
-        .map_err(|e| match e {
-            lightweight_core::error::AppError::AuthAlreadyConfigured => StatusCode::CONFLICT,
-            _ => StatusCode::INTERNAL_SERVER_ERROR,
-        })
+    Json(body): Json<RegisterRequest>,
+) -> Result<(StatusCode, Json<AuthResponse>), StatusCode> {
+    let invite_code = std::env::var("LW_INVITE_CODE").ok();
+    lightweight_core::auth::register(
+        &state.db,
+        &body.username,
+        &body.password,
+        body.invite_code.as_deref(),
+        invite_code.as_deref(),
+    )
+    .map(|r| (StatusCode::CREATED, Json(r)))
+    .map_err(|e| match e {
+        lightweight_core::error::AppError::UsernameTaken => StatusCode::CONFLICT,
+        lightweight_core::error::AppError::InvalidInviteCode => StatusCode::FORBIDDEN,
+        lightweight_core::error::AppError::InvalidUsername(_) => StatusCode::BAD_REQUEST,
+        _ => StatusCode::INTERNAL_SERVER_ERROR,
+    })
 }
 
 async fn auth_login(
     State(state): State<Arc<AppState>>,
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
-    lightweight_core::auth::login(&state.db, &body.password)
+    lightweight_core::auth::login(&state.db, &body.username, &body.password)
         .map(Json)
         .map_err(|_| StatusCode::UNAUTHORIZED)
 }
