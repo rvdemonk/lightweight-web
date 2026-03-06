@@ -284,6 +284,17 @@ export function BriefingPage() {
             }}>
               RESISTANCE TRAINING LOGGER
             </div>
+            <div style={{
+              fontSize: 12,
+              fontFamily: 'var(--font-data)',
+              color: 'var(--text-secondary)',
+              letterSpacing: '1.5px',
+              marginTop: 20,
+              opacity: 0.5,
+              fontStyle: 'italic',
+            }}>
+              YOU CAN'T OPTIMISE WHAT YOU DON'T MEASURE
+            </div>
             <svg width="2" height="52" style={{ margin: '28px 0 0', opacity: 0.25 }}>
               <line x1="1" y1="0" x2="1" y2="52" stroke="var(--accent-primary)" strokeWidth="1" strokeDasharray="4 3" />
             </svg>
@@ -299,7 +310,7 @@ export function BriefingPage() {
             <div style={{ ...copyStyle, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div>Log resistance training sessions.</div>
               <div>Track progressive overload.</div>
-              <div>Optimised for one-handed operation between sets.</div>
+              <div>Frictionless. Log a set in under two seconds.</div>
               <div>No social features.</div>
               <div>Export your data for analysis by AI of choice.</div>
             </div>
