@@ -102,7 +102,7 @@ export function TemplatePage() {
         alignItems: 'center',
         marginBottom: 16,
       }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, textTransform: 'uppercase' as const }}>
           {isNew ? 'New Workout' : 'Edit Workout'}
         </h1>
         {!isNew && (
@@ -126,59 +126,80 @@ export function TemplatePage() {
       <div className="label" style={{ marginBottom: 8 }}>Exercises</div>
 
       {exercises.map((ex, idx) => (
-        <div key={idx} className="card" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-data)', fontSize: 12, width: 20 }}>
-            {ex.position}
-          </span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>{ex.exercise_name}</div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-              <input
-                type="number"
-                value={ex.target_sets}
-                onChange={e => {
-                  const next = [...exercises];
-                  next[idx] = { ...next[idx], target_sets: Number(e.target.value) };
-                  setExercises(next);
-                }}
-                style={{ width: 50, padding: '4px 6px', fontSize: 13, textAlign: 'center' }}
-              />
-              <span style={{ color: 'var(--text-secondary)', alignSelf: 'center' }}>×</span>
-              <input
-                type="number"
-                value={ex.target_reps_min}
-                onChange={e => {
-                  const next = [...exercises];
-                  next[idx] = { ...next[idx], target_reps_min: Number(e.target.value) };
-                  setExercises(next);
-                }}
-                style={{ width: 50, padding: '4px 6px', fontSize: 13, textAlign: 'center' }}
-              />
-              <span style={{ color: 'var(--text-secondary)', alignSelf: 'center' }}>-</span>
-              <input
-                type="number"
-                value={ex.target_reps_max}
-                onChange={e => {
-                  const next = [...exercises];
-                  next[idx] = { ...next[idx], target_reps_max: Number(e.target.value) };
-                  setExercises(next);
-                }}
-                style={{ width: 50, padding: '4px 6px', fontSize: 13, textAlign: 'center' }}
-              />
+        <div key={idx} className="card" style={{ padding: '12px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-data)', fontSize: 12 }}>
+                {ex.position}
+              </span>
+              <span style={{ fontWeight: 600, fontSize: 14 }}>{ex.exercise_name}</span>
             </div>
+            <button
+              className="btn btn-ghost"
+              style={{ color: 'var(--accent-red)', fontSize: 18, padding: 4, minHeight: 32 }}
+              onClick={() => removeExercise(idx)}
+            >
+              ×
+            </button>
           </div>
-          <button
-            className="btn btn-ghost"
-            style={{ color: 'var(--accent-red)', fontSize: 18, padding: 4, minHeight: 32 }}
-            onClick={() => removeExercise(idx)}
-          >
-            ×
-          </button>
+          {[
+            { label: 'SETS', field: 'target_sets' as const, min: 1, max: 20 },
+            { label: 'MIN REPS', field: 'target_reps_min' as const, min: 1, max: 100 },
+            { label: 'MAX REPS', field: 'target_reps_max' as const, min: 1, max: 100 },
+          ].map(({ label, field, min, max }) => (
+            <div key={field} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 0',
+            }}>
+              <span className="label" style={{ fontSize: 11, margin: 0, letterSpacing: '0.05em' }}>{label}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  className="btn btn-ghost"
+                  style={{
+                    width: 36, height: 36, padding: 0,
+                    fontSize: 18, fontFamily: 'var(--font-data)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    minHeight: 36,
+                  }}
+                  onClick={() => {
+                    const next = [...exercises];
+                    next[idx] = { ...next[idx], [field]: Math.max(min, ex[field] - 1) };
+                    setExercises(next);
+                  }}
+                >−</button>
+                <input
+                  type="number"
+                  value={ex[field]}
+                  onChange={e => {
+                    const val = Math.max(min, Math.min(max, Number(e.target.value) || min));
+                    const next = [...exercises];
+                    next[idx] = { ...next[idx], [field]: val };
+                    setExercises(next);
+                  }}
+                  style={{
+                    width: 48, padding: '6px 4px', fontSize: 15,
+                    textAlign: 'center', fontFamily: 'var(--font-data)',
+                  }}
+                />
+                <button
+                  className="btn btn-ghost"
+                  style={{
+                    width: 36, height: 36, padding: 0,
+                    fontSize: 18, fontFamily: 'var(--font-data)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    minHeight: 36,
+                  }}
+                  onClick={() => {
+                    const next = [...exercises];
+                    next[idx] = { ...next[idx], [field]: Math.min(max, ex[field] + 1) };
+                    setExercises(next);
+                  }}
+                >+</button>
+              </div>
+            </div>
+          ))}
         </div>
       ))}
 

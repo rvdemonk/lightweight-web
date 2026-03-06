@@ -9,6 +9,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/templates': 'WORKOUTS',
   '/workout': 'WORKOUT',
   '/history': 'HISTORY',
+  '/analytics': 'ANALYTICS',
 };
 
 function getPageTitle(pathname: string): string {
@@ -29,6 +30,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { path: '/exercises', label: 'EXERCISES', num: '02' },
     { path: '/templates', label: 'WORKOUTS', num: '03' },
     { path: '/history', label: 'HISTORY', num: '04' },
+    { path: '/analytics', label: 'ANALYTICS', num: '05' },
   ];
 
   return (

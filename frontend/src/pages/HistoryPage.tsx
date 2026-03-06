@@ -79,7 +79,7 @@ export function HistoryPage() {
       })}
 
       {sessions && sessions.length === 0 && (
-        <div className="empty">No workouts yet. Start one from the home page.</div>
+        <div className="empty">No workouts recorded</div>
       )}
     </div>
   );

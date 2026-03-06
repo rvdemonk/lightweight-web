@@ -94,7 +94,7 @@ export function TemplatesPage() {
       })}
 
       {templates && templates.length === 0 && (
-        <div className="empty">No workouts yet. Create one above.</div>
+        <div className="empty">No workouts created</div>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { TemplatePage } from './pages/TemplatePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) {
@@ -29,6 +30,7 @@ export function App() {
         <Route path="/templates/:id" element={<ProtectedRoute><TemplatePage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

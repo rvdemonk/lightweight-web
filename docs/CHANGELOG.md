@@ -4,6 +4,22 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.5.0 — 2026-03-06
+
+### Added
+- Analytics page placeholder (COMING SOON) — will host progress metrics, plots, infographics
+- Analytics nav item in main navigation
+
+### Fixed
+- Font variables missing from light theme — fonts now defined on :root, shared by both themes
+- Theme toggle broken by CSS specificity — :root was overriding dark theme; split into separate :root and [data-theme] blocks
+
+### Changed
+- Empty state text: "No workouts created" (workouts page), "No workouts recorded" (history page)
+- Workout template editor layout refactored — improved exercise card structure
+
+---
+
 ## v0.3.0 — 2026-03-06
 
 ### Added
