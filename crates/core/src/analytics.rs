@@ -216,3 +216,41 @@ pub fn exercises_with_data(db: &DbPool, user_id: i64) -> Result<Vec<ExerciseSumm
 
     Ok(rows)
 }
+
+#[derive(Debug, Serialize)]
+pub struct WeeklyVolume {
+    pub week: String,
+    pub muscle_group: String,
+    pub set_count: i64,
+}
+
+/// Returns working sets per week broken down by muscle group.
+/// Week is the Monday date of that ISO week.
+pub fn weekly_volume(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyVolume>, AppError> {
+    let conn = db.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT date(st.completed_at, 'weekday 1', '-7 days') as week_start,
+                COALESCE(e.muscle_group, 'Other') as mg,
+                COUNT(*) as set_count
+         FROM sets st
+         JOIN session_exercises se ON se.id = st.session_exercise_id
+         JOIN sessions s ON s.id = se.session_id
+         JOIN exercises e ON e.id = se.exercise_id
+         WHERE s.user_id = ?1
+           AND st.set_type = 'working'
+         GROUP BY week_start, mg
+         ORDER BY week_start, mg"
+    )?;
+
+    let rows = stmt.query_map(rusqlite::params![user_id], |row| {
+        Ok(WeeklyVolume {
+            week: row.get(0)?,
+            muscle_group: row.get(1)?,
+            set_count: row.get(2)?,
+        })
+    })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(rows)
+}

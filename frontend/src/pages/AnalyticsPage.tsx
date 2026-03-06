@@ -3,11 +3,13 @@ import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 import { E1rmChart } from '../components/E1rmChart';
-import type { ExerciseE1rm, ExercisePRs } from '../api/types';
+import { VolumeChart } from '../components/VolumeChart';
+import type { ExerciseE1rm } from '../api/types';
 
 export function AnalyticsPage() {
   const { data: heatmapData, loading: heatmapLoading } = useApi(() => api.activityHeatmap(), []);
   const { data: exercises } = useApi(() => api.analyticsExercises(), []);
+  const { data: volumeData } = useApi(() => api.weeklyVolume(), []);
 
   const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
   const [e1rmData, setE1rmData] = useState<ExerciseE1rm | null>(null);
@@ -101,6 +103,15 @@ export function AnalyticsPage() {
             ))}
             <span>MORE</span>
           </div>
+        </div>
+      )}
+
+      {/* Weekly Volume */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>WEEKLY VOLUME</div>
+
+      {volumeData && (
+        <div className="card">
+          <VolumeChart data={volumeData} />
         </div>
       )}
 

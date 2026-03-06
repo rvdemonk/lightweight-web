@@ -14,6 +14,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/analytics/heatmap", get(heatmap))
         .route("/analytics/exercises", get(exercises_with_data))
         .route("/analytics/e1rm/:exercise_id", get(e1rm_progression))
+        .route("/analytics/volume", get(weekly_volume))
 }
 
 async fn heatmap(
@@ -45,4 +46,13 @@ async fn e1rm_progression(
             lightweight_core::error::AppError::NotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })
+}
+
+async fn weekly_volume(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<Vec<lightweight_core::analytics::WeeklyVolume>>, StatusCode> {
+    lightweight_core::analytics::weekly_volume(&state.db, user_id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

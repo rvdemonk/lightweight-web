@@ -160,6 +160,7 @@ export const api = {
   activityHeatmap: () => request<import('./types').DayActivity[]>('/analytics/heatmap'),
   analyticsExercises: () => request<import('./types').ExerciseSummary[]>('/analytics/exercises'),
   e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
+  weeklyVolume: () => request<import('./types').WeeklyVolume[]>('/analytics/volume'),
 
   // History
   exerciseHistory: (exerciseId: number) =>

@@ -126,3 +126,9 @@ export interface ExerciseSummary {
   muscle_group: string | null;
   session_count: number;
 }
+
+export interface WeeklyVolume {
+  week: string;
+  muscle_group: string;
+  set_count: number;
+}
