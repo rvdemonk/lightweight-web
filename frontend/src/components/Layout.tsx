@@ -151,14 +151,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           zIndex: 150,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
           padding: '0 24px',
           opacity: menuOpen ? 1 : 0,
           pointerEvents: menuOpen ? 'auto' : 'none',
           transition: 'opacity 0.15s ease',
         }}
       >
-        {/* Centered content group */}
+        {/* Top spacer — pushes content toward center */}
+        <div style={{ flex: 1 }} />
+
+        {/* Content group */}
         <div>
           {/* NAVIGATION divider */}
           <div style={{
@@ -294,15 +296,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
+        {/* Bottom spacer — matches top spacer for centering */}
+        <div style={{ flex: 1 }} />
+
         {/* Decorative bottom divider with status */}
         <div style={{
-          position: 'absolute',
-          bottom: 48,
-          left: 24,
-          right: 24,
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          marginBottom: 12,
         }}>
           <div style={{
             flex: 1,
@@ -329,15 +331,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Version */}
         <div style={{
-          position: 'absolute',
-          bottom: 16,
-          left: 24,
           fontFamily: 'var(--font-data)',
           fontSize: 13,
           color: 'var(--accent-primary)',
           letterSpacing: '2px',
           opacity: 0.7,
           textShadow: 'var(--glow-primary-text)',
+          paddingBottom: 16,
         }}>
           LIGHTWEIGHT v{APP_VERSION}
         </div>

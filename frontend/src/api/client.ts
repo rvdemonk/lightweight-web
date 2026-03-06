@@ -156,6 +156,11 @@ export const api = {
   deleteSet: (setId: number) =>
     request<void>(`/sets/${setId}`, { method: 'DELETE' }),
 
+  // Analytics
+  activityHeatmap: () => request<import('./types').DayActivity[]>('/analytics/heatmap'),
+  analyticsExercises: () => request<import('./types').ExerciseSummary[]>('/analytics/exercises'),
+  e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
+
   // History
   exerciseHistory: (exerciseId: number) =>
     request<import('./types').ExerciseHistory>(`/exercises/${exerciseId}/history`),

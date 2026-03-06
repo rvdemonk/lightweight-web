@@ -87,3 +87,42 @@ export interface ExerciseHistoryEntry {
   date: string;
   sets: WorkoutSet[];
 }
+
+export interface DayActivity {
+  date: string;
+  set_count: number;
+}
+
+export interface E1rmDataPoint {
+  date: string;
+  e1rm: number;
+  weight_kg: number;
+  reps: number;
+  rir: number | null;
+}
+
+export interface PersonalRecord {
+  value: number;
+  date: string;
+  detail: string;
+}
+
+export interface ExercisePRs {
+  best_e1rm: PersonalRecord | null;
+  heaviest_weight: PersonalRecord | null;
+  most_reps: PersonalRecord | null;
+}
+
+export interface ExerciseE1rm {
+  exercise_id: number;
+  exercise_name: string;
+  data: E1rmDataPoint[];
+  prs: ExercisePRs;
+}
+
+export interface ExerciseSummary {
+  id: number;
+  name: string;
+  muscle_group: string | null;
+  session_count: number;
+}
