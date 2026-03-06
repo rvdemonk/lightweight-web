@@ -4,6 +4,26 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.7.0 — 2026-03-07
+
+### Added
+- Session frequency chart — weekly bars with 4-week rolling average trend line
+- Muscle balance radar chart — spider graph with multi-span overlay (4W/8W/12W), normalised to sets/week, zero-volume groups highlighted in red
+- Exercise editing — tap to expand, edit name/muscle group/equipment inline
+- PR cards tap-to-expand — reveals record set detail and date with NERV accent divider
+- Exercise selector chevron indicator (angular SVG, accent-coloured)
+- Volume chart loading state
+
+### Fixed
+- Native number input spinners hidden globally (redundant with +/- buttons)
+- PR card date format: ambiguous dd/mm → unambiguous "3 Mar"
+- PR cards: replaced fragile aspect-ratio constraint with minHeight
+- Progress bar repositioned above action buttons on active workout
+- Progress bar vertical spacing improved
+- Muscle balance uses calendar weeks not data-weeks for accurate time spans
+
+---
+
 ## v0.5.0 — 2026-03-06
 
 ### Added

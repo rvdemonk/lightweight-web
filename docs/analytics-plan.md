@@ -36,9 +36,9 @@ The unifying metric for progressive overload across different rep ranges.
 - Combined into single stacked bar chart with three-way toggle: Total / Upper-Lower-Core / Muscle Group
 - High-contrast hardcoded colours for theme compatibility
 
-### 1d. Session Frequency
-- Workouts per week, rolling average
-- Simple line chart
+### 1d. Session Frequency [DONE]
+- Workouts per week bar chart with 4-week rolling average line
+- Amber trend line, cyan bars
 
 ## Tier 2 — Calculated Metrics
 
@@ -64,9 +64,10 @@ The unifying metric for progressive overload across different rep ranges.
 - "STAGNATION WARNING: BENCH PRESS — 4 WEEKS NO PROGRESSION"
 - Requires e1RM chart as prerequisite
 
-### 3b. Muscle Group Balance
-- Radar/spider chart of weekly sets by muscle group
-- Very NERV, very visual
+### 3b. Muscle Group Balance [DONE]
+- Radar/spider chart with multi-span overlay (4W/8W/12W), normalised to sets/week
+- All ever-trained groups shown, zero groups in red, polygonal grid rings
+- Multi-select toggles: cyan (4W), amber (8W), muted (12W)
 
 ### 3c. Session Duration Trend
 - `ended_at - started_at - paused_duration` over time
