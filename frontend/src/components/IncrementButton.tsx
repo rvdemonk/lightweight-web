@@ -4,9 +4,10 @@ interface IncrementButtonProps {
   step: number;
   label: string;
   min?: number;
+  muted?: boolean;
 }
 
-export function IncrementButton({ value, onChange, step, label, min = 0 }: IncrementButtonProps) {
+export function IncrementButton({ value, onChange, step, label, min = 0, muted = false }: IncrementButtonProps) {
   return (
     <div style={{
       display: 'flex',
@@ -37,8 +38,8 @@ export function IncrementButton({ value, onChange, step, label, min = 0 }: Incre
         </div>
         <div style={{
           fontWeight: 700,
-          color: 'var(--accent-amber)',
-          textShadow: 'var(--glow-amber-text)',
+          color: muted ? 'var(--text-secondary)' : 'var(--accent-amber)',
+          textShadow: muted ? 'none' : 'var(--glow-amber-text)',
           fontSize: 20,
         }}>
           {value}

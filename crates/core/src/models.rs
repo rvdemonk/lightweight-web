@@ -105,6 +105,8 @@ pub struct SessionSummary {
     pub started_at: String,
     pub ended_at: Option<String>,
     pub status: String,
+    pub set_count: i64,
+    pub target_set_count: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -125,6 +127,7 @@ pub struct Set {
     pub weight_kg: Option<f64>,
     pub reps: i32,
     pub set_type: String,
+    pub rir: Option<i32>,
     pub completed_at: String,
 }
 
@@ -165,6 +168,7 @@ pub struct CreateSet {
     pub weight_kg: Option<f64>,
     pub reps: i32,
     pub set_type: Option<String>,
+    pub rir: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,6 +176,7 @@ pub struct UpdateSet {
     pub weight_kg: Option<f64>,
     pub reps: Option<i32>,
     pub set_type: Option<String>,
+    pub rir: Option<i32>,
 }
 
 // ── Import ──
@@ -209,7 +214,15 @@ pub struct ImportResult {
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
+    pub username: String,
     pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegisterRequest {
+    pub username: String,
+    pub password: String,
+    pub invite_code: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

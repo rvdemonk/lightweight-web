@@ -19,11 +19,25 @@ export function HistoryPage() {
           month: 'short',
           year: 'numeric',
         });
-        const statusColor = s.status === 'completed'
-          ? 'var(--accent-green)'
-          : s.status === 'abandoned'
-          ? 'var(--accent-red)'
-          : 'var(--accent-amber)';
+        const isCompleted = s.status === 'completed';
+
+        let statusColor: string;
+        if (!isCompleted) {
+          statusColor = s.status === 'abandoned' ? 'var(--accent-red)' : 'var(--accent-amber)';
+        } else if (s.target_set_count === null) {
+          // Freeform — no target, neutral green
+          statusColor = 'var(--accent-green)';
+        } else {
+          const diff = s.set_count - s.target_set_count;
+          if (diff > 0) statusColor = 'var(--accent-cyan)';
+          else if (diff === 0) statusColor = 'var(--accent-green)';
+          else if (diff >= -2) statusColor = 'var(--accent-amber)';
+          else statusColor = 'var(--accent-red)';
+        }
+
+        const badge = isCompleted
+          ? `${s.set_count} SET${s.set_count !== 1 ? 'S' : ''}`
+          : s.status.toUpperCase();
 
         return (
           <Link key={s.id} to={`/sessions/${s.id}`} style={{ textDecoration: 'none' }}>
@@ -45,6 +59,7 @@ export function HistoryPage() {
                   color: 'var(--text-secondary)',
                   fontFamily: 'var(--font-data)',
                   marginTop: 2,
+                  textTransform: 'uppercase',
                 }}>
                   {dayName} {dateStr}
                 </div>
@@ -56,7 +71,7 @@ export function HistoryPage() {
                 letterSpacing: '1px',
                 textShadow: `0 0 10px ${statusColor}`,
               }}>
-                {s.status}
+                {badge}
               </span>
             </div>
           </Link>

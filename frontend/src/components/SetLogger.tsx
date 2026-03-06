@@ -4,14 +4,13 @@ import { IncrementButton } from './IncrementButton';
 interface SetLoggerProps {
   defaultWeight: number | null;
   defaultReps: number;
-  onLog: (weight: number | null, reps: number) => void;
-  onRepeatLast?: () => void;
-  hasLastSet: boolean;
+  onLog: (weight: number | null, reps: number, rir: number | null) => void;
 }
 
-export function SetLogger({ defaultWeight, defaultReps, onLog, onRepeatLast, hasLastSet }: SetLoggerProps) {
+export function SetLogger({ defaultWeight, defaultReps, onLog }: SetLoggerProps) {
   const [weight, setWeight] = useState(defaultWeight ?? 0);
   const [reps, setReps] = useState(defaultReps);
+  const [rir, setRir] = useState(0);
   const isBodyweight = defaultWeight === null && weight === 0;
 
   return (
@@ -19,7 +18,7 @@ export function SetLogger({ defaultWeight, defaultReps, onLog, onRepeatLast, has
       <IncrementButton
         value={weight}
         onChange={setWeight}
-        step={2.5}
+        step={1.25}
         label="weight (kg)"
       />
       <div style={{ height: 8 }} />
@@ -30,21 +29,23 @@ export function SetLogger({ defaultWeight, defaultReps, onLog, onRepeatLast, has
         label="reps"
         min={1}
       />
-      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ height: 8 }} />
+      <IncrementButton
+        value={rir}
+        onChange={setRir}
+        step={1}
+        label="RIR"
+        min={0}
+        muted
+      />
+
+      <div style={{ marginTop: 16 }}>
         <button
           className="btn btn-primary btn-full"
-          onClick={() => onLog(isBodyweight ? null : weight, reps)}
+          onClick={() => onLog(isBodyweight ? null : weight, reps, rir)}
         >
           LOG SET
         </button>
-        {hasLastSet && onRepeatLast && (
-          <button
-            className="btn btn-secondary btn-full"
-            onClick={onRepeatLast}
-          >
-            REPEAT LAST
-          </button>
-        )}
       </div>
     </div>
   );

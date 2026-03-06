@@ -4,25 +4,73 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::models::*;
 
-pub fn list(db: &DbPool, params: &SessionListParams) -> Result<Vec<SessionSummary>, AppError> {
+// ── Ownership verification helpers ──
+
+fn verify_session_ownership(conn: &rusqlite::Connection, session_id: i64, user_id: i64) -> Result<(), AppError> {
+    let owns: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM sessions WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![session_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !owns {
+        return Err(AppError::NotFound);
+    }
+    Ok(())
+}
+
+fn verify_set_ownership(conn: &rusqlite::Connection, set_id: i64, user_id: i64) -> Result<(), AppError> {
+    let owns: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM sets st
+         JOIN session_exercises se ON se.id = st.session_exercise_id
+         JOIN sessions s ON s.id = se.session_id
+         WHERE st.id = ?1 AND s.user_id = ?2",
+        rusqlite::params![set_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !owns {
+        return Err(AppError::NotFound);
+    }
+    Ok(())
+}
+
+fn verify_session_exercise_ownership(conn: &rusqlite::Connection, se_id: i64, user_id: i64) -> Result<(), AppError> {
+    let owns: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM session_exercises se
+         JOIN sessions s ON s.id = se.session_id
+         WHERE se.id = ?1 AND s.user_id = ?2",
+        rusqlite::params![se_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !owns {
+        return Err(AppError::NotFound);
+    }
+    Ok(())
+}
+
+pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec<SessionSummary>, AppError> {
     let conn = db.lock().unwrap();
     let limit = params.limit.unwrap_or(20);
     let offset = params.offset.unwrap_or(0);
 
     let (sql, sql_params): (String, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(tid) = params.template_id {
         (
-            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status
+            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
+                    (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
+                    (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-             WHERE s.template_id = ?1
-             ORDER BY s.started_at DESC LIMIT ?2 OFFSET ?3".to_string(),
-            vec![Box::new(tid), Box::new(limit), Box::new(offset)],
+             WHERE s.user_id = ?1 AND s.template_id = ?2
+             ORDER BY s.started_at DESC LIMIT ?3 OFFSET ?4".to_string(),
+            vec![Box::new(user_id), Box::new(tid), Box::new(limit), Box::new(offset)],
         )
     } else {
         (
-            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status
+            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
+                    (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
+                    (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-             ORDER BY s.started_at DESC LIMIT ?1 OFFSET ?2".to_string(),
-            vec![Box::new(limit), Box::new(offset)],
+             WHERE s.user_id = ?1
+             ORDER BY s.started_at DESC LIMIT ?2 OFFSET ?3".to_string(),
+            vec![Box::new(user_id), Box::new(limit), Box::new(offset)],
         )
     };
 
@@ -36,6 +84,8 @@ pub fn list(db: &DbPool, params: &SessionListParams) -> Result<Vec<SessionSummar
             started_at: row.get(4)?,
             ended_at: row.get(5)?,
             status: row.get(6)?,
+            set_count: row.get(7)?,
+            target_set_count: row.get(8)?,
         })
     })?;
 
@@ -46,32 +96,32 @@ pub fn list(db: &DbPool, params: &SessionListParams) -> Result<Vec<SessionSummar
     Ok(sessions)
 }
 
-pub fn get_active(db: &DbPool) -> Result<Option<Session>, AppError> {
+pub fn get_active(db: &DbPool, user_id: i64) -> Result<Option<Session>, AppError> {
     let conn = db.lock().unwrap();
     let id: Result<i64, _> = conn.query_row(
-        "SELECT id FROM sessions WHERE status IN ('active', 'paused') ORDER BY started_at DESC LIMIT 1",
-        [],
+        "SELECT id FROM sessions WHERE user_id = ?1 AND status IN ('active', 'paused') ORDER BY started_at DESC LIMIT 1",
+        [user_id],
         |row| row.get(0),
     );
 
     match id {
         Ok(id) => {
             drop(conn);
-            Ok(Some(get(db, id)?))
+            Ok(Some(get(db, user_id, id)?))
         }
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::Database(e)),
     }
 }
 
-pub fn get(db: &DbPool, id: i64) -> Result<Session, AppError> {
+pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Session, AppError> {
     let conn = db.lock().unwrap();
     let (template_id, template_name, name, started_at, ended_at, paused_duration, notes, status) = conn
         .query_row(
             "SELECT s.template_id, t.name, s.name, s.started_at, s.ended_at, s.paused_duration, s.notes, s.status
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-             WHERE s.id = ?1",
-            [id],
+             WHERE s.id = ?1 AND s.user_id = ?2",
+            rusqlite::params![id, user_id],
             |row| {
                 Ok((
                     row.get::<_, Option<i64>>(0)?,
@@ -103,25 +153,37 @@ pub fn get(db: &DbPool, id: i64) -> Result<Session, AppError> {
     })
 }
 
-pub fn create(db: &DbPool, input: &CreateSession) -> Result<Session, AppError> {
+pub fn create(db: &DbPool, user_id: i64, input: &CreateSession) -> Result<Session, AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify template belongs to user if provided
+    if let Some(template_id) = input.template_id {
+        let owns: bool = conn.query_row(
+            "SELECT COUNT(*) > 0 FROM templates WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![template_id, user_id],
+            |row| row.get(0),
+        )?;
+        if !owns {
+            return Err(AppError::NotFound);
+        }
+    }
 
     let status = input.status.as_deref().unwrap_or("active");
 
     if input.started_at.is_some() || input.ended_at.is_some() {
         conn.execute(
-            "INSERT INTO sessions (template_id, name, started_at, ended_at, status, notes)
-             VALUES (?1, ?2, COALESCE(?3, datetime('now')), ?4, ?5, ?6)",
+            "INSERT INTO sessions (user_id, template_id, name, started_at, ended_at, status, notes)
+             VALUES (?1, ?2, ?3, COALESCE(?4, datetime('now')), ?5, ?6, ?7)",
             rusqlite::params![
-                input.template_id, input.name,
+                user_id, input.template_id, input.name,
                 input.started_at, input.ended_at,
                 status, input.notes
             ],
         )?;
     } else {
         conn.execute(
-            "INSERT INTO sessions (template_id, name, status, notes) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![input.template_id, input.name, status, input.notes],
+            "INSERT INTO sessions (user_id, template_id, name, status, notes) VALUES (?1, ?2, ?3, ?4, ?5)",
+            rusqlite::params![user_id, input.template_id, input.name, status, input.notes],
         )?;
     }
 
@@ -151,11 +213,13 @@ pub fn create(db: &DbPool, input: &CreateSession) -> Result<Session, AppError> {
     }
 
     drop(conn);
-    get(db, session_id)
+    get(db, user_id, session_id)
 }
 
-pub fn update(db: &DbPool, id: i64, input: &UpdateSession) -> Result<Session, AppError> {
+pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateSession) -> Result<Session, AppError> {
     let conn = db.lock().unwrap();
+
+    verify_session_ownership(&conn, id, user_id)?;
 
     if let Some(ref status) = input.status {
         let valid = ["active", "paused", "completed", "abandoned"];
@@ -197,12 +261,15 @@ pub fn update(db: &DbPool, id: i64, input: &UpdateSession) -> Result<Session, Ap
     }
 
     drop(conn);
-    get(db, id)
+    get(db, user_id, id)
 }
 
-pub fn delete(db: &DbPool, id: i64) -> Result<(), AppError> {
+pub fn delete(db: &DbPool, user_id: i64, id: i64) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
-    let rows = conn.execute("DELETE FROM sessions WHERE id = ?1", [id])?;
+    let rows = conn.execute(
+        "DELETE FROM sessions WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![id, user_id],
+    )?;
     if rows == 0 {
         return Err(AppError::NotFound);
     }
@@ -211,8 +278,21 @@ pub fn delete(db: &DbPool, id: i64) -> Result<(), AppError> {
 
 // ── Session Exercises ──
 
-pub fn add_exercise(db: &DbPool, session_id: i64, input: &AddSessionExercise) -> Result<SessionExerciseWithSets, AppError> {
+pub fn add_exercise(db: &DbPool, user_id: i64, session_id: i64, input: &AddSessionExercise) -> Result<SessionExerciseWithSets, AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify session belongs to user
+    verify_session_ownership(&conn, session_id, user_id)?;
+
+    // Verify exercise belongs to user
+    let exercise_owns: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM exercises WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![input.exercise_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !exercise_owns {
+        return Err(AppError::NotFound);
+    }
 
     let position = match input.position {
         Some(p) => p,
@@ -250,8 +330,11 @@ pub fn add_exercise(db: &DbPool, session_id: i64, input: &AddSessionExercise) ->
     })
 }
 
-pub fn update_exercise(db: &DbPool, _session_id: i64, se_id: i64, input: &UpdateSessionExercise) -> Result<(), AppError> {
+pub fn update_exercise(db: &DbPool, user_id: i64, _session_id: i64, se_id: i64, input: &UpdateSessionExercise) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify ownership via session_exercises -> sessions
+    verify_session_exercise_ownership(&conn, se_id, user_id)?;
 
     if let Some(position) = input.position {
         conn.execute(
@@ -269,8 +352,12 @@ pub fn update_exercise(db: &DbPool, _session_id: i64, se_id: i64, input: &Update
     Ok(())
 }
 
-pub fn remove_exercise(db: &DbPool, _session_id: i64, se_id: i64) -> Result<(), AppError> {
+pub fn remove_exercise(db: &DbPool, user_id: i64, _session_id: i64, se_id: i64) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify ownership via session_exercises -> sessions
+    verify_session_exercise_ownership(&conn, se_id, user_id)?;
+
     let rows = conn.execute("DELETE FROM session_exercises WHERE id = ?1", [se_id])?;
     if rows == 0 {
         return Err(AppError::NotFound);
@@ -280,8 +367,11 @@ pub fn remove_exercise(db: &DbPool, _session_id: i64, se_id: i64) -> Result<(), 
 
 // ── Sets ──
 
-pub fn add_set(db: &DbPool, se_id: i64, input: &CreateSet) -> Result<Set, AppError> {
+pub fn add_set(db: &DbPool, user_id: i64, se_id: i64, input: &CreateSet) -> Result<Set, AppError> {
     let conn = db.lock().unwrap();
+
+    // Verify ownership via session_exercises -> sessions
+    verify_session_exercise_ownership(&conn, se_id, user_id)?;
 
     let set_number: i32 = {
         let max: Option<i32> = conn.query_row(
@@ -295,9 +385,9 @@ pub fn add_set(db: &DbPool, se_id: i64, input: &CreateSet) -> Result<Set, AppErr
     let set_type = input.set_type.as_deref().unwrap_or("working");
 
     conn.execute(
-        "INSERT INTO sets (session_exercise_id, set_number, weight_kg, reps, set_type)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
-        rusqlite::params![se_id, set_number, input.weight_kg, input.reps, set_type],
+        "INSERT INTO sets (session_exercise_id, set_number, weight_kg, reps, set_type, rir)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        rusqlite::params![se_id, set_number, input.weight_kg, input.reps, set_type, input.rir],
     )?;
 
     let id = conn.last_insert_rowid();
@@ -314,12 +404,15 @@ pub fn add_set(db: &DbPool, se_id: i64, input: &CreateSet) -> Result<Set, AppErr
         weight_kg: input.weight_kg,
         reps: input.reps,
         set_type: set_type.to_string(),
+        rir: input.rir,
         completed_at,
     })
 }
 
-pub fn update_set(db: &DbPool, set_id: i64, input: &UpdateSet) -> Result<Set, AppError> {
+pub fn update_set(db: &DbPool, user_id: i64, set_id: i64, input: &UpdateSet) -> Result<Set, AppError> {
     let conn = db.lock().unwrap();
+
+    verify_set_ownership(&conn, set_id, user_id)?;
 
     if let Some(weight_kg) = input.weight_kg {
         conn.execute("UPDATE sets SET weight_kg = ?1 WHERE id = ?2", rusqlite::params![weight_kg, set_id])?;
@@ -330,9 +423,12 @@ pub fn update_set(db: &DbPool, set_id: i64, input: &UpdateSet) -> Result<Set, Ap
     if let Some(ref set_type) = input.set_type {
         conn.execute("UPDATE sets SET set_type = ?1 WHERE id = ?2", rusqlite::params![set_type, set_id])?;
     }
+    if let Some(rir) = input.rir {
+        conn.execute("UPDATE sets SET rir = ?1 WHERE id = ?2", rusqlite::params![rir, set_id])?;
+    }
 
     conn.query_row(
-        "SELECT id, session_exercise_id, set_number, weight_kg, reps, set_type, completed_at
+        "SELECT id, session_exercise_id, set_number, weight_kg, reps, set_type, rir, completed_at
          FROM sets WHERE id = ?1",
         [set_id],
         |row| {
@@ -343,15 +439,19 @@ pub fn update_set(db: &DbPool, set_id: i64, input: &UpdateSet) -> Result<Set, Ap
                 weight_kg: row.get(3)?,
                 reps: row.get(4)?,
                 set_type: row.get(5)?,
-                completed_at: row.get(6)?,
+                rir: row.get(6)?,
+                completed_at: row.get(7)?,
             })
         },
     )
     .map_err(|_| AppError::NotFound)
 }
 
-pub fn delete_set(db: &DbPool, set_id: i64) -> Result<(), AppError> {
+pub fn delete_set(db: &DbPool, user_id: i64, set_id: i64) -> Result<(), AppError> {
     let conn = db.lock().unwrap();
+
+    verify_set_ownership(&conn, set_id, user_id)?;
+
     let rows = conn.execute("DELETE FROM sets WHERE id = ?1", [set_id])?;
     if rows == 0 {
         return Err(AppError::NotFound);
@@ -361,23 +461,28 @@ pub fn delete_set(db: &DbPool, set_id: i64) -> Result<(), AppError> {
 
 // ── History ──
 
-pub fn exercise_history(db: &DbPool, exercise_id: i64, limit: i64) -> Result<ExerciseHistory, AppError> {
+pub fn exercise_history(db: &DbPool, user_id: i64, exercise_id: i64, limit: i64) -> Result<ExerciseHistory, AppError> {
     let conn = db.lock().unwrap();
 
+    // Verify exercise belongs to user
     let exercise_name: String = conn
-        .query_row("SELECT name FROM exercises WHERE id = ?1", [exercise_id], |row| row.get(0))
+        .query_row(
+            "SELECT name FROM exercises WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![exercise_id, user_id],
+            |row| row.get(0),
+        )
         .map_err(|_| AppError::NotFound)?;
 
     let mut stmt = conn.prepare(
         "SELECT DISTINCT s.id, s.name, s.started_at
          FROM sessions s
          JOIN session_exercises se ON se.session_id = s.id
-         WHERE se.exercise_id = ?1 AND s.status = 'completed'
-         ORDER BY s.started_at DESC LIMIT ?2"
+         WHERE se.exercise_id = ?1 AND s.status = 'completed' AND s.user_id = ?2
+         ORDER BY s.started_at DESC LIMIT ?3"
     )?;
 
     let session_rows: Vec<(i64, Option<String>, String)> = stmt
-        .query_map(rusqlite::params![exercise_id, limit], |row| {
+        .query_map(rusqlite::params![exercise_id, user_id, limit], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         })?
         .filter_map(|r| r.ok())
@@ -386,7 +491,7 @@ pub fn exercise_history(db: &DbPool, exercise_id: i64, limit: i64) -> Result<Exe
     let mut sessions = Vec::new();
     for (session_id, session_name, date) in session_rows {
         let mut set_stmt = conn.prepare(
-            "SELECT st.id, st.session_exercise_id, st.set_number, st.weight_kg, st.reps, st.set_type, st.completed_at
+            "SELECT st.id, st.session_exercise_id, st.set_number, st.weight_kg, st.reps, st.set_type, st.rir, st.completed_at
              FROM sets st
              JOIN session_exercises se ON se.id = st.session_exercise_id
              WHERE se.session_id = ?1 AND se.exercise_id = ?2
@@ -402,7 +507,8 @@ pub fn exercise_history(db: &DbPool, exercise_id: i64, limit: i64) -> Result<Exe
                     weight_kg: row.get(3)?,
                     reps: row.get(4)?,
                     set_type: row.get(5)?,
-                    completed_at: row.get(6)?,
+                    rir: row.get(6)?,
+                    completed_at: row.get(7)?,
                 })
             })?
             .filter_map(|r| r.ok())
@@ -423,20 +529,20 @@ pub fn exercise_history(db: &DbPool, exercise_id: i64, limit: i64) -> Result<Exe
     })
 }
 
-pub fn template_previous(db: &DbPool, template_id: i64) -> Result<Option<Session>, AppError> {
+pub fn template_previous(db: &DbPool, user_id: i64, template_id: i64) -> Result<Option<Session>, AppError> {
     let conn = db.lock().unwrap();
     let id: Result<i64, _> = conn.query_row(
         "SELECT id FROM sessions
-         WHERE template_id = ?1 AND status = 'completed'
+         WHERE template_id = ?1 AND user_id = ?2 AND status = 'completed'
          ORDER BY started_at DESC LIMIT 1",
-        [template_id],
+        rusqlite::params![template_id, user_id],
         |row| row.get(0),
     );
 
     match id {
         Ok(id) => {
             drop(conn);
-            Ok(Some(get(db, id)?))
+            Ok(Some(get(db, user_id, id)?))
         }
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::Database(e)),
@@ -463,18 +569,18 @@ fn parse_import_date(date: &str) -> Result<String, AppError> {
     Ok(format!("{} 00:00:00", date))
 }
 
-fn resolve_exercise(conn: &rusqlite::Connection, name: &str, warnings: &mut Vec<String>) -> Result<Option<(i64, String)>, AppError> {
-    // Phase 1: exact case-insensitive match
+fn resolve_exercise(conn: &rusqlite::Connection, user_id: i64, name: &str, warnings: &mut Vec<String>) -> Result<Option<(i64, String)>, AppError> {
+    // Phase 1: exact case-insensitive match scoped to user
     let exact: Result<(i64, String), _> = conn.query_row(
-        "SELECT id, name FROM exercises WHERE LOWER(name) = LOWER(?1) AND archived = 0",
-        [name],
+        "SELECT id, name FROM exercises WHERE LOWER(name) = LOWER(?1) AND archived = 0 AND user_id = ?2",
+        rusqlite::params![name, user_id],
         |row| Ok((row.get(0)?, row.get(1)?)),
     );
     if let Ok(result) = exact {
         return Ok(Some(result));
     }
 
-    // Phase 2: fuzzy word match — all words must appear
+    // Phase 2: fuzzy word match — all words must appear, scoped to user
     let words: Vec<String> = name.split_whitespace()
         .map(|w| w.to_lowercase())
         .filter(|w| w.len() > 1)
@@ -488,17 +594,18 @@ fn resolve_exercise(conn: &rusqlite::Connection, name: &str, warnings: &mut Vec<
         .map(|(i, _)| format!("LOWER(name) LIKE ?{}", i + 1))
         .collect();
     let sql = format!(
-        "SELECT id, name FROM exercises WHERE {} AND archived = 0",
-        conditions.join(" AND ")
+        "SELECT id, name FROM exercises WHERE {} AND archived = 0 AND user_id = ?{}",
+        conditions.join(" AND "),
+        words.len() + 1
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    let params: Vec<String> = words.iter().map(|w| format!("%{}%", w)).collect();
-    let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter()
-        .map(|p| p as &dyn rusqlite::types::ToSql)
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = words.iter()
+        .map(|w| Box::new(format!("%{}%", w)) as Box<dyn rusqlite::types::ToSql>)
         .collect();
+    params.push(Box::new(user_id));
 
-    let matches: Vec<(i64, String)> = stmt.query_map(param_refs.as_slice(), |row| {
+    let matches: Vec<(i64, String)> = stmt.query_map(rusqlite::params_from_iter(params.iter()), |row| {
         Ok((row.get(0)?, row.get(1)?))
     })?
     .filter_map(|r| r.ok())
@@ -519,21 +626,21 @@ fn resolve_exercise(conn: &rusqlite::Connection, name: &str, warnings: &mut Vec<
     }
 }
 
-pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportResult, AppError> {
+pub fn import_sessions(db: &DbPool, user_id: i64, input: Vec<ImportSession>) -> Result<ImportResult, AppError> {
     let conn = db.lock().unwrap();
     let mut warnings: Vec<String> = Vec::new();
 
     // ── Validation pass (read-only) ──
 
-    // Resolve template names -> IDs
+    // Resolve template names -> IDs (scoped to user)
     let mut template_ids: Vec<Option<i64>> = Vec::new();
     for session in &input {
         parse_import_date(&session.date)?;
 
         let tid = if let Some(ref tname) = session.template {
             let id: Result<i64, _> = conn.query_row(
-                "SELECT id FROM templates WHERE LOWER(name) = LOWER(?1)",
-                [tname],
+                "SELECT id FROM templates WHERE LOWER(name) = LOWER(?1) AND user_id = ?2",
+                rusqlite::params![tname, user_id],
                 |row| row.get(0),
             );
             match id {
@@ -546,8 +653,7 @@ pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportR
         template_ids.push(tid);
     }
 
-    // Resolve exercise names -> IDs, tracking auto-creates
-    // Key: lowercased name, Value: (exercise_id or None, canonical_name)
+    // Resolve exercise names -> IDs, tracking auto-creates (scoped to user)
     let mut exercise_cache: HashMap<String, Option<(i64, String)>> = HashMap::new();
     let mut exercises_to_create: Vec<String> = Vec::new();
 
@@ -557,7 +663,7 @@ pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportR
             if exercise_cache.contains_key(&key) {
                 continue;
             }
-            let resolved = resolve_exercise(&conn, &exercise.name, &mut warnings)?;
+            let resolved = resolve_exercise(&conn, user_id, &exercise.name, &mut warnings)?;
             if resolved.is_none() {
                 exercises_to_create.push(exercise.name.clone());
             }
@@ -569,13 +675,13 @@ pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportR
 
     conn.execute_batch("BEGIN")?;
 
-    // Auto-create exercises that weren't found
+    // Auto-create exercises that weren't found (with user_id)
     let mut exercises_created: Vec<String> = Vec::new();
     for name in &exercises_to_create {
         let key = name.to_lowercase();
         conn.execute(
-            "INSERT INTO exercises (name) VALUES (?1)",
-            rusqlite::params![name],
+            "INSERT INTO exercises (user_id, name) VALUES (?1, ?2)",
+            rusqlite::params![user_id, name],
         )?;
         let id = conn.last_insert_rowid();
         exercise_cache.insert(key, Some((id, name.clone())));
@@ -590,9 +696,9 @@ pub fn import_sessions(db: &DbPool, input: Vec<ImportSession>) -> Result<ImportR
         let template_id = template_ids[i];
 
         conn.execute(
-            "INSERT INTO sessions (template_id, started_at, ended_at, status, notes, paused_duration)
-             VALUES (?1, ?2, ?3, 'completed', ?4, 0)",
-            rusqlite::params![template_id, &date, &date, session.notes],
+            "INSERT INTO sessions (user_id, template_id, started_at, ended_at, status, notes, paused_duration)
+             VALUES (?1, ?2, ?3, ?4, 'completed', ?5, 0)",
+            rusqlite::params![user_id, template_id, &date, &date, session.notes],
         )?;
         let session_id = conn.last_insert_rowid();
         session_ids.push(session_id);
@@ -689,7 +795,7 @@ fn get_session_exercises(conn: &rusqlite::Connection, session_id: i64) -> Result
     let mut exercises = Vec::new();
     for (se_id, exercise_id, exercise_name, position, notes) in exercise_rows {
         let mut set_stmt = conn.prepare(
-            "SELECT id, session_exercise_id, set_number, weight_kg, reps, set_type, completed_at
+            "SELECT id, session_exercise_id, set_number, weight_kg, reps, set_type, rir, completed_at
              FROM sets WHERE session_exercise_id = ?1 ORDER BY set_number"
         )?;
 
@@ -702,7 +808,8 @@ fn get_session_exercises(conn: &rusqlite::Connection, session_id: i64) -> Result
                     weight_kg: row.get(3)?,
                     reps: row.get(4)?,
                     set_type: row.get(5)?,
-                    completed_at: row.get(6)?,
+                    rir: row.get(6)?,
+                    completed_at: row.get(7)?,
                 })
             })?
             .filter_map(|r| r.ok())

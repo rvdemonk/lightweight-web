@@ -50,9 +50,9 @@ export function ActiveWorkoutPage() {
     fetchSession();
   }, [fetchSession]);
 
-  const handleLogSet = async (seId: number, weight: number | null, reps: number) => {
+  const handleLogSet = async (seId: number, weight: number | null, reps: number, rir: number | null) => {
     if (!session) return;
-    await api.addSet(session.id, seId, { weight_kg: weight, reps });
+    await api.addSet(session.id, seId, { weight_kg: weight, reps, rir });
     fetchSession();
   };
 
@@ -94,41 +94,58 @@ export function ActiveWorkoutPage() {
 
   return (
     <div className="page" style={{ paddingBottom: 80 }}>
-      {/* Header */}
+      {/* Sticky header */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'var(--bg-primary)',
+        paddingTop: 16,
+        paddingBottom: 12,
+        marginTop: -16,
+        marginLeft: -16,
+        marginRight: -16,
+        paddingLeft: 16,
+        paddingRight: 16,
+        borderBottom: '1px solid var(--border-subtle)',
       }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 18 }}>
-            {session.template_name || session.name || 'Freeform'}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 12,
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {session.template_name || session.name || 'Freeform'}
+            </div>
           </div>
+          <Timer
+            startedAt={session.started_at}
+            pausedDuration={session.paused_duration}
+            isPaused={session.status === 'paused'}
+          />
         </div>
-        <Timer
-          startedAt={session.started_at}
-          pausedDuration={session.paused_duration}
-          isPaused={session.status === 'paused'}
-        />
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-secondary"
+            style={{ flex: 1 }}
+            onClick={handlePause}
+          >
+            {session.status === 'paused' ? 'Resume' : 'Pause'}
+          </button>
+          <button
+            className="btn btn-danger"
+            style={{ flex: 1 }}
+            onClick={handleEnd}
+          >
+            End Workout
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button
-          className="btn btn-secondary"
-          style={{ flex: 1 }}
-          onClick={handlePause}
-        >
-          {session.status === 'paused' ? 'Resume' : 'Pause'}
-        </button>
-        <button
-          className="btn btn-danger"
-          style={{ flex: 1 }}
-          onClick={handleEnd}
-        >
-          End Workout
-        </button>
-      </div>
+      <div style={{ height: 16 }} />
 
       {/* Exercise cards */}
       {session.exercises.map((exercise, idx) => {
@@ -139,7 +156,7 @@ export function ActiveWorkoutPage() {
             exercise={exercise}
             expanded={idx === expandedIdx}
             onToggle={() => setExpandedIdx(idx)}
-            onLogSet={(w, r) => handleLogSet(exercise.id, w, r)}
+            onLogSet={(w, r, rir) => handleLogSet(exercise.id, w, r, rir)}
             onDeleteSet={handleDeleteSet}
             onUpdateNote={(note) => handleUpdateNote(exercise.id, note)}
             previousSets={previousData[exercise.exercise_id] || []}

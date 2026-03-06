@@ -2,11 +2,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import { parseDate } from '../utils/date';
+import { SetBars } from '../components/SetBars';
+import type { TemplateExercise } from '../api/types';
 
 export function SessionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: session, loading } = useApi(() => api.getSession(Number(id)), [id]);
+  const { data: template } = useApi(
+    () => session?.template_id ? api.getTemplate(session.template_id) : Promise.resolve(null),
+    [session?.template_id],
+  );
 
   if (loading || !session) return <div className="page empty">Loading...</div>;
 
@@ -29,30 +35,35 @@ export function SessionDetailPage() {
     navigate('/history');
   };
 
+  const getTemplateExercise = (exerciseId: number): TemplateExercise | undefined =>
+    template?.exercises.find(te => te.exercise_id === exerciseId);
+
   return (
     <div className="page">
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-      }}>
-        <button
-          className="btn btn-ghost"
-          style={{ fontSize: 16, padding: '4px 0', minHeight: 'auto' }}
-          onClick={() => navigate('/history')}
-        >
-          ←
-        </button>
-        <h1 style={{
-          fontSize: 18,
-          fontWeight: 700,
-          textTransform: 'uppercase',
+      <button
+        className="btn btn-ghost"
+        style={{
+          fontSize: 12,
+          padding: '8px 0',
+          minHeight: 44,
+          fontFamily: 'var(--font-data)',
           letterSpacing: '1px',
-        }}>
-          {session.template_name || session.name || 'Freeform'}
-        </h1>
-      </div>
+          color: 'var(--text-secondary)',
+          marginBottom: 4,
+        }}
+        onClick={() => navigate('/history')}
+      >
+        ← BACK
+      </button>
+      <h1 style={{
+        fontSize: 20,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '2px',
+        marginBottom: 8,
+      }}>
+        {session.template_name || session.name || 'Freeform'}
+      </h1>
 
       <div style={{
         display: 'flex',
@@ -60,7 +71,7 @@ export function SessionDetailPage() {
         alignItems: 'center',
         marginBottom: 16,
       }}>
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           {parseDate(session.started_at).toLocaleDateString('en-AU', {
             weekday: 'long',
             day: 'numeric',
@@ -79,54 +90,35 @@ export function SessionDetailPage() {
       </div>
 
       {session.notes && (
-        <div className="card" style={{ fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: 14 }}>
+        <div className="card" style={{ color: 'var(--text-primary)', fontSize: 13 }}>
           {session.notes}
         </div>
       )}
 
-      {session.exercises.map(exercise => (
-        <div key={exercise.id} className="card">
-          <div style={{
-            fontWeight: 700,
-            fontSize: 14,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: 8,
-          }}>
-            {exercise.exercise_name}
+      {session.exercises.map(exercise => {
+        const te = getTemplateExercise(exercise.exercise_id);
+        return (
+          <div key={exercise.id} className="card">
+            <div style={{
+              fontWeight: 700,
+              fontSize: 14,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              marginBottom: 8,
+            }}>
+              {exercise.exercise_name}
+            </div>
+
+            <SetBars sets={exercise.sets} templateExercise={te} />
+
+            {exercise.notes && (
+              <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 8 }}>
+                {exercise.notes}
+              </div>
+            )}
           </div>
-
-          {exercise.sets.map(set => (
-            <div
-              key={set.id}
-              className="data"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '4px 0',
-                fontSize: 14,
-              }}
-            >
-              <span>Set {set.set_number}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                <span style={{ minWidth: 52, textAlign: 'right' }}>
-                  {set.weight_kg !== null ? `${set.weight_kg}kg` : 'BW'}
-                </span>
-                <span style={{ width: 20, textAlign: 'center', color: 'var(--text-secondary)' }}>|</span>
-                <span style={{ minWidth: 20, textAlign: 'right' }}>
-                  {set.reps}
-                </span>
-              </span>
-            </div>
-          ))}
-
-          {exercise.notes && (
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontStyle: 'italic' }}>
-              {exercise.notes}
-            </div>
-          )}
-        </div>
-      ))}
+        );
+      })}
 
     </div>
   );

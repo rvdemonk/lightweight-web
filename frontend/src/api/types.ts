@@ -37,6 +37,7 @@ export interface WorkoutSet {
   weight_kg: number | null;
   reps: number;
   set_type: string;
+  rir: number | null;
   completed_at: string;
 }
 
@@ -70,6 +71,8 @@ export interface SessionSummary {
   started_at: string;
   ended_at: string | null;
   status: string;
+  set_count: number;
+  target_set_count: number | null;
 }
 
 export interface ExerciseHistory {
