@@ -449,37 +449,32 @@ export function BriefingPage() {
         </div>
       </div>
 
-      {/* ── PINNED FOOTER ── */}
+      {/* ── FIXED WORDMARK ── */}
       <div style={{
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        top: 16,
+        left: 20,
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 20px',
-        background: 'var(--bg-primary)',
-        borderTop: '1px solid var(--border-subtle)',
+        alignItems: 'baseline',
+        gap: 8,
         zIndex: 10,
       }}>
         <span style={{
           fontSize: 13,
           fontFamily: 'var(--font-data)',
+          fontWeight: 700,
           color: 'var(--accent-primary)',
           letterSpacing: '3px',
           textShadow: 'var(--glow-primary-text)',
         }}>
-          LIGHTWEIGHT
+          LW
         </span>
-        <span style={{ fontSize: 12, color: 'var(--border-subtle)' }}>·</span>
         <span style={{
-          fontSize: 12,
+          fontSize: 10,
           fontFamily: 'var(--font-data)',
           color: 'var(--text-secondary)',
           letterSpacing: '1px',
-          opacity: 0.5,
+          opacity: 0.4,
         }}>
           v{APP_VERSION}
         </span>
