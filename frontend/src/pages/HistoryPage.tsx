@@ -69,7 +69,7 @@ export function HistoryPage() {
                 color: statusColor,
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
-                textShadow: `0 0 10px ${statusColor}`,
+                textShadow: `0 0 7px ${statusColor}`,
               }}>
                 {badge}
               </span>
