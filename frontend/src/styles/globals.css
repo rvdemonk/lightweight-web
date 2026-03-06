@@ -1,4 +1,4 @@
-:root {
+:root, [data-theme="dark"] {
   /* Backgrounds — deeper, darker */
   --bg-primary: #07070d;
   --bg-surface: #0c0c14;
@@ -9,12 +9,16 @@
   --text-secondary: #6a6a82;
 
   /* Accents */
+  --accent-primary: #d4762c;
   --accent-amber: #d4762c;
   --accent-cyan: #32c8e8;
   --accent-green: #32e868;
   --accent-red: #e83232;
 
   /* Glow shadows */
+  --glow-primary: 0 0 8px rgba(212, 118, 44, 0.5), 0 0 24px rgba(212, 118, 44, 0.12);
+  --glow-primary-text: 0 0 10px rgba(212, 118, 44, 0.6);
+  --glow-primary-soft: 0 0 4px rgba(212, 118, 44, 0.2);
   --glow-amber: 0 0 8px rgba(212, 118, 44, 0.5), 0 0 24px rgba(212, 118, 44, 0.12);
   --glow-amber-text: 0 0 10px rgba(212, 118, 44, 0.6);
   --glow-amber-soft: 0 0 4px rgba(212, 118, 44, 0.2);
@@ -28,12 +32,84 @@
   --border-subtle: rgba(212, 118, 44, 0.2);
   --border-active: rgba(212, 118, 44, 0.35);
 
+  /* Active menu item */
+  --menu-active-bg: rgba(212, 118, 44, 0.08);
+  --menu-active-shadow: inset 0 0 20px rgba(212, 118, 44, 0.05), 0 0 8px rgba(212, 118, 44, 0.08);
+  --menu-active-border: rgba(212, 118, 44, 0.2);
+
+  /* Button text on filled buttons */
+  --btn-filled-text: #07070d;
+
+  /* Input focus */
+  --input-focus-inset: inset 0 0 12px rgba(212, 118, 44, 0.04);
+
+  /* Primary button glow */
+  --btn-primary-glow: drop-shadow(0 0 6px rgba(212, 118, 44, 0.5)) drop-shadow(0 0 16px rgba(212, 118, 44, 0.1));
+  --btn-success-glow: drop-shadow(0 0 6px rgba(50, 232, 104, 0.5)) drop-shadow(0 0 16px rgba(50, 232, 104, 0.1));
+  --btn-danger-shadow: 0 0 6px rgba(232, 50, 50, 0.12);
+
+  /* Error input */
+  --error-shadow: 0 0 6px rgba(232, 50, 50, 0.2);
+
+  /* Modal overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+
+  /* CRT scanlines */
+  --scanline-color: rgba(0, 0, 0, 0.03);
+
   /* Typography — monospace everywhere for the NERV feel */
   --font-body: 'JetBrains Mono', monospace;
   --font-data: 'JetBrains Mono', monospace;
 
   /* Grid pattern */
   --grid-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0v40M0 40h40' stroke='rgba(212%2C118%2C44%2C0.12)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+[data-theme="light"] {
+  --bg-primary: #e8e4de;
+  --bg-surface: #ddd8d0;
+  --bg-elevated: #d2ccc2;
+
+  --text-primary: #1a1a2e;
+  --text-secondary: #5a5a72;
+
+  --accent-primary: #0a7e8c;
+  --accent-amber: #d4762c;
+  --accent-cyan: #0a7e8c;
+  --accent-green: #1a8a4a;
+  --accent-red: #c42828;
+
+  --glow-primary: none;
+  --glow-primary-text: none;
+  --glow-primary-soft: none;
+  --glow-amber: none;
+  --glow-amber-text: none;
+  --glow-amber-soft: none;
+  --glow-cyan-text: none;
+  --glow-green: none;
+  --glow-green-text: none;
+  --glow-red: none;
+  --glow-red-text: none;
+
+  --border-subtle: rgba(10, 126, 140, 0.25);
+  --border-active: rgba(10, 126, 140, 0.45);
+
+  --menu-active-bg: rgba(10, 126, 140, 0.1);
+  --menu-active-shadow: none;
+  --menu-active-border: rgba(10, 126, 140, 0.25);
+
+  --btn-filled-text: #e8e4de;
+  --input-focus-inset: none;
+
+  --btn-primary-glow: none;
+  --btn-success-glow: none;
+  --btn-danger-shadow: none;
+
+  --error-shadow: 0 0 6px rgba(196, 40, 40, 0.2);
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --scanline-color: rgba(0, 0, 0, 0.015);
+
+  --grid-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0v40M0 40h40' stroke='rgba(10%2C126%2C140%2C0.1)' stroke-width='1'/%3E%3C/svg%3E");
 }
 
 * {
@@ -72,8 +148,8 @@ html {
     0deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.03) 2px,
-    rgba(0, 0, 0, 0.03) 4px
+    var(--scanline-color) 2px,
+    var(--scanline-color) 4px
   );
   pointer-events: none;
   z-index: 10000;
@@ -110,8 +186,8 @@ input, textarea, select {
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--accent-amber);
-  box-shadow: var(--glow-amber-soft), inset 0 0 12px rgba(212, 118, 44, 0.04);
+  border-color: var(--accent-primary);
+  box-shadow: var(--glow-primary-soft), var(--input-focus-inset);
 }
 
 /* Data numbers always monospace */
@@ -141,8 +217,8 @@ input:focus, textarea:focus, select:focus {
 /* Cut-corner buttons (top-left + bottom-right chamfer) */
 .btn-primary {
   --btn-cut: 8px;
-  background: var(--accent-amber);
-  color: #07070d;
+  background: var(--accent-primary);
+  color: var(--btn-filled-text);
   clip-path: polygon(
     var(--btn-cut) 0,
     100% 0,
@@ -151,7 +227,7 @@ input:focus, textarea:focus, select:focus {
     0 100%,
     0 var(--btn-cut)
   );
-  filter: drop-shadow(0 0 6px rgba(212, 118, 44, 0.5)) drop-shadow(0 0 16px rgba(212, 118, 44, 0.1));
+  filter: var(--btn-primary-glow);
 }
 
 .btn-secondary {
@@ -161,7 +237,7 @@ input:focus, textarea:focus, select:focus {
 
 .btn-secondary:active {
   border-color: var(--border-active);
-  box-shadow: var(--glow-amber-soft);
+  box-shadow: var(--glow-primary-soft);
 }
 
 .btn-danger {
@@ -169,7 +245,7 @@ input:focus, textarea:focus, select:focus {
   border: 1px solid var(--accent-red);
   color: var(--accent-red);
   text-shadow: var(--glow-red-text);
-  box-shadow: 0 0 6px rgba(232, 50, 50, 0.12);
+  box-shadow: var(--btn-danger-shadow);
 }
 
 .btn-danger:active {
@@ -179,7 +255,7 @@ input:focus, textarea:focus, select:focus {
 .btn-success {
   --btn-cut: 8px;
   background: var(--accent-green);
-  color: #07070d;
+  color: var(--btn-filled-text);
   clip-path: polygon(
     var(--btn-cut) 0,
     100% 0,
@@ -188,7 +264,7 @@ input:focus, textarea:focus, select:focus {
     0 100%,
     0 var(--btn-cut)
   );
-  filter: drop-shadow(0 0 6px rgba(50, 232, 104, 0.5)) drop-shadow(0 0 16px rgba(50, 232, 104, 0.1));
+  filter: var(--btn-success-glow);
 }
 
 .btn-ghost {

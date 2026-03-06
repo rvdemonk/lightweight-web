@@ -26,8 +26,8 @@ export function WorkoutProgressBar({ completedSets, targetSets }: WorkoutProgres
     <div style={{
       position: 'relative',
       height: 20,
-      background: 'rgba(212, 118, 44, 0.06)',
-      border: '1px solid rgba(212, 118, 44, 0.10)',
+      background: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
       borderRadius: 2,
       overflow: 'hidden',
       clipPath: S_CURVE,

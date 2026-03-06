@@ -61,7 +61,7 @@ export function LoginPage() {
     width: '100%',
     marginBottom: 12,
     borderColor: hasError ? 'var(--accent-red)' : undefined,
-    boxShadow: hasError ? '0 0 6px rgba(232, 50, 50, 0.2)' : undefined,
+    boxShadow: hasError ? 'var(--error-shadow)' : undefined,
   });
 
   return (

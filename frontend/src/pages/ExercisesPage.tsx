@@ -3,6 +3,15 @@ import { api } from '../api/client';
 import type { Exercise } from '../api/types';
 import { useApi } from '../hooks/useApi';
 
+const MUSCLE_GROUPS = [
+  'Back', 'Biceps', 'Calves', 'Chest', 'Core', 'Forearms',
+  'Glutes', 'Hamstrings', 'Neck', 'Quads', 'Shoulders', 'Triceps', 'Other',
+];
+
+const EQUIPMENT = [
+  'Barbell', 'Bodyweight', 'Cable', 'Dumbbells', 'Kettlebell', 'Machine', 'Band', 'Other',
+];
+
 export function ExercisesPage() {
   const { data: exercises, refetch } = useApi(() => api.listExercises(), []);
   const [showForm, setShowForm] = useState(false);
@@ -63,18 +72,22 @@ export function ExercisesPage() {
             style={{ width: '100%', marginBottom: 8 }}
             autoFocus
           />
-          <input
-            placeholder="Muscle group"
+          <select
             value={muscleGroup}
             onChange={e => setMuscleGroup(e.target.value)}
             style={{ width: '100%', marginBottom: 8 }}
-          />
-          <input
-            placeholder="Equipment"
+          >
+            <option value="">Muscle group</option>
+            {MUSCLE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <select
             value={equipment}
             onChange={e => setEquipment(e.target.value)}
             style={{ width: '100%', marginBottom: 8 }}
-          />
+          >
+            <option value="">Equipment</option>
+            {EQUIPMENT.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
           <button type="submit" className="btn btn-primary btn-full">
             Add Exercise
           </button>
@@ -95,57 +108,47 @@ export function ExercisesPage() {
                   style={{
                     cursor: 'pointer',
                     padding: '12px 16px',
-                    background: expanded ? 'var(--bg-elevated)' : undefined,
+                    borderColor: expanded ? 'var(--border-active)' : undefined,
                   }}
                   onClick={() => setExpandedId(expanded ? null : ex.id)}
                 >
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
-                    <div style={{ fontWeight: 600 }}>{ex.name}</div>
-                    {!expanded && ex.equipment && (
-                      <span style={{
-                        fontSize: 12,
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-data)',
-                      }}>
-                        {ex.equipment}
-                      </span>
-                    )}
-                  </div>
+                  <div style={{ fontWeight: 400 }}>{ex.name}</div>
 
                   {expanded && (
                     <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
                       {ex.equipment && (
                         <div style={{
-                          fontSize: 12,
+                          fontSize: 14,
                           color: 'var(--text-secondary)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '1px',
                           marginBottom: 4,
                         }}>
                           {ex.equipment}
                         </div>
                       )}
                       <div style={{
-                        fontSize: 12,
+                        fontSize: 14,
                         color: 'var(--text-secondary)',
-                        marginBottom: 12,
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        marginBottom: 16,
                       }}>
                         {group}
                       </div>
-                      <button
-                        className="btn btn-ghost"
-                        style={{
-                          fontSize: 12,
-                          color: 'var(--accent-red)',
-                          textShadow: 'var(--glow-red-text)',
-                          padding: '4px 0',
-                        }}
-                        onClick={() => handleDelete(ex.id)}
-                      >
-                        Archive
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-danger"
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 16px',
+                            minHeight: 36,
+                          }}
+                          onClick={() => handleDelete(ex.id)}
+                        >
+                          Archive
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { APP_VERSION } from '../version';
+import { useTheme } from '../hooks/useTheme';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'HOME',
@@ -20,6 +21,7 @@ function getPageTitle(pathname: string): string {
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const pageTitle = getPageTitle(location.pathname);
 
   const navItems = [
@@ -47,9 +49,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span style={{
             fontWeight: 700,
             fontSize: 16,
-            color: 'var(--accent-amber)',
+            color: 'var(--accent-primary)',
             fontFamily: 'var(--font-data)',
-            textShadow: 'var(--glow-amber-text)',
+            textShadow: 'var(--glow-primary-text)',
             letterSpacing: '2px',
           }}>
             LW
@@ -81,13 +83,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 to={item.path}
                 style={{
                   color: active
-                    ? 'var(--accent-amber)'
+                    ? 'var(--accent-primary)'
                     : 'var(--text-secondary)',
                   fontSize: 12,
                   fontWeight: 500,
                   textDecoration: 'none',
                   letterSpacing: '1px',
-                  textShadow: active ? 'var(--glow-amber-text)' : 'none',
+                  textShadow: active ? 'var(--glow-primary-text)' : 'none',
                 }}
               >
                 {item.label}
@@ -112,10 +114,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span style={{
               display: 'block',
               height: 2,
-              background: menuOpen ? 'var(--accent-amber)' : 'var(--text-primary)',
+              background: menuOpen ? 'var(--accent-primary)' : 'var(--text-primary)',
               transition: 'transform 0.2s, opacity 0.2s, background 0.2s',
               transform: menuOpen ? 'translateY(6px) rotate(45deg)' : 'none',
-              boxShadow: menuOpen ? 'var(--glow-amber-soft)' : 'none',
+              boxShadow: menuOpen ? 'var(--glow-primary-soft)' : 'none',
             }} />
             <span style={{
               display: 'block',
@@ -127,10 +129,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span style={{
               display: 'block',
               height: 2,
-              background: menuOpen ? 'var(--accent-amber)' : 'var(--text-primary)',
+              background: menuOpen ? 'var(--accent-primary)' : 'var(--text-primary)',
               transition: 'transform 0.2s, opacity 0.2s, background 0.2s',
               transform: menuOpen ? 'translateY(-6px) rotate(-45deg)' : 'none',
-              boxShadow: menuOpen ? 'var(--glow-amber-soft)' : 'none',
+              boxShadow: menuOpen ? 'var(--glow-primary-soft)' : 'none',
             }} />
           </div>
         </button>
@@ -154,39 +156,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
           transition: 'opacity 0.15s ease',
         }}
       >
-        {/* Decorative top divider with label */}
-        <div style={{
-          position: 'absolute',
-          top: 24,
-          left: 24,
-          right: 24,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}>
+        {/* Centered content group */}
+        <div>
+          {/* NAVIGATION divider */}
           <div style={{
-            width: 12,
-            height: 1,
-            background: 'var(--border-active)',
-            flexShrink: 0,
-          }} />
-          <span style={{
-            fontSize: 9,
-            color: 'var(--accent-amber)',
-            letterSpacing: '2px',
-            opacity: 0.6,
-            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 16,
           }}>
-            NAVIGATION
-          </span>
-          <div style={{
-            flex: 1,
-            height: 1,
-            background: 'var(--border-subtle)',
-          }} />
-        </div>
+            <div style={{ width: 12, height: 1, background: 'var(--border-active)', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, color: 'var(--accent-primary)', letterSpacing: '2px', opacity: 0.6, whiteSpace: 'nowrap' }}>
+              NAVIGATION
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {navItems.map(item => {
             const active = location.pathname === item.path;
             return (
@@ -201,13 +187,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   padding: '20px 16px',
                   textDecoration: 'none',
                   background: active
-                    ? 'rgba(212, 118, 44, 0.08)'
+                    ? 'var(--menu-active-bg)'
                     : 'transparent',
                   boxShadow: active
-                    ? 'inset 0 0 20px rgba(212, 118, 44, 0.05), 0 0 8px rgba(212, 118, 44, 0.08)'
+                    ? 'var(--menu-active-shadow)'
                     : 'none',
                   border: active
-                    ? '1px solid rgba(212, 118, 44, 0.2)'
+                    ? '1px solid var(--menu-active-border)'
                     : '1px solid transparent',
                   transition: 'background 0.15s, box-shadow 0.15s',
                   minHeight: 64,
@@ -215,10 +201,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <span style={{
                   fontSize: 14,
-                  color: 'var(--accent-amber)',
+                  color: 'var(--accent-primary)',
                   opacity: active ? 1 : 0,
                   width: 12,
-                  textShadow: 'var(--glow-amber-text)',
+                  textShadow: 'var(--glow-primary-text)',
                   transition: 'opacity 0.15s',
                 }}>
                   ▸
@@ -226,9 +212,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <span style={{
                   fontFamily: 'var(--font-data)',
                   fontSize: 12,
-                  color: active ? 'var(--accent-amber)' : 'var(--text-secondary)',
+                  color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   width: 24,
-                  textShadow: active ? 'var(--glow-amber-text)' : 'none',
+                  textShadow: active ? 'var(--glow-primary-text)' : 'none',
                 }}>
                   {item.num}
                 </span>
@@ -237,14 +223,73 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   fontWeight: 700,
                   letterSpacing: '2px',
                   fontFamily: 'var(--font-data)',
-                  color: active ? 'var(--accent-amber)' : 'var(--text-primary)',
-                  textShadow: active ? 'var(--glow-amber-text)' : 'none',
+                  color: active ? 'var(--accent-primary)' : 'var(--text-primary)',
+                  textShadow: active ? 'var(--glow-primary-text)' : 'none',
                 }}>
                   {item.label}
                 </span>
               </Link>
             );
           })}
+        </div>
+
+          {/* Display mode selector */}
+          <div style={{ marginTop: 24 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 12,
+          }}>
+            <div style={{ width: 12, height: 1, background: 'var(--border-active)', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, color: 'var(--accent-primary)', letterSpacing: '2px', opacity: 0.6, whiteSpace: 'nowrap' }}>
+              DISPLAY
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 0 }}>
+            {(['dark', 'light'] as const).map(mode => {
+              const active = theme === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => { if (!active) toggleTheme(); }}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    background: active ? 'var(--menu-active-bg)' : 'transparent',
+                    border: active ? '1px solid var(--menu-active-border)' : '1px solid transparent',
+                    cursor: active ? 'default' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <span style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 1,
+                    background: active ? 'var(--accent-primary)' : 'transparent',
+                    border: active ? 'none' : '1px solid var(--border-subtle)',
+                    boxShadow: active ? 'var(--glow-primary-soft)' : 'none',
+                  }} />
+                  <span style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    letterSpacing: '2px',
+                    color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                    textShadow: active ? 'var(--glow-primary-text)' : 'none',
+                  }}>
+                    {mode === 'dark' ? 'NIGHT' : 'DAY'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          </div>
         </div>
 
         {/* Decorative bottom divider with status */}
@@ -280,16 +325,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
           }} />
         </div>
 
+        {/* Version */}
         <div style={{
           position: 'absolute',
           bottom: 16,
           left: 24,
           fontFamily: 'var(--font-data)',
           fontSize: 13,
-          color: 'var(--accent-amber)',
+          color: 'var(--accent-primary)',
           letterSpacing: '2px',
           opacity: 0.7,
-          textShadow: 'var(--glow-amber-text)',
+          textShadow: 'var(--glow-primary-text)',
         }}>
           LIGHTWEIGHT v{APP_VERSION}
         </div>

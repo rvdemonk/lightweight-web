@@ -38,8 +38,8 @@ export function IncrementButton({ value, onChange, step, label, min = 0, muted =
         </div>
         <div style={{
           fontWeight: 700,
-          color: muted ? 'var(--text-secondary)' : 'var(--accent-amber)',
-          textShadow: muted ? 'none' : 'var(--glow-amber-text)',
+          color: muted ? 'var(--text-secondary)' : 'var(--accent-primary)',
+          textShadow: muted ? 'none' : 'var(--glow-primary-text)',
           fontSize: 20,
         }}>
           {value}

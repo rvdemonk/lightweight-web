@@ -13,7 +13,7 @@ export function Timer({ startedAt, pausedDuration, isPaused }: TimerProps) {
     <span className="data" style={{
       fontSize: 20,
       fontWeight: 700,
-      color: isPaused ? 'var(--accent-amber)' : 'var(--text-primary)',
+      color: isPaused ? 'var(--accent-primary)' : 'var(--text-primary)',
     }}>
       {formatted}
     </span>

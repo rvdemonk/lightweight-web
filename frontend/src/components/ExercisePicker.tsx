@@ -24,7 +24,7 @@ export function ExercisePicker({ onSelect, onClose }: ExercisePickerProps) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.8)',
+      background: 'var(--overlay-bg)',
       zIndex: 200,
       display: 'flex',
       flexDirection: 'column',

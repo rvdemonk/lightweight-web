@@ -179,8 +179,8 @@ export function HomePage() {
         textAlign: 'center',
         textTransform: 'uppercase',
         letterSpacing: '4px',
-        color: 'var(--accent-amber)',
-        textShadow: 'var(--glow-amber-text)',
+        color: 'var(--accent-primary)',
+        textShadow: 'var(--glow-primary-text)',
       }}>
         START WORKOUT
       </h1>

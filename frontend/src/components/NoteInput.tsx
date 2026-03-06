@@ -38,10 +38,10 @@ export function NoteInput({ exerciseName, value, onSave }: NoteInputProps) {
     >
       <div style={{
         fontSize: 11,
-        color: 'var(--accent-amber)',
+        color: 'var(--accent-primary)',
         letterSpacing: '2px',
         marginBottom: 12,
-        textShadow: 'var(--glow-amber-text)',
+        textShadow: 'var(--glow-primary-text)',
         opacity: 0.7,
         textTransform: 'uppercase',
       }}>

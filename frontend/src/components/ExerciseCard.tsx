@@ -68,9 +68,9 @@ export function ExerciseCard({
         </div>
         <div style={{
           fontSize: 12,
-          color: exercise.sets.length > 0 ? 'var(--accent-amber)' : 'var(--text-secondary)',
+          color: exercise.sets.length > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)',
           fontFamily: 'var(--font-data)',
-          textShadow: exercise.sets.length > 0 ? 'var(--glow-amber-text)' : 'none',
+          textShadow: exercise.sets.length > 0 ? 'var(--glow-primary-text)' : 'none',
         }}>
           {String(exercise.sets.length).padStart(2, '0')}
         </div>
