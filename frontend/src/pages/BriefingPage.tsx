@@ -174,6 +174,8 @@ function TableOfContents({ activeId }: { activeId: string }) {
 export function BriefingPage() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const heroRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Force dark theme for this page
@@ -183,6 +185,17 @@ export function BriefingPage() {
     return () => {
       if (prev) document.documentElement.setAttribute('data-theme', prev);
     };
+  }, []);
+
+  // Track hero visibility
+  useEffect(() => {
+    if (!heroRef.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setHeroVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    obs.observe(heroRef.current);
+    return () => obs.disconnect();
   }, []);
 
   // Track active section for TOC
@@ -252,7 +265,7 @@ export function BriefingPage() {
             paddingBottom: 24,
             textAlign: 'center',
           }}>
-            <div style={{
+            <div ref={heroRef} style={{
               fontSize: 40,
               fontWeight: 700,
               fontFamily: 'var(--font-data)',
@@ -449,34 +462,26 @@ export function BriefingPage() {
         </div>
       </div>
 
-      {/* ── FIXED WORDMARK ── */}
+      {/* ── FIXED WORDMARK — appears when hero scrolls away ── */}
       <div style={{
         position: 'fixed',
         top: 16,
         left: 20,
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: 8,
         zIndex: 10,
+        opacity: heroVisible ? 0 : 1,
+        transform: heroVisible ? 'translateY(-8px)' : 'translateY(0)',
+        transition: 'opacity 0.3s, transform 0.3s',
+        pointerEvents: heroVisible ? 'none' : 'auto',
       }}>
         <span style={{
-          fontSize: 13,
+          fontSize: 14,
           fontFamily: 'var(--font-data)',
           fontWeight: 700,
           color: 'var(--accent-primary)',
-          letterSpacing: '3px',
+          letterSpacing: '4px',
           textShadow: 'var(--glow-primary-text)',
         }}>
-          LW
-        </span>
-        <span style={{
-          fontSize: 10,
-          fontFamily: 'var(--font-data)',
-          color: 'var(--text-secondary)',
-          letterSpacing: '1px',
-          opacity: 0.4,
-        }}>
-          v{APP_VERSION}
+          LIGHTWEIGHT
         </span>
       </div>
     </>
