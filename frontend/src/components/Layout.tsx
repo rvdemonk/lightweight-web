@@ -51,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             textShadow: 'var(--glow-amber-text)',
             letterSpacing: '2px',
           }}>
-            LW
+            LW<span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>v0.1</span>
           </span>
         </Link>
 
