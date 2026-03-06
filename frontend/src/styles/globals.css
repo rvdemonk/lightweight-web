@@ -9,15 +9,15 @@
   --text-secondary: #6a6a82;
 
   /* Accents */
-  --accent-amber: #e8a832;
+  --accent-amber: #d4762c;
   --accent-cyan: #32c8e8;
   --accent-green: #32e868;
   --accent-red: #e83232;
 
   /* Glow shadows */
-  --glow-amber: 0 0 8px rgba(232, 168, 50, 0.5), 0 0 24px rgba(232, 168, 50, 0.12);
-  --glow-amber-text: 0 0 10px rgba(232, 168, 50, 0.6);
-  --glow-amber-soft: 0 0 4px rgba(232, 168, 50, 0.2);
+  --glow-amber: 0 0 8px rgba(212, 118, 44, 0.5), 0 0 24px rgba(212, 118, 44, 0.12);
+  --glow-amber-text: 0 0 10px rgba(212, 118, 44, 0.6);
+  --glow-amber-soft: 0 0 4px rgba(212, 118, 44, 0.2);
   --glow-cyan-text: 0 0 10px rgba(50, 200, 232, 0.5);
   --glow-green: 0 0 8px rgba(50, 232, 104, 0.4), 0 0 20px rgba(50, 232, 104, 0.1);
   --glow-green-text: 0 0 10px rgba(50, 232, 104, 0.5);
@@ -25,15 +25,15 @@
   --glow-red-text: 0 0 10px rgba(232, 50, 50, 0.5);
 
   /* Borders — warm amber tint instead of cool gray */
-  --border-subtle: rgba(232, 168, 50, 0.1);
-  --border-active: rgba(232, 168, 50, 0.35);
+  --border-subtle: rgba(212, 118, 44, 0.1);
+  --border-active: rgba(212, 118, 44, 0.35);
 
   /* Typography — monospace everywhere for the NERV feel */
   --font-body: 'JetBrains Mono', monospace;
   --font-data: 'JetBrains Mono', monospace;
 
-  /* Hex pattern */
-  --hex-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.35 11-6.35V17.9l-11-6.35L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='rgba(232%2C168%2C50%2C0.05)' fill-rule='evenodd'/%3E%3C/svg%3E");
+  /* Grid pattern */
+  --grid-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0v40M0 40h40' stroke='rgba(212%2C118%2C44%2C0.12)' stroke-width='1'/%3E%3C/svg%3E");
 }
 
 * {
@@ -111,7 +111,7 @@ input, textarea, select {
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent-amber);
-  box-shadow: var(--glow-amber-soft), inset 0 0 12px rgba(232, 168, 50, 0.04);
+  box-shadow: var(--glow-amber-soft), inset 0 0 12px rgba(212, 118, 44, 0.04);
 }
 
 /* Data numbers always monospace */
@@ -151,7 +151,7 @@ input:focus, textarea:focus, select:focus {
     0 100%,
     0 var(--btn-cut)
   );
-  filter: drop-shadow(0 0 6px rgba(232, 168, 50, 0.5)) drop-shadow(0 0 16px rgba(232, 168, 50, 0.1));
+  filter: drop-shadow(0 0 6px rgba(212, 118, 44, 0.5)) drop-shadow(0 0 16px rgba(212, 118, 44, 0.1));
 }
 
 .btn-secondary {
@@ -304,9 +304,9 @@ input:focus, textarea:focus, select:focus {
   white-space: nowrap;
 }
 
-/* Hex pattern background — full width on desktop */
-.hex-bg {
-  background-image: var(--hex-pattern);
+/* Grid pattern background — full width on desktop */
+.grid-bg {
+  background-image: var(--grid-pattern);
   max-width: none;
   margin: 0;
   padding-left: max(16px, calc((100% - 568px) / 2));

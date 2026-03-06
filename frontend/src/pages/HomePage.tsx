@@ -161,7 +161,7 @@ export function HomePage() {
 
   // Main choice view
   return (
-    <div className="page hex-bg" style={{
+    <div className="page grid-bg" style={{
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -169,7 +169,7 @@ export function HomePage() {
     }}>
       {/* Decorative divider */}
       <div className="nerv-divider" style={{ marginBottom: 32 }}>
-        <span>INITIATE</span>
+        <span>SESSION</span>
       </div>
 
       <h1 style={{
@@ -211,7 +211,7 @@ export function HomePage() {
 
       {/* Decorative bottom divider */}
       <div className="nerv-divider" style={{ marginTop: 32 }}>
-        <span>READY</span>
+        <span>STANDBY</span>
       </div>
     </div>
   );

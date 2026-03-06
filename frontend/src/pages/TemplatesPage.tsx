@@ -35,25 +35,15 @@ export function TemplatesPage() {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{t.name}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{
-                  fontSize: 12,
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-data)',
-                }}>
-                  {t.exercises.length}
-                </span>
-                <span style={{
-                  fontSize: 12,
-                  color: 'var(--text-secondary)',
-                  transition: 'transform 0.15s',
-                  transform: expanded ? 'rotate(180deg)' : 'none',
-                  display: 'inline-block',
-                }}>
-                  ▾
-                </span>
-              </div>
+              <div style={{ fontWeight: 700, fontSize: 16, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.name}</div>
+              <span style={{
+                fontSize: 11,
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-data)',
+                letterSpacing: '0.5px',
+              }}>
+                {t.exercises.length} EXERCISES
+              </span>
             </div>
 
             {expanded && (
@@ -61,8 +51,8 @@ export function TemplatesPage() {
                 {t.exercises.map(ex => {
                   const reps = ex.target_reps_min
                     ? (ex.target_reps_max && ex.target_reps_max !== ex.target_reps_min
-                        ? `${ex.target_sets}×${ex.target_reps_min}-${ex.target_reps_max}`
-                        : `${ex.target_sets}×${ex.target_reps_min}`)
+                        ? `${ex.target_sets}s | ${ex.target_reps_min}-${ex.target_reps_max}r`
+                        : `${ex.target_sets}s | ${ex.target_reps_min}r`)
                     : '';
                   return (
                     <div

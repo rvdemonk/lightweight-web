@@ -137,7 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Full-screen mobile menu */}
       <div
-        className="mobile-menu hex-bg"
+        className="mobile-menu grid-bg"
         style={{
           position: 'fixed',
           inset: 0,
@@ -200,13 +200,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   padding: '20px 16px',
                   textDecoration: 'none',
                   background: active
-                    ? 'rgba(232, 168, 50, 0.08)'
+                    ? 'rgba(212, 118, 44, 0.08)'
                     : 'transparent',
                   boxShadow: active
-                    ? 'inset 0 0 20px rgba(232, 168, 50, 0.05), 0 0 8px rgba(232, 168, 50, 0.08)'
+                    ? 'inset 0 0 20px rgba(212, 118, 44, 0.05), 0 0 8px rgba(212, 118, 44, 0.08)'
                     : 'none',
                   border: active
-                    ? '1px solid rgba(232, 168, 50, 0.2)'
+                    ? '1px solid rgba(212, 118, 44, 0.2)'
                     : '1px solid transparent',
                   transition: 'background 0.15s, box-shadow 0.15s',
                   minHeight: 64,
