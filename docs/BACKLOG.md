@@ -33,6 +33,8 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#feature` **History: convert freeflow workout to template** — option on a completed freeflow session to save it as a reusable workout template.
 
+- [ ] `#feature` **Data export GET endpoint** — public authenticated endpoint that returns all user training data as JSON. Designed for pasting into ChatGPT/Claude for analysis. Single GET request, full history.
+
 ---
 
 ## Later

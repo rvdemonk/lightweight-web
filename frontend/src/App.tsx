@@ -10,6 +10,7 @@ import { TemplatePage } from './pages/TemplatePage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { BriefingPage } from './pages/BriefingPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) {
@@ -22,6 +23,7 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/primer" element={<BriefingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/workout" element={<ProtectedRoute><ActiveWorkoutPage /></ProtectedRoute>} />
