@@ -26,20 +26,15 @@ The unifying metric for progressive overload across different rep ranges.
 
 ## Tier 1 — Aggregations (SQL only, no formulas)
 
-### 1a. Activity Heatmap
-- Calendar grid (GitHub contribution style), trailing 12 months
-- Heat intensity = total sets completed that day
-- Immediately satisfying, zero complexity
+### 1a. Activity Heatmap [DONE]
+- Calendar grid (GitHub contribution style), auto-sizing, 16-week minimum window
+- Heat intensity = total working sets completed that day
+- Pure SVG, ResizeObserver for responsive sizing
 
-### 1b. Weekly Volume (Total Sets)
-- Bar chart: total working sets per week
-- The single metric most correlated with hypertrophy (Schoenfeld et al.)
-- Filter: all exercises, or by muscle group
-
-### 1c. Sets Per Muscle Group Per Week
-- Stacked bar or grouped bar chart
-- Requires muscle_group on exercises (already in schema)
-- Answers "am I training balanced?"
+### 1b. Weekly Volume (Total Sets) [DONE]
+### 1c. Sets Per Muscle Group Per Week [DONE]
+- Combined into single stacked bar chart with three-way toggle: Total / Upper-Lower-Core / Muscle Group
+- High-contrast hardcoded colours for theme compatibility
 
 ### 1d. Session Frequency
 - Workouts per week, rolling average
@@ -47,16 +42,15 @@ The unifying metric for progressive overload across different rep ranges.
 
 ## Tier 2 — Calculated Metrics
 
-### 2a. e1RM Progression Chart
-- THE progressive overload chart
-- Per-exercise line chart with scatter dots (session best) and rolling-best line
-- Exercise selector dropdown
-- Highest value, most visually striking
+### 2a. e1RM Progression Chart [DONE]
+- Per-exercise line chart with cyan scatter dots (session best) and amber rolling-best line (21-day window)
+- Rolling line extends to today as flat line showing current ceiling
+- Time-based x-axis, auto-selects exercise with most data, RIR-adjusted when available
 
-### 2b. Personal Records
-- Best e1RM, heaviest single, most reps at a given weight, per exercise
-- PR detection with dates
-- "NEW RECORD DETECTED" display moments
+### 2b. Personal Records [DONE]
+- Three square cards below chart: best e1RM, heaviest weight, most reps
+- Computed server-side in same endpoint as e1RM data
+- 30-day delta on e1RM card in green/red
 
 ### 2c. Average RIR Trend
 - For users recording RIR: mean RIR per session over time
@@ -90,6 +84,6 @@ The unifying metric for progressive overload across different rep ranges.
 
 - All queries scoped to authenticated user (user_id)
 - Filter by `set_type = 'working'` for volume/e1RM calculations (exclude warmups)
-- Frontend charting: lightweight library TBD (recharts, chart.js, or raw SVG for heatmap)
-- API endpoints under `/api/analytics/*`, keep read-only and simple
-- Consider a single flexible endpoint vs. one per chart — lean toward one per chart for simplicity
+- Frontend charting: pure SVG, no library dependencies
+- API endpoints: `/api/v1/analytics/heatmap`, `/analytics/exercises`, `/analytics/e1rm/:id`, `/analytics/volume`
+- One endpoint per chart, read-only
