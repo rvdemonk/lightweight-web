@@ -24,6 +24,17 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.6.0 — 2026-03-06
+
+### Added
+- Activity heatmap — GitHub contribution-style calendar grid, auto-sizing, 16-week minimum window
+- e1RM progression chart — per-exercise scatter dots with 21-day rolling-best line, RIR-adjusted
+- Personal records — three cards: best e1RM (with 30-day delta), heaviest weight, most reps
+- Weekly volume chart — stacked bars with three-way toggle: Total / Upper-Lower-Core / Muscle Group
+- Analytics exercise selector — auto-selects exercise with most data
+
+---
+
 ## v0.5.0 — 2026-03-06
 
 ### Added
