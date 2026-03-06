@@ -161,6 +161,7 @@ export const api = {
   analyticsExercises: () => request<import('./types').ExerciseSummary[]>('/analytics/exercises'),
   e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
   weeklyVolume: () => request<import('./types').WeeklyVolume[]>('/analytics/volume'),
+  sessionFrequency: () => request<import('./types').WeeklyFrequency[]>('/analytics/frequency'),
 
   // History
   exerciseHistory: (exerciseId: number) =>

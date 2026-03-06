@@ -132,3 +132,8 @@ export interface WeeklyVolume {
   muscle_group: string;
   set_count: number;
 }
+
+export interface WeeklyFrequency {
+  week: string;
+  session_count: number;
+}

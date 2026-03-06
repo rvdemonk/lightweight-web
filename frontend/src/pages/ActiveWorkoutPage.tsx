@@ -128,6 +128,17 @@ export function ActiveWorkoutPage() {
           />
         </div>
 
+        {/* Workout progress bar */}
+        {(() => {
+          const totalTarget = templateExercises.reduce((sum, te) => sum + (te.target_sets ?? 0), 0);
+          const totalDone = session.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+          return totalTarget > 0 ? (
+            <div style={{ marginBottom: 12 }}>
+              <WorkoutProgressBar completedSets={totalDone} targetSets={totalTarget} />
+            </div>
+          ) : null;
+        })()}
+
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             className="btn btn-secondary"
@@ -144,17 +155,6 @@ export function ActiveWorkoutPage() {
             End Workout
           </button>
         </div>
-
-        {/* Workout progress bar */}
-        {(() => {
-          const totalTarget = templateExercises.reduce((sum, te) => sum + (te.target_sets ?? 0), 0);
-          const totalDone = session.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
-          return totalTarget > 0 ? (
-            <div style={{ marginTop: 8 }}>
-              <WorkoutProgressBar completedSets={totalDone} targetSets={totalTarget} />
-            </div>
-          ) : null;
-        })()}
       </div>
 
       <div style={{ height: 16 }} />

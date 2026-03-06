@@ -254,3 +254,35 @@ pub fn weekly_volume(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyVolume>, App
 
     Ok(rows)
 }
+
+#[derive(Debug, Serialize)]
+pub struct WeeklyFrequency {
+    pub week: String,
+    pub session_count: i64,
+}
+
+/// Returns number of completed sessions per week.
+/// Week is the Monday date of that ISO week.
+pub fn session_frequency(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyFrequency>, AppError> {
+    let conn = db.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT date(s.started_at, 'weekday 1', '-7 days') as week_start,
+                COUNT(*) as session_count
+         FROM sessions s
+         WHERE s.user_id = ?1
+           AND s.status = 'completed'
+         GROUP BY week_start
+         ORDER BY week_start"
+    )?;
+
+    let rows = stmt.query_map(rusqlite::params![user_id], |row| {
+        Ok(WeeklyFrequency {
+            week: row.get(0)?,
+            session_count: row.get(1)?,
+        })
+    })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(rows)
+}

@@ -4,12 +4,15 @@ import { useApi } from '../hooks/useApi';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
 import { E1rmChart } from '../components/E1rmChart';
 import { VolumeChart } from '../components/VolumeChart';
+import { FrequencyChart } from '../components/FrequencyChart';
+import { MuscleBalanceChart } from '../components/MuscleBalanceChart';
 import type { ExerciseE1rm } from '../api/types';
 
 export function AnalyticsPage() {
   const { data: heatmapData, loading: heatmapLoading } = useApi(() => api.activityHeatmap(), []);
   const { data: exercises } = useApi(() => api.analyticsExercises(), []);
   const { data: volumeData } = useApi(() => api.weeklyVolume(), []);
+  const { data: frequencyData } = useApi(() => api.sessionFrequency(), []);
 
   const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
   const [e1rmData, setE1rmData] = useState<ExerciseE1rm | null>(null);
@@ -109,9 +112,45 @@ export function AnalyticsPage() {
       {/* Weekly Volume */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>WEEKLY VOLUME</div>
 
+      {!volumeData && (
+        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
+          LOADING...
+        </div>
+      )}
+
       {volumeData && (
         <div className="card">
           <VolumeChart data={volumeData} />
+        </div>
+      )}
+
+      {/* Session Frequency */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>SESSION FREQUENCY</div>
+
+      {!frequencyData && (
+        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
+          LOADING...
+        </div>
+      )}
+
+      {frequencyData && (
+        <div className="card">
+          <FrequencyChart data={frequencyData} />
+        </div>
+      )}
+
+      {/* Muscle Balance */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>MUSCLE BALANCE</div>
+
+      {!volumeData && (
+        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
+          LOADING...
+        </div>
+      )}
+
+      {volumeData && (
+        <div className="card">
+          <MuscleBalanceChart data={volumeData} />
         </div>
       )}
 
@@ -119,7 +158,7 @@ export function AnalyticsPage() {
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>ESTIMATED 1RM</div>
 
       {exercises && exercises.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 12, position: 'relative' }}>
           <select
             value={selectedExerciseId ?? ''}
             onChange={e => {
@@ -128,7 +167,7 @@ export function AnalyticsPage() {
             }}
             style={{
               width: '100%',
-              padding: '10px 12px',
+              padding: '10px 32px 10px 12px',
               background: 'var(--bg-elevated)',
               color: 'var(--text-primary)',
               border: '1px solid var(--border-subtle)',
@@ -145,6 +184,26 @@ export function AnalyticsPage() {
               </option>
             ))}
           </select>
+          {/* NERV-style angular indicator */}
+          <svg
+            width="14" height="14"
+            viewBox="0 0 14 14"
+            style={{
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+            }}
+          >
+            <path
+              d="M2 4 L7 10 L12 4"
+              fill="none"
+              stroke="var(--accent-primary)"
+              strokeWidth="1.5"
+              strokeLinecap="square"
+            />
+          </svg>
         </div>
       )}
 
@@ -171,45 +230,14 @@ export function AnalyticsPage() {
           </div>
 
           {/* PR Cards below chart */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
-            gap: 8,
-            marginTop: 8,
-          }}>
-            <PRCard
-              label="EST. 1RM"
-              value={e1rmData.prs.best_e1rm ? `${Math.round(e1rmData.prs.best_e1rm.value)}` : '—'}
-              unit="KG"
-              detail={e1rmData.prs.best_e1rm?.detail ?? ''}
-              date={e1rmData.prs.best_e1rm?.date ?? ''}
-              accent="var(--accent-primary)"
-              delta={delta}
-            />
-            <PRCard
-              label="HEAVIEST"
-              value={e1rmData.prs.heaviest_weight ? `${Math.round(e1rmData.prs.heaviest_weight.value)}` : '—'}
-              unit="KG"
-              detail={e1rmData.prs.heaviest_weight?.detail ?? ''}
-              date={e1rmData.prs.heaviest_weight?.date ?? ''}
-              accent="var(--accent-cyan)"
-            />
-            <PRCard
-              label="MOST REPS"
-              value={e1rmData.prs.most_reps ? `${Math.round(e1rmData.prs.most_reps.value)}` : '—'}
-              unit="REPS"
-              detail={e1rmData.prs.most_reps?.detail ?? ''}
-              date={e1rmData.prs.most_reps?.date ?? ''}
-              accent="var(--accent-cyan)"
-            />
-          </div>
+          <PRCards e1rmData={e1rmData} delta={delta} />
         </>
       )}
     </div>
   );
 }
 
-function PRCard({ label, value, unit, detail, date, accent, delta }: {
+interface PRCardData {
   label: string;
   value: string;
   unit: string;
@@ -217,58 +245,165 @@ function PRCard({ label, value, unit, detail, date, accent, delta }: {
   date: string;
   accent: string;
   delta?: { diff: number; pct: string } | null;
-}) {
-  // dd/mm format
-  const formattedDate = date ? (() => {
-    const d = new Date(date);
-    return `${d.getDate()}/${d.getMonth() + 1}`;
-  })() : '';
+}
 
-  // Strip .0 from weights in detail (e.g. "60.0kg x 9" -> "60kg x 9")
-  const cleanDetail = detail.replace(/\.0kg/g, 'kg');
+function PRCards({ e1rmData, delta }: { e1rmData: ExerciseE1rm; delta: { diff: number; pct: string } | null }) {
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const cards: PRCardData[] = [
+    {
+      label: 'EST. 1RM',
+      value: e1rmData.prs.best_e1rm ? `${Math.round(e1rmData.prs.best_e1rm.value)}` : '—',
+      unit: 'KG',
+      detail: e1rmData.prs.best_e1rm?.detail ?? '',
+      date: e1rmData.prs.best_e1rm?.date ?? '',
+      accent: 'var(--accent-primary)',
+      delta,
+    },
+    {
+      label: 'HEAVIEST',
+      value: e1rmData.prs.heaviest_weight ? `${Math.round(e1rmData.prs.heaviest_weight.value)}` : '—',
+      unit: 'KG',
+      detail: e1rmData.prs.heaviest_weight?.detail ?? '',
+      date: e1rmData.prs.heaviest_weight?.date ?? '',
+      accent: 'var(--accent-cyan)',
+    },
+    {
+      label: 'MOST REPS',
+      value: e1rmData.prs.most_reps ? `${Math.round(e1rmData.prs.most_reps.value)}` : '—',
+      unit: 'REPS',
+      detail: e1rmData.prs.most_reps?.detail ?? '',
+      date: e1rmData.prs.most_reps?.date ?? '',
+      accent: 'var(--accent-cyan)',
+    },
+  ];
+
+  const formatDate = (date: string) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${d.getDate()} ${d.toLocaleDateString('en', { month: 'short' })}`;
+  };
+
+  const cleanDetail = (detail: string) => detail.replace(/\.0kg/g, 'kg').replace(/kg/gi, 'KG');
 
   return (
-    <div className="card" style={{ padding: 12, marginBottom: 0, aspectRatio: '1', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-      <div style={{
-        fontFamily: 'var(--font-data)',
-        fontSize: 9,
-        letterSpacing: 1,
-        color: 'var(--text-secondary)',
-        textTransform: 'uppercase',
-        marginBottom: 4,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: 'var(--font-data)',
-        fontSize: 24,
-        fontWeight: 700,
-        color: accent,
-        lineHeight: 1,
-        textShadow: 'var(--glow-primary-text)',
-      }}>
-        {value}
-        <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2, color: 'var(--text-secondary)' }}>{unit}</span>
-      </div>
-      {delta && (
-        <div style={{
-          fontFamily: 'var(--font-data)',
-          fontSize: 10,
-          color: delta.diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)',
-          textShadow: delta.diff >= 0 ? 'var(--glow-green-text)' : 'var(--glow-red-text)',
-          marginTop: 2,
-        }}>
-          {delta.diff >= 0 ? '+' : ''}{delta.diff}kg
-        </div>
-      )}
-      <div style={{
-        fontFamily: 'var(--font-data)',
-        fontSize: 10,
-        color: 'var(--text-secondary)',
-        marginTop: 4,
-      }}>
-        {cleanDetail}{cleanDetail && formattedDate ? ' · ' : ''}{formattedDate}
-      </div>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: expanded !== null ? '1fr' : '1fr 1fr 1fr',
+      gap: 8,
+      marginTop: 8,
+    }}>
+      {cards.map((card, i) => {
+        const isExpanded = expanded === i;
+        const isHidden = expanded !== null && !isExpanded;
+
+        if (isHidden) return null;
+
+        return (
+          <div
+            key={card.label}
+            className="card"
+            onClick={() => setExpanded(isExpanded ? null : i)}
+            style={{
+              padding: 12,
+              marginBottom: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'stretch',
+              minHeight: 88,
+              maxHeight: 88,
+              overflow: 'hidden',
+              transition: 'border-color 0.2s',
+            }}
+          >
+            {/* Left: label + value, fixed position */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: 'var(--text-secondary)',
+                textTransform: 'uppercase',
+              }}>
+                {card.label}
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-data)',
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: card.accent,
+                  lineHeight: 1,
+                  textShadow: 'var(--glow-primary-text)',
+                }}>
+                  {card.value}
+                  <span style={{ fontSize: 11, fontWeight: 400, marginLeft: 2, color: 'var(--text-secondary)' }}>{card.unit}</span>
+                </div>
+                {card.delta && (
+                  <div style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: 10,
+                    color: card.delta.diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)',
+                    textShadow: card.delta.diff >= 0 ? 'var(--glow-green-text)' : 'var(--glow-red-text)',
+                    marginTop: 4,
+                  }}>
+                    {card.delta.diff >= 0 ? '+' : ''}{card.delta.diff}kg · 30d
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: expanded detail with NERV accent divider */}
+            {isExpanded && card.detail && (
+              <>
+                <div style={{
+                  width: 1,
+                  background: card.accent,
+                  margin: '0 20px',
+                  opacity: 0.3,
+                }} />
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                  fontFamily: 'var(--font-data)',
+                }}>
+                  <div style={{
+                    fontSize: 9,
+                    letterSpacing: 1.5,
+                    color: 'var(--text-secondary)',
+                    textTransform: 'uppercase',
+                  }}>
+                    RECORD SET
+                  </div>
+                  <div style={{
+                    fontSize: 16,
+                    color: 'var(--text-primary)',
+                    letterSpacing: 1,
+                  }}>
+                    {cleanDetail(card.detail)}
+                  </div>
+                  <div style={{
+                    fontSize: 10,
+                    color: 'var(--text-secondary)',
+                    letterSpacing: 1,
+                  }}>
+                    {card.date ? formatDate(card.date) : ''}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

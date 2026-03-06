@@ -16,6 +16,7 @@ export function ExercisesPage() {
   const { data: exercises, refetch } = useApi(() => api.listExercises(), []);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [editState, setEditState] = useState<{ name: string; muscleGroup: string; equipment: string } | null>(null);
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [equipment, setEquipment] = useState('');
@@ -101,6 +102,7 @@ export function ExercisesPage() {
             <div className="label" style={{ marginBottom: 8 }}>{group}</div>
             {exs.map(ex => {
               const expanded = expandedId === ex.id;
+              const edit = expanded ? editState : null;
               return (
                 <div
                   key={ex.id}
@@ -110,40 +112,67 @@ export function ExercisesPage() {
                     padding: '12px 16px',
                     borderColor: expanded ? 'var(--border-active)' : undefined,
                   }}
-                  onClick={() => setExpandedId(expanded ? null : ex.id)}
+                  onClick={() => {
+                    if (expanded) {
+                      setExpandedId(null);
+                      setEditState(null);
+                    } else {
+                      setExpandedId(ex.id);
+                      setEditState({
+                        name: ex.name,
+                        muscleGroup: ex.muscle_group || '',
+                        equipment: ex.equipment || '',
+                      });
+                    }
+                  }}
                 >
                   <div style={{ fontWeight: 400 }}>{ex.name}</div>
 
-                  {expanded && (
+                  {expanded && edit && (
                     <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
-                      {ex.equipment && (
-                        <div style={{
-                          fontSize: 14,
-                          color: 'var(--text-secondary)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '1px',
-                          marginBottom: 4,
-                        }}>
-                          {ex.equipment}
-                        </div>
-                      )}
-                      <div style={{
-                        fontSize: 14,
-                        color: 'var(--text-secondary)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                        marginBottom: 16,
-                      }}>
-                        {group}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <input
+                        value={edit.name}
+                        onChange={e => setEditState({ ...edit, name: e.target.value })}
+                        style={{ width: '100%', marginBottom: 8 }}
+                        placeholder="Exercise name"
+                      />
+                      <select
+                        value={edit.muscleGroup}
+                        onChange={e => setEditState({ ...edit, muscleGroup: e.target.value })}
+                        style={{ width: '100%', marginBottom: 8 }}
+                      >
+                        <option value="">Muscle group</option>
+                        {MUSCLE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      <select
+                        value={edit.equipment}
+                        onChange={e => setEditState({ ...edit, equipment: e.target.value })}
+                        style={{ width: '100%', marginBottom: 12 }}
+                      >
+                        <option value="">Equipment</option>
+                        {EQUIPMENT.map(e => <option key={e} value={e}>{e}</option>)}
+                      </select>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{ flex: 1, fontSize: 12, minHeight: 36 }}
+                          onClick={async () => {
+                            if (!edit.name.trim()) return;
+                            await api.updateExercise(ex.id, {
+                              name: edit.name.trim(),
+                              muscle_group: edit.muscleGroup || null,
+                              equipment: edit.equipment || null,
+                            });
+                            setExpandedId(null);
+                            setEditState(null);
+                            refetch();
+                          }}
+                        >
+                          Save
+                        </button>
                         <button
                           className="btn btn-danger"
-                          style={{
-                            fontSize: 12,
-                            padding: '6px 16px',
-                            minHeight: 36,
-                          }}
+                          style={{ fontSize: 12, padding: '6px 16px', minHeight: 36 }}
                           onClick={() => handleDelete(ex.id)}
                         >
                           Archive
