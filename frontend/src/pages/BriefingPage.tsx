@@ -484,6 +484,29 @@ export function BriefingPage() {
           LIGHTWEIGHT
         </span>
       </div>
+
+      {/* ── FIXED ACCESS BUTTON ── */}
+      <button
+        onClick={handleRegister}
+        style={{
+          position: 'fixed',
+          top: 12,
+          right: 20,
+          zIndex: 10,
+          padding: '8px 28px',
+          fontSize: 12,
+          fontFamily: 'var(--font-data)',
+          fontWeight: 600,
+          letterSpacing: '2px',
+          color: 'var(--accent-primary)',
+          background: 'transparent',
+          border: '1px solid var(--accent-primary)',
+          cursor: 'pointer',
+          borderRadius: 2,
+        }}
+      >
+        ACCESS
+      </button>
     </>
   );
 }
