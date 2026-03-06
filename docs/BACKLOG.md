@@ -52,6 +52,18 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 ## Completed
 
+### v0.4.0
+- [x] `#feature` Day/night theme toggle — off-white + teal light theme, NERV-style selector in burger menu
+- [x] `#feature` S-curve workout progress bar with red→green gradient reveal
+- [x] `#ux` Hoisted version to single source (`version.ts`), removed from header, enlarged in burger menu
+- [x] `#ux` Cleaner increment buttons — symbols only, transparent backgrounds, stronger borders
+- [x] `#ux` Collapsed exercise cards transparent, active card highlighted with border
+- [x] `#ux` Login page: text wordmark, prominent Register button, OR divider
+- [x] `#ux` Light theme as default for new users
+- [x] `#ux` Exercise list: equipment as expanded detail only, uppercase labels, archive as btn-danger
+- [x] `#ux` Exercise form: muscle group + equipment as select dropdowns with enums
+- [x] `#ux` Reduced glow intensity on history page
+
 ### v0.3.0
 - [x] `#feature` RIR field per set
 - [x] `#ux` Uppercase all program-generated display text

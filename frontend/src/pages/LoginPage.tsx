@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
-import splashImg from '../assets/splash-schematic.jpg';
 import { APP_VERSION } from '../version';
 
 const fieldLabelStyle = {
@@ -74,31 +73,30 @@ export function LoginPage() {
       padding: '0 24px 24px',
       background: 'var(--bg-primary)',
     }}>
-      {/* Schematic hero */}
+      {/* Wordmark */}
       <div style={{
-        width: '100%',
-        maxWidth: 360,
-        marginBottom: 32,
-        position: 'relative',
+        textAlign: 'center',
+        marginBottom: 48,
       }}>
-        <img
-          src={splashImg}
-          alt="LIGHTWEIGHT"
-          style={{
-            width: '100%',
-            height: 'auto',
-            display: 'block',
-          }}
-        />
-        {/* Bottom fade so image bleeds into background */}
         <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '30%',
-          background: 'linear-gradient(to bottom, transparent, var(--bg-primary))',
-        }} />
+          fontSize: 32,
+          fontWeight: 700,
+          fontFamily: 'var(--font-data)',
+          color: 'var(--accent-primary)',
+          letterSpacing: '6px',
+          textShadow: 'var(--glow-primary-text)',
+        }}>
+          LIGHTWEIGHT
+        </div>
+        <div style={{
+          fontSize: 11,
+          fontFamily: 'var(--font-data)',
+          color: 'var(--text-secondary)',
+          letterSpacing: '2px',
+          marginTop: 8,
+        }}>
+          v{APP_VERSION}
+        </div>
       </div>
 
       {/* Auth form */}
@@ -165,35 +163,28 @@ export function LoginPage() {
           {isRegistering ? 'Register' : 'Login'}
         </button>
 
-        {/* Mode toggle */}
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <span
-            onClick={toggleMode}
-            style={{
-              fontSize: 11,
-              color: 'var(--text-secondary)',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              fontVariant: 'all-small-caps',
-            }}
-          >
-            {isRegistering ? 'Have an account? Login' : 'New user? Register'}
-          </span>
+        {/* Divider */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          margin: '16px 0',
+        }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+          <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
         </div>
-      </form>
 
-      {/* Bottom status */}
-      <div style={{
-        position: 'absolute',
-        bottom: 24,
-        fontSize: 11,
-        color: 'var(--text-secondary)',
-        letterSpacing: '2px',
-        opacity: 0.5,
-      }}>
-        LIGHTWEIGHT v{APP_VERSION}
-      </div>
+        {/* Mode toggle */}
+        <button
+          type="button"
+          className="btn btn-secondary btn-full"
+          style={{ fontSize: 13 }}
+          onClick={toggleMode}
+        >
+          {isRegistering ? 'Login' : 'Register'}
+        </button>
+      </form>
     </div>
   );
 }

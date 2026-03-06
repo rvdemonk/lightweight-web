@@ -1,4 +1,4 @@
-:root, [data-theme="dark"] {
+[data-theme="dark"] {
   /* Backgrounds — deeper, darker */
   --bg-primary: #07070d;
   --bg-surface: #0c0c14;
@@ -65,7 +65,7 @@
   --grid-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0v40M0 40h40' stroke='rgba(212%2C118%2C44%2C0.12)' stroke-width='1'/%3E%3C/svg%3E");
 }
 
-[data-theme="light"] {
+:root, [data-theme="light"] {
   --bg-primary: #e8e4de;
   --bg-surface: #ddd8d0;
   --bg-elevated: #d2ccc2;
