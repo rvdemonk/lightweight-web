@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isLoggedIn } from './api/client';
 import { Layout } from './components/Layout';
+import { WhatsNew } from './components/WhatsNew';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
 import { ActiveWorkoutPage } from './pages/ActiveWorkoutPage';
@@ -11,6 +12,8 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BriefingPage } from './pages/BriefingPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { WhatsNewPage } from './pages/WhatsNewPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) {
@@ -20,8 +23,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
+  const loggedIn = isLoggedIn();
   return (
     <BrowserRouter>
+      {loggedIn && <WhatsNew />}
       <Routes>
         <Route path="/primer" element={<BriefingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -33,6 +38,8 @@ export function App() {
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/whats-new" element={<ProtectedRoute><WhatsNewPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

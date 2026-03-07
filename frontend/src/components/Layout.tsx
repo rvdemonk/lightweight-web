@@ -10,6 +10,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/workout': 'WORKOUT',
   '/history': 'HISTORY',
   '/analytics': 'ANALYTICS',
+  '/settings': 'SETTINGS',
+  '/whats-new': 'CHANGELOG',
 };
 
 function getPageTitle(pathname: string): string {
@@ -98,6 +100,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <Link
+            to="/settings"
+            style={{
+              color: location.pathname === '/settings'
+                ? 'var(--accent-primary)'
+                : 'var(--text-secondary)',
+              fontSize: 12,
+              fontWeight: 500,
+              textDecoration: 'none',
+              letterSpacing: '1px',
+              textShadow: location.pathname === '/settings' ? 'var(--glow-primary-text)' : 'none',
+            }}
+          >
+            ⚙
+          </Link>
         </div>
 
         {/* Hamburger button */}
@@ -293,6 +310,45 @@ export function Layout({ children }: { children: React.ReactNode }) {
               );
             })}
           </div>
+          </div>
+
+          {/* Settings link */}
+          <div style={{ marginTop: 24 }}>
+            <Link
+              to="/settings"
+              onClick={() => setMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '14px 16px',
+                textDecoration: 'none',
+                background: location.pathname === '/settings'
+                  ? 'var(--menu-active-bg)' : 'transparent',
+                border: location.pathname === '/settings'
+                  ? '1px solid var(--menu-active-border)' : '1px solid transparent',
+              }}
+            >
+              <span style={{
+                fontSize: 14,
+                color: 'var(--text-secondary)',
+                lineHeight: 1,
+              }}>
+                ⚙
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: '2px',
+                color: location.pathname === '/settings'
+                  ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                textShadow: location.pathname === '/settings'
+                  ? 'var(--glow-primary-text)' : 'none',
+              }}>
+                SETTINGS
+              </span>
+            </Link>
           </div>
         </div>
 

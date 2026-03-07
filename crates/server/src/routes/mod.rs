@@ -1,6 +1,8 @@
 mod analytics;
 mod exercises;
+mod export;
 mod history;
+mod preferences;
 mod sessions;
 mod templates;
 
@@ -23,6 +25,8 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
         .merge(sessions::routes())
         .merge(history::routes())
         .merge(analytics::routes())
+        .merge(preferences::routes())
+        .merge(export::routes())
 }
 
 // ── Auth handlers ──

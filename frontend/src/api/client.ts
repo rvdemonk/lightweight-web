@@ -162,6 +162,46 @@ export const api = {
   e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
   weeklyVolume: () => request<import('./types').WeeklyVolume[]>('/analytics/volume'),
   sessionFrequency: () => request<import('./types').WeeklyFrequency[]>('/analytics/frequency'),
+  e1rmSpider: (exerciseIds: number[], weeks: number) =>
+    request<import('./types').E1rmSpiderPoint[]>(`/analytics/e1rm-spider?exercise_ids=${exerciseIds.join(',')}&weeks=${weeks}`),
+  getE1rmSpiderPrefs: () => request<import('./types').E1rmSpiderPrefs>('/preferences/e1rm-spider'),
+  setE1rmSpiderPrefs: (prefs: import('./types').E1rmSpiderPrefs) =>
+    request<void>('/preferences/e1rm-spider', { method: 'PUT', body: JSON.stringify(prefs) }),
+
+  // Preferences (generic)
+  getPreference: (key: string) =>
+    request<{ key: string; value: string }>(`/preferences/${key}`).then(r => r.value).catch(e => {
+      if (e.status === 404) return null;
+      throw e;
+    }) as Promise<string | null>,
+  setPreference: (key: string, value: string) =>
+    request<void>(`/preferences/${key}`, { method: 'PUT', body: JSON.stringify({ value }) }),
+
+  // Export
+  exportMeta: () => request<import('./types').ExportMeta>('/export/meta'),
+  exportSessions: async () => {
+    const resp = await fetch(`${BASE}/export/sessions`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` },
+    });
+    if (resp.status === 429) throw Object.assign(new Error('Rate limited'), { status: 429 });
+    if (resp.status === 401) {
+      clearToken();
+      if (window.location.pathname !== '/login') window.location.href = '/login';
+      throw Object.assign(new Error('Unauthorized'), { status: 401 });
+    }
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error('[export] unexpected response:', resp.status, text.slice(0, 200));
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('csv')) {
+      const text = await resp.text();
+      console.error('[export] expected CSV but got:', contentType, text.slice(0, 200));
+      throw new Error('Unexpected response type');
+    }
+    return resp.blob();
+  },
 
   // History
   exerciseHistory: (exerciseId: number) =>

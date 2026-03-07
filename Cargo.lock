@@ -972,6 +972,7 @@ name = "lightweight-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "chrono",
  "lightweight-core",
  "mime_guess",
  "rust-embed",

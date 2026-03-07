@@ -14,6 +14,10 @@ All notable changes to Lightweight.
 - Inline exercise creation from workout builder — search-based fullscreen picker with "Create & Add" when no match found
 - Exercise selector chevron indicator (angular SVG, accent-coloured)
 - Volume chart loading state
+- What's New overlay — cumulative changelog shown on version updates, dismissable, opt-out via settings
+- Settings page — toggle preferences, view changelog, export data, log out
+- Session history CSV export — flat one-row-per-set format, weekly rate limit per user
+- Generic user preferences API (`GET/PUT /api/v1/preferences/:key`)
 
 ### Fixed
 - Native number input spinners hidden globally (redundant with +/- buttons)

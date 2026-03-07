@@ -137,3 +137,22 @@ export interface WeeklyFrequency {
   week: string;
   session_count: number;
 }
+
+export interface E1rmSpiderPoint {
+  exercise_id: number;
+  exercise_name: string;
+  pct_change: number | null;
+  current_e1rm: number | null;
+  previous_e1rm: number | null;
+}
+
+export interface E1rmSpiderPrefs {
+  exercise_ids: number[];
+}
+
+export interface ExportMeta {
+  session_count: number;
+  set_count: number;
+  first_session: string | null;
+  last_session: string | null;
+}
