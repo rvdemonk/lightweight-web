@@ -305,6 +305,27 @@ input:focus, textarea:focus, select:focus {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(232, 168, 50, 0.035) 3px,
+      rgba(232, 168, 50, 0.035) 4px
+    ),
+    var(--bg-surface);
+  animation: nerv-pulse 1.6s steps(3) infinite;
+}
+
+@keyframes nerv-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;

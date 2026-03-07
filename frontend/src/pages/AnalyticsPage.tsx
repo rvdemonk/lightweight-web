@@ -7,13 +7,25 @@ import { VolumeChart } from '../components/VolumeChart';
 import { FrequencyChart } from '../components/FrequencyChart';
 import { MuscleBalanceChart } from '../components/MuscleBalanceChart';
 import { E1rmSpiderChart } from '../components/E1rmSpiderChart';
+import { LoadingCard } from '../components/SkeletonCard';
 import type { ExerciseE1rm } from '../api/types';
+
+// Set > 0 to simulate loading delay (ms). 0 = normal behaviour.
+const SIMULATED_LOADING_MS = 0;
 
 export function AnalyticsPage() {
   const { data: heatmapData, loading: heatmapLoading } = useApi(() => api.activityHeatmap(), []);
-  const { data: exercises } = useApi(() => api.analyticsExercises(), []);
-  const { data: volumeData } = useApi(() => api.weeklyVolume(), []);
-  const { data: frequencyData } = useApi(() => api.sessionFrequency(), []);
+  const { data: exercises, loading: exercisesLoading } = useApi(() => api.analyticsExercises(), []);
+  const { data: volumeData, loading: volumeLoading } = useApi(() => api.weeklyVolume(), []);
+  const { data: frequencyData, loading: frequencyLoading } = useApi(() => api.sessionFrequency(), []);
+
+  const [simLoading, setSimLoading] = useState(SIMULATED_LOADING_MS > 0);
+  useEffect(() => {
+    if (SIMULATED_LOADING_MS > 0) {
+      const t = setTimeout(() => setSimLoading(false), SIMULATED_LOADING_MS);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
   const [e1rmData, setE1rmData] = useState<ExerciseE1rm | null>(null);
@@ -70,111 +82,88 @@ export function AnalyticsPage() {
       {/* Activity Heatmap */}
       <div style={{ ...sectionTitle, marginBottom: 12 }}>ACTIVITY</div>
 
-      {heatmapLoading && (
-        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
-          LOADING...
-        </div>
-      )}
-
-      {heatmapData && (
-        <div className="card">
-          <ActivityHeatmap data={heatmapData} />
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 6,
-            marginTop: 8,
-            fontFamily: 'var(--font-data)',
-            fontSize: 9,
-            color: 'var(--text-secondary)',
-          }}>
-            <span>LESS</span>
-            {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  width: 11,
-                  height: 11,
-                  borderRadius: 1,
-                  background: intensity > 0
-                    ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
-                    : 'var(--bg-elevated)',
-                  border: '1px solid var(--bg-primary)',
-                }}
-              />
-            ))}
-            <span>MORE</span>
-          </div>
-        </div>
-      )}
+      <LoadingCard loading={heatmapLoading || simLoading} fallbackHeight={180}>
+        {heatmapData && (
+          <>
+            <ActivityHeatmap data={heatmapData} />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 6,
+              marginTop: 8,
+              fontFamily: 'var(--font-data)',
+              fontSize: 9,
+              color: 'var(--text-secondary)',
+            }}>
+              <span>LESS</span>
+              {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: 'inline-block',
+                    width: 11,
+                    height: 11,
+                    borderRadius: 1,
+                    background: intensity > 0
+                      ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
+                      : 'var(--bg-elevated)',
+                    border: '1px solid var(--bg-primary)',
+                  }}
+                />
+              ))}
+              <span>MORE</span>
+            </div>
+          </>
+        )}
+      </LoadingCard>
 
       {/* Weekly Volume */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>WEEKLY VOLUME</div>
 
-      {!volumeData && (
-        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
-          LOADING...
-        </div>
-      )}
-
-      {volumeData && (
-        <div className="card">
-          <VolumeChart data={volumeData} />
-        </div>
-      )}
+      <LoadingCard loading={volumeLoading || simLoading} fallbackHeight={320}>
+        {volumeData && <VolumeChart data={volumeData} />}
+      </LoadingCard>
 
       {/* Session Frequency */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>SESSION FREQUENCY</div>
 
-      {!frequencyData && (
-        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
-          LOADING...
-        </div>
-      )}
-
-      {frequencyData && (
-        <div className="card">
-          <FrequencyChart data={frequencyData} />
-        </div>
-      )}
+      <LoadingCard loading={frequencyLoading || simLoading} fallbackHeight={220}>
+        {frequencyData && <FrequencyChart data={frequencyData} />}
+      </LoadingCard>
 
       {/* Muscle Balance */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>MUSCLE BALANCE</div>
 
-      {!volumeData && (
-        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
-          LOADING...
-        </div>
-      )}
-
-      {volumeData && (
-        <div className="card">
-          <MuscleBalanceChart data={volumeData} />
-        </div>
-      )}
+      <LoadingCard loading={volumeLoading || simLoading} fallbackHeight={430}>
+        {volumeData && <MuscleBalanceChart data={volumeData} />}
+      </LoadingCard>
 
       {/* E1RM Progression Spider */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM PROGRESSION COMPARISON</div>
 
-      {exercises && exercises.length >= 3 && (
-        <E1rmSpiderChart exercises={exercises} />
-      )}
-
-      {exercises && exercises.length > 0 && exercises.length < 3 && (
-        <div className="card" style={{
-          fontFamily: 'var(--font-data)', fontSize: 12,
-          color: 'var(--text-secondary)', textAlign: 'center',
-        }}>
-          NEED 3+ EXERCISES WITH DATA
-        </div>
+      {(exercisesLoading || simLoading) ? (
+        <LoadingCard loading fallbackHeight={300} />
+      ) : (
+        <>
+          {exercises && exercises.length >= 3 && (
+            <E1rmSpiderChart exercises={exercises} />
+          )}
+          {exercises && exercises.length > 0 && exercises.length < 3 && (
+            <div className="card" style={{
+              fontFamily: 'var(--font-data)', fontSize: 12,
+              color: 'var(--text-secondary)', textAlign: 'center',
+            }}>
+              NEED 3+ EXERCISES WITH DATA
+            </div>
+          )}
+        </>
       )}
 
       {/* e1RM Section */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>ESTIMATED 1RM</div>
 
-      {exercises && exercises.length > 0 && (
+      {exercises && !simLoading && exercises.length > 0 && (
         <div style={{ marginBottom: 12, position: 'relative' }}>
           <select
             value={selectedExerciseId ?? ''}
@@ -224,7 +213,7 @@ export function AnalyticsPage() {
         </div>
       )}
 
-      {exercises && exercises.length === 0 && (
+      {exercises && !simLoading && exercises.length === 0 && (
         <div className="card" style={{
           fontFamily: 'var(--font-data)', fontSize: 12,
           color: 'var(--text-secondary)', textAlign: 'center',
@@ -233,22 +222,12 @@ export function AnalyticsPage() {
         </div>
       )}
 
-      {e1rmLoading && (
-        <div style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)' }}>
-          LOADING...
-        </div>
-      )}
+      <LoadingCard loading={e1rmLoading || simLoading} fallbackHeight={340}>
+        {e1rmData && <E1rmChart data={e1rmData.data} exerciseName={e1rmData.exercise_name} />}
+      </LoadingCard>
 
-      {e1rmData && !e1rmLoading && (
-        <>
-          {/* Chart */}
-          <div className="card">
-            <E1rmChart data={e1rmData.data} exerciseName={e1rmData.exercise_name} />
-          </div>
-
-          {/* PR Cards below chart */}
-          <PRCards e1rmData={e1rmData} delta={delta} />
-        </>
+      {e1rmData && !e1rmLoading && !simLoading && (
+        <PRCards e1rmData={e1rmData} delta={delta} />
       )}
     </div>
   );
