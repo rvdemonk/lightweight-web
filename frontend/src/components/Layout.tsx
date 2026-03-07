@@ -103,17 +103,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link
             to="/settings"
             style={{
-              color: location.pathname === '/settings'
-                ? 'var(--accent-primary)'
-                : 'var(--text-secondary)',
-              fontSize: 12,
-              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
               textDecoration: 'none',
-              letterSpacing: '1px',
-              textShadow: location.pathname === '/settings' ? 'var(--glow-primary-text)' : 'none',
             }}
           >
-            ⚙
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke={location.pathname === '/settings' ? 'var(--accent-primary)' : 'var(--text-secondary)'} strokeWidth="1.2" strokeLinecap="square" strokeLinejoin="miter">
+              <path d="M8.5 1h3l.4 2.4a7 7 0 012 1.2l2.3-.9 1.5 2.6-1.9 1.5a7 7 0 010 2.4l1.9 1.5-1.5 2.6-2.3-.9a7 7 0 01-2 1.2L11.5 19h-3l-.4-2.4a7 7 0 01-2-1.2l-2.3.9-1.5-2.6 1.9-1.5a7 7 0 010-2.4l-1.9-1.5 1.5-2.6 2.3.9a7 7 0 012-1.2z" />
+              <circle cx="10" cy="10" r="3" />
+            </svg>
           </Link>
         </div>
 

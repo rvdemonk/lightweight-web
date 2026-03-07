@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api, clearToken } from '../api/client';
+import { useTheme } from '../hooks/useTheme';
 import { APP_VERSION } from '../version';
 import type { ExportMeta } from '../api/types';
 
@@ -77,6 +78,7 @@ function Toggle({ on, onToggle, disabled }: { on: boolean; onToggle: () => void;
 }
 
 export function SettingsPage() {
+  const { theme, toggleTheme } = useTheme();
   const [showWhatsNew, setShowWhatsNew] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exportMeta, setExportMeta] = useState<ExportMeta | null>(null);
@@ -173,6 +175,16 @@ export function SettingsPage() {
     <div className="page" style={{ paddingTop: 20 }}>
       <div className="nerv-divider" style={{ marginBottom: 24 }}>
         <span>CONFIGURATION</span>
+      </div>
+
+      {/* Appearance */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="label" style={{ marginBottom: 12 }}>APPEARANCE</div>
+        <SettingsRow
+          label="LIGHT MODE"
+          description="Switch between dark and light theme"
+          right={<Toggle on={theme === 'light'} onToggle={toggleTheme} />}
+        />
       </div>
 
       {/* Notifications */}

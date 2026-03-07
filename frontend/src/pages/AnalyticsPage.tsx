@@ -7,11 +7,7 @@ import { VolumeChart } from '../components/VolumeChart';
 import { FrequencyChart } from '../components/FrequencyChart';
 import { MuscleBalanceChart } from '../components/MuscleBalanceChart';
 import { E1rmSpiderChart } from '../components/E1rmSpiderChart';
-import { LoadingCard } from '../components/SkeletonCard';
 import type { ExerciseE1rm } from '../api/types';
-
-// Set > 0 to simulate loading delay (ms). 0 = normal behaviour.
-const SIMULATED_LOADING_MS = 0;
 
 export function AnalyticsPage() {
   const { data: heatmapData, loading: heatmapLoading } = useApi(() => api.activityHeatmap(), []);
@@ -19,13 +15,7 @@ export function AnalyticsPage() {
   const { data: volumeData, loading: volumeLoading } = useApi(() => api.weeklyVolume(), []);
   const { data: frequencyData, loading: frequencyLoading } = useApi(() => api.sessionFrequency(), []);
 
-  const [simLoading, setSimLoading] = useState(SIMULATED_LOADING_MS > 0);
-  useEffect(() => {
-    if (SIMULATED_LOADING_MS > 0) {
-      const t = setTimeout(() => setSimLoading(false), SIMULATED_LOADING_MS);
-      return () => clearTimeout(t);
-    }
-  }, []);
+  const pageLoading = heatmapLoading || exercisesLoading || volumeLoading || frequencyLoading;
 
   const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(null);
   const [e1rmData, setE1rmData] = useState<ExerciseE1rm | null>(null);
@@ -77,93 +67,110 @@ export function AnalyticsPage() {
 
   const delta = e1rmData ? computeDelta(e1rmData) : null;
 
+  if (pageLoading) {
+    return (
+      <div className="page">
+        <div className="page-loading">
+          <div className="page-loading-lines" />
+          <div style={{
+            fontFamily: 'var(--font-data)',
+            fontSize: 11,
+            letterSpacing: 3,
+            color: 'var(--text-secondary)',
+          }}>
+            LOADING
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       {/* Activity Heatmap */}
       <div style={{ ...sectionTitle, marginBottom: 12 }}>ACTIVITY</div>
 
-      <LoadingCard loading={heatmapLoading || simLoading} fallbackHeight={180}>
-        {heatmapData && (
-          <>
-            <ActivityHeatmap data={heatmapData} />
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: 6,
-              marginTop: 8,
-              fontFamily: 'var(--font-data)',
-              fontSize: 9,
-              color: 'var(--text-secondary)',
-            }}>
-              <span>LESS</span>
-              {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: 'inline-block',
-                    width: 11,
-                    height: 11,
-                    borderRadius: 1,
-                    background: intensity > 0
-                      ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
-                      : 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-primary)',
-                  }}
-                />
-              ))}
-              <span>MORE</span>
-            </div>
-          </>
-        )}
-      </LoadingCard>
+      {heatmapData && (
+        <div className="card">
+          <ActivityHeatmap data={heatmapData} />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 6,
+            marginTop: 8,
+            fontFamily: 'var(--font-data)',
+            fontSize: 9,
+            color: 'var(--text-secondary)',
+          }}>
+            <span>LESS</span>
+            {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
+              <span
+                key={i}
+                style={{
+                  display: 'inline-block',
+                  width: 11,
+                  height: 11,
+                  borderRadius: 1,
+                  background: intensity > 0
+                    ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
+                    : 'var(--bg-elevated)',
+                  border: '1px solid var(--bg-primary)',
+                }}
+              />
+            ))}
+            <span>MORE</span>
+          </div>
+        </div>
+      )}
 
       {/* Weekly Volume */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>WEEKLY VOLUME</div>
 
-      <LoadingCard loading={volumeLoading || simLoading} fallbackHeight={320}>
-        {volumeData && <VolumeChart data={volumeData} />}
-      </LoadingCard>
+      {volumeData && (
+        <div className="card">
+          <VolumeChart data={volumeData} />
+        </div>
+      )}
 
       {/* Session Frequency */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>SESSION FREQUENCY</div>
 
-      <LoadingCard loading={frequencyLoading || simLoading} fallbackHeight={220}>
-        {frequencyData && <FrequencyChart data={frequencyData} />}
-      </LoadingCard>
+      {frequencyData && (
+        <div className="card">
+          <FrequencyChart data={frequencyData} />
+        </div>
+      )}
 
       {/* Muscle Balance */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>MUSCLE BALANCE</div>
 
-      <LoadingCard loading={volumeLoading || simLoading} fallbackHeight={430}>
-        {volumeData && <MuscleBalanceChart data={volumeData} />}
-      </LoadingCard>
+      {volumeData && (
+        <div className="card">
+          <MuscleBalanceChart data={volumeData} />
+        </div>
+      )}
 
       {/* E1RM Progression Spider */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM PROGRESSION COMPARISON</div>
 
-      {(exercisesLoading || simLoading) ? (
-        <LoadingCard loading fallbackHeight={300} />
-      ) : (
-        <>
-          {exercises && exercises.length >= 3 && (
-            <E1rmSpiderChart exercises={exercises} />
-          )}
-          {exercises && exercises.length > 0 && exercises.length < 3 && (
-            <div className="card" style={{
-              fontFamily: 'var(--font-data)', fontSize: 12,
-              color: 'var(--text-secondary)', textAlign: 'center',
-            }}>
-              NEED 3+ EXERCISES WITH DATA
-            </div>
-          )}
-        </>
+      {exercises && exercises.length >= 3 && (
+        <E1rmSpiderChart exercises={exercises} />
+      )}
+
+      {exercises && exercises.length > 0 && exercises.length < 3 && (
+        <div className="card" style={{
+          fontFamily: 'var(--font-data)', fontSize: 12,
+          color: 'var(--text-secondary)', textAlign: 'center',
+        }}>
+          NEED 3+ EXERCISES WITH DATA
+        </div>
       )}
 
       {/* e1RM Section */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>ESTIMATED 1RM</div>
 
-      {exercises && !simLoading && exercises.length > 0 && (
+      {exercises && exercises.length > 0 && (
         <div style={{ marginBottom: 12, position: 'relative' }}>
           <select
             value={selectedExerciseId ?? ''}
@@ -213,7 +220,7 @@ export function AnalyticsPage() {
         </div>
       )}
 
-      {exercises && !simLoading && exercises.length === 0 && (
+      {exercises && exercises.length === 0 && (
         <div className="card" style={{
           fontFamily: 'var(--font-data)', fontSize: 12,
           color: 'var(--text-secondary)', textAlign: 'center',
@@ -222,12 +229,23 @@ export function AnalyticsPage() {
         </div>
       )}
 
-      <LoadingCard loading={e1rmLoading || simLoading} fallbackHeight={340}>
-        {e1rmData && <E1rmChart data={e1rmData.data} exerciseName={e1rmData.exercise_name} />}
-      </LoadingCard>
+      {e1rmLoading && (
+        <div className="card" style={{
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: 340,
+        }}>
+          <div className="skeleton-shimmer" />
+        </div>
+      )}
 
-      {e1rmData && !e1rmLoading && !simLoading && (
-        <PRCards e1rmData={e1rmData} delta={delta} />
+      {e1rmData && !e1rmLoading && (
+        <>
+          <div className="card">
+            <E1rmChart data={e1rmData.data} exerciseName={e1rmData.exercise_name} />
+          </div>
+          <PRCards e1rmData={e1rmData} delta={delta} />
+        </>
       )}
     </div>
   );

@@ -18,6 +18,8 @@ export const CHANGELOG: ChangelogVersion[] = [
       "What's New notifications on version updates",
       "Settings page with preferences",
       "Export all session history to CSV",
+      "Skeleton loading states for analytics",
+      "Theme toggle on settings page for desktop",
     ],
   },
   {
