@@ -148,6 +148,7 @@ export function WhatsNew() {
           style={{
             display: 'block',
             width: '100%',
+            marginTop: 16,
             padding: '12px 0',
             background: 'none',
             border: 'none',
