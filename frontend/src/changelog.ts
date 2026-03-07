@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogVersion[] = [
     highlights: [
       "Session frequency chart with rolling average",
       "Muscle balance radar chart with multi-period overlay",
+      "e1RM spider chart for cross-exercise progression comparison",
       "Inline exercise editing",
       "What's New notifications on version updates",
       "Settings page with preferences",
