@@ -1,9 +1,10 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::get,
     Extension, Json, Router,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 use crate::app::AppState;
@@ -14,8 +15,10 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/analytics/heatmap", get(heatmap))
         .route("/analytics/exercises", get(exercises_with_data))
         .route("/analytics/e1rm/:exercise_id", get(e1rm_progression))
+        .route("/analytics/e1rm-spider", get(e1rm_spider))
         .route("/analytics/volume", get(weekly_volume))
         .route("/analytics/frequency", get(session_frequency))
+        .route("/preferences/e1rm-spider", get(get_e1rm_spider_prefs).put(set_e1rm_spider_prefs))
 }
 
 async fn heatmap(
@@ -64,5 +67,54 @@ async fn session_frequency(
 ) -> Result<Json<Vec<lightweight_core::analytics::WeeklyFrequency>>, StatusCode> {
     lightweight_core::analytics::session_frequency(&state.db, user_id)
         .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Deserialize)]
+struct E1rmSpiderQuery {
+    exercise_ids: String,
+    weeks: Option<i64>,
+}
+
+async fn e1rm_spider(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Query(query): Query<E1rmSpiderQuery>,
+) -> Result<Json<Vec<lightweight_core::analytics::E1rmSpiderPoint>>, StatusCode> {
+    let exercise_ids: Vec<i64> = query.exercise_ids
+        .split(',')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect();
+    let weeks = query.weeks.unwrap_or(4);
+    lightweight_core::analytics::e1rm_spider(&state.db, user_id, &exercise_ids, weeks)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+const E1RM_SPIDER_PREF_KEY: &str = "e1rm_spider_exercises";
+
+async fn get_e1rm_spider_prefs(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<lightweight_core::preferences::E1rmSpiderPrefs>, StatusCode> {
+    match lightweight_core::preferences::get_preference(&state.db, user_id, E1RM_SPIDER_PREF_KEY) {
+        Ok(Some(val)) => {
+            let prefs: lightweight_core::preferences::E1rmSpiderPrefs =
+                serde_json::from_str(&val).unwrap_or(lightweight_core::preferences::E1rmSpiderPrefs { exercise_ids: vec![] });
+            Ok(Json(prefs))
+        }
+        Ok(None) => Ok(Json(lightweight_core::preferences::E1rmSpiderPrefs { exercise_ids: vec![] })),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn set_e1rm_spider_prefs(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Json(prefs): Json<lightweight_core::preferences::E1rmSpiderPrefs>,
+) -> Result<StatusCode, StatusCode> {
+    let val = serde_json::to_string(&prefs).map_err(|_| StatusCode::BAD_REQUEST)?;
+    lightweight_core::preferences::set_preference(&state.db, user_id, E1RM_SPIDER_PREF_KEY, &val)
+        .map(|_| StatusCode::NO_CONTENT)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

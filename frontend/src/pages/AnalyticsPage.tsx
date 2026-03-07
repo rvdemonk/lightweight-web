@@ -6,6 +6,7 @@ import { E1rmChart } from '../components/E1rmChart';
 import { VolumeChart } from '../components/VolumeChart';
 import { FrequencyChart } from '../components/FrequencyChart';
 import { MuscleBalanceChart } from '../components/MuscleBalanceChart';
+import { E1rmSpiderChart } from '../components/E1rmSpiderChart';
 import type { ExerciseE1rm } from '../api/types';
 
 export function AnalyticsPage() {
@@ -151,6 +152,22 @@ export function AnalyticsPage() {
       {volumeData && (
         <div className="card">
           <MuscleBalanceChart data={volumeData} />
+        </div>
+      )}
+
+      {/* E1RM Progression Spider */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM PROGRESSION COMPARISON</div>
+
+      {exercises && exercises.length >= 3 && (
+        <E1rmSpiderChart exercises={exercises} />
+      )}
+
+      {exercises && exercises.length > 0 && exercises.length < 3 && (
+        <div className="card" style={{
+          fontFamily: 'var(--font-data)', fontSize: 12,
+          color: 'var(--text-secondary)', textAlign: 'center',
+        }}>
+          NEED 3+ EXERCISES WITH DATA
         </div>
       )}
 

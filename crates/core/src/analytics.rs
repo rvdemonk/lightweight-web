@@ -177,6 +177,112 @@ pub fn e1rm_progression(db: &DbPool, user_id: i64, exercise_id: i64) -> Result<E
     })
 }
 
+#[derive(Debug, Serialize)]
+pub struct E1rmSpiderPoint {
+    pub exercise_id: i64,
+    pub exercise_name: String,
+    pub pct_change: Option<f64>,
+    pub current_e1rm: Option<f64>,
+    pub previous_e1rm: Option<f64>,
+}
+
+/// For each exercise, computes % change in rolling-best e1RM over a given span.
+/// "current" = best e1RM in the most recent `weeks` window.
+/// "previous" = best e1RM in the `weeks` window before that.
+pub fn e1rm_spider(
+    db: &DbPool,
+    user_id: i64,
+    exercise_ids: &[i64],
+    weeks: i64,
+) -> Result<Vec<E1rmSpiderPoint>, AppError> {
+    let conn = db.lock().unwrap();
+
+    let mut results = Vec::new();
+
+    for &exercise_id in exercise_ids {
+        let exercise_name: String = match conn.query_row(
+            "SELECT name FROM exercises WHERE id = ?1 AND user_id = ?2",
+            rusqlite::params![exercise_id, user_id],
+            |row| row.get(0),
+        ) {
+            Ok(name) => name,
+            Err(rusqlite::Error::QueryReturnedNoRows) => continue,
+            Err(e) => return Err(AppError::Database(e)),
+        };
+
+        // Get best e1RM in the current span (last N weeks)
+        let current_e1rm = best_e1rm_in_range(
+            &conn, user_id, exercise_id,
+            &format!("-{} days", weeks * 7), "0 days",
+        )?;
+
+        // Get best e1RM in the previous span (N to 2N weeks ago)
+        let previous_e1rm = best_e1rm_in_range(
+            &conn, user_id, exercise_id,
+            &format!("-{} days", weeks * 7 * 2), &format!("-{} days", weeks * 7),
+        )?;
+
+        let pct_change = match (current_e1rm, previous_e1rm) {
+            (Some(curr), Some(prev)) if prev > 0.0 => Some(((curr - prev) / prev) * 100.0),
+            _ => None,
+        };
+
+        results.push(E1rmSpiderPoint {
+            exercise_id,
+            exercise_name,
+            pct_change,
+            current_e1rm,
+            previous_e1rm,
+        });
+    }
+
+    Ok(results)
+}
+
+fn best_e1rm_in_range(
+    conn: &rusqlite::Connection,
+    user_id: i64,
+    exercise_id: i64,
+    from_offset: &str,
+    to_offset: &str,
+) -> Result<Option<f64>, AppError> {
+    let mut stmt = conn.prepare(
+        "SELECT st.weight_kg, st.reps, st.rir
+         FROM sets st
+         JOIN session_exercises se ON se.id = st.session_exercise_id
+         JOIN sessions s ON s.id = se.session_id
+         WHERE s.user_id = ?1
+           AND se.exercise_id = ?2
+           AND st.set_type = 'working'
+           AND st.weight_kg IS NOT NULL
+           AND st.weight_kg > 0
+           AND st.reps > 0
+           AND date(s.started_at) >= date('now', ?3)
+           AND date(s.started_at) < date('now', ?4)"
+    )?;
+
+    let sets: Vec<(f64, i64, Option<i64>)> = stmt.query_map(
+        rusqlite::params![user_id, exercise_id, from_offset, to_offset],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let mut best: Option<f64> = None;
+    for (weight, reps, rir) in sets {
+        let effective_reps = match rir {
+            Some(r) => reps + r,
+            None => reps,
+        };
+        let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+        if best.is_none() || e1rm > best.unwrap() {
+            best = Some(e1rm);
+        }
+    }
+
+    Ok(best)
+}
+
 /// Returns list of exercises that the user has actually logged sets for (for the exercise picker).
 #[derive(Debug, Serialize)]
 pub struct ExerciseSummary {
