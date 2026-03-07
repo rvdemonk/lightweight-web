@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // This is the source of truth for the What's New overlay.
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "0.7.1",
+    date: "2026-03-07",
+    highlights: [
+      "Skeleton loading states for analytics",
+      "Theme toggle on settings page for desktop",
+    ],
+  },
+  {
     version: "0.7.0",
     date: "2026-03-07",
     highlights: [
@@ -18,8 +26,6 @@ export const CHANGELOG: ChangelogVersion[] = [
       "What's New notifications on version updates",
       "Settings page with preferences",
       "Export all session history to CSV",
-      "Skeleton loading states for analytics",
-      "Theme toggle on settings page for desktop",
     ],
   },
   {
