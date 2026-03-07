@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Exercise, Template } from '../api/types';
 import { useApi } from '../hooks/useApi';
+import { ExercisePicker } from '../components/ExercisePicker';
 
 interface TemplateExerciseInput {
   exercise_id: number;
@@ -20,12 +21,8 @@ export function TemplatePage() {
 
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<TemplateExerciseInput[]>([]);
-  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    api.listExercises().then(setAllExercises);
-  }, []);
 
   useEffect(() => {
     if (!isNew && id) {
@@ -203,24 +200,31 @@ export function TemplatePage() {
         </div>
       ))}
 
-      {/* Add exercise dropdown */}
       <div style={{ marginTop: 8, marginBottom: 16 }}>
-        <select
-          style={{ width: '100%' }}
-          value=""
-          onChange={e => {
-            const ex = allExercises.find(x => x.id === Number(e.target.value));
-            if (ex) addExercise(ex);
+        <button
+          className="btn btn-full"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-subtle)',
+            minHeight: 44,
+            fontSize: 14,
           }}
+          onClick={() => setShowPicker(true)}
         >
-          <option value="">+ Add exercise...</option>
-          {allExercises
-            .filter(ex => !exercises.some(e => e.exercise_id === ex.id))
-            .map(ex => (
-              <option key={ex.id} value={ex.id}>{ex.name}</option>
-            ))}
-        </select>
+          + Add exercise...
+        </button>
       </div>
+
+      {showPicker && (
+        <ExercisePicker
+          excludeIds={exercises.map(e => e.exercise_id)}
+          onSelect={ex => {
+            addExercise(ex);
+            setShowPicker(false);
+          }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
 
       <button
         className="btn btn-primary btn-full"

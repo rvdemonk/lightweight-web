@@ -11,6 +11,7 @@ All notable changes to Lightweight.
 - Muscle balance radar chart — spider graph with multi-span overlay (4W/8W/12W), normalised to sets/week, zero-volume groups highlighted in red
 - Exercise editing — tap to expand, edit name/muscle group/equipment inline
 - PR cards tap-to-expand — reveals record set detail and date with NERV accent divider
+- Inline exercise creation from workout builder — search-based fullscreen picker with "Create & Add" when no match found
 - Exercise selector chevron indicator (angular SVG, accent-coloured)
 - Volume chart loading state
 
