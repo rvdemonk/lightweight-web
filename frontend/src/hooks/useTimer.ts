@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseDate } from '../utils/date';
+import { getServerClockOffset } from '../api/client';
 
 export function useTimer(startedAt: string, pausedDuration: number, isPaused: boolean) {
   const [elapsed, setElapsed] = useState(0);
@@ -9,7 +10,8 @@ export function useTimer(startedAt: string, pausedDuration: number, isPaused: bo
     const startTime = parseDate(startedAt).getTime();
 
     const tick = () => {
-      const now = Date.now();
+      // Adjust client time by server clock offset to handle phone clock drift
+      const now = Date.now() + getServerClockOffset();
       const totalSeconds = Math.floor((now - startTime) / 1000) - pausedDuration;
       setElapsed(Math.max(0, totalSeconds));
     };

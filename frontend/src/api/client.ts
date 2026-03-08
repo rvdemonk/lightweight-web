@@ -1,5 +1,9 @@
 const BASE = '/api/v1';
 
+// Clock offset: server time minus client time (ms). Positive = client is behind server.
+let serverClockOffset = 0;
+export function getServerClockOffset() { return serverClockOffset; }
+
 function getToken(): string | null {
   return localStorage.getItem('lw_token');
 }
@@ -31,6 +35,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers,
   });
+
+  // Calibrate clock offset from server Date header
+  const serverDate = resp.headers.get('Date');
+  if (serverDate) {
+    const serverTime = new Date(serverDate).getTime();
+    if (!isNaN(serverTime)) {
+      serverClockOffset = serverTime - Date.now();
+    }
+  }
 
   if (resp.status === 401) {
     // Don't auto-redirect for auth endpoints — let the caller handle the error
