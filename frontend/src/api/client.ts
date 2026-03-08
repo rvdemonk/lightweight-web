@@ -158,12 +158,17 @@ export const api = {
 
   // Analytics
   activityHeatmap: () => request<import('./types').DayActivity[]>('/analytics/heatmap'),
+  activityHeatmapTemplates: () => request<import('./types').DayTemplateActivity[]>('/analytics/heatmap-templates'),
   analyticsExercises: () => request<import('./types').ExerciseSummary[]>('/analytics/exercises'),
   e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
   weeklyVolume: () => request<import('./types').WeeklyVolume[]>('/analytics/volume'),
   sessionFrequency: () => request<import('./types').WeeklyFrequency[]>('/analytics/frequency'),
   e1rmSpider: (exerciseIds: number[], weeks: number) =>
     request<import('./types').E1rmSpiderPoint[]>(`/analytics/e1rm-spider?exercise_ids=${exerciseIds.join(',')}&weeks=${weeks}`),
+  e1rmMovers: (days?: number) =>
+    request<import('./types').E1rmMover[]>(`/analytics/e1rm-movers${days ? `?days=${days}` : ''}`),
+  staleExercises: (days?: number) =>
+    request<import('./types').StaleExercise[]>(`/analytics/stale-exercises${days ? `?days=${days}` : ''}`),
   getE1rmSpiderPrefs: () => request<import('./types').E1rmSpiderPrefs>('/preferences/e1rm-spider'),
   setE1rmSpiderPrefs: (prefs: import('./types').E1rmSpiderPrefs) =>
     request<void>('/preferences/e1rm-spider', { method: 'PUT', body: JSON.stringify(prefs) }),

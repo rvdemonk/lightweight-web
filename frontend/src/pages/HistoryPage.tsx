@@ -36,7 +36,7 @@ export function HistoryPage() {
         }
 
         const badge = isCompleted
-          ? `${s.set_count} SET${s.set_count !== 1 ? 'S' : ''}`
+          ? `${s.exercise_count} EX · ${s.set_count} SET${s.set_count !== 1 ? 'S' : ''}`
           : s.status.toUpperCase();
 
         return (

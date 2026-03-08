@@ -106,6 +106,7 @@ pub struct SessionSummary {
     pub ended_at: Option<String>,
     pub status: String,
     pub set_count: i64,
+    pub exercise_count: i64,
     pub target_set_count: Option<i64>,
 }
 

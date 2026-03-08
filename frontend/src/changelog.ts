@@ -8,6 +8,20 @@ export interface ChangelogVersion {
 // This is the source of truth for the What's New overlay.
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "0.8.0",
+    date: "2026-03-08",
+    highlights: [
+      "Activity heatmap: toggle between intensity and workout view with per-template colours",
+      "Activity heatmap: desktop hover tooltips showing date and set details",
+      "Muscle balance: volume donut chart showing proportional muscle group distribution",
+      "Analytics page reordered: e1RM → spider → dormant exercises → movers",
+      "Config buttons hoisted above chart frames for consistency",
+      "Start Workout button on templates page",
+      "Session history shows exercise and set counts",
+      "Dormant exercises and e1RM movers analytics",
+    ],
+  },
+  {
     version: "0.7.1",
     date: "2026-03-07",
     highlights: [

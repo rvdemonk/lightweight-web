@@ -7,6 +7,8 @@ import { VolumeChart } from '../components/VolumeChart';
 import { FrequencyChart } from '../components/FrequencyChart';
 import { MuscleBalanceChart } from '../components/MuscleBalanceChart';
 import { E1rmSpiderChart } from '../components/E1rmSpiderChart';
+import { E1rmMovers } from '../components/E1rmMovers';
+import { StaleExercises } from '../components/StaleExercises';
 import type { ExerciseE1rm } from '../api/types';
 
 export function AnalyticsPage() {
@@ -91,46 +93,14 @@ export function AnalyticsPage() {
       <div style={{ ...sectionTitle, marginBottom: 12 }}>ACTIVITY</div>
 
       {heatmapData && (
-        <div className="card">
-          <ActivityHeatmap data={heatmapData} />
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: 6,
-            marginTop: 8,
-            fontFamily: 'var(--font-data)',
-            fontSize: 9,
-            color: 'var(--text-secondary)',
-          }}>
-            <span>LESS</span>
-            {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
-              <span
-                key={i}
-                style={{
-                  display: 'inline-block',
-                  width: 11,
-                  height: 11,
-                  borderRadius: 1,
-                  background: intensity > 0
-                    ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
-                    : 'var(--bg-elevated)',
-                  border: '1px solid var(--bg-primary)',
-                }}
-              />
-            ))}
-            <span>MORE</span>
-          </div>
-        </div>
+        <ActivityHeatmap data={heatmapData} />
       )}
 
       {/* Weekly Volume */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>WEEKLY VOLUME</div>
 
       {volumeData && (
-        <div className="card">
-          <VolumeChart data={volumeData} />
-        </div>
+        <VolumeChart data={volumeData} />
       )}
 
       {/* Session Frequency */}
@@ -146,26 +116,12 @@ export function AnalyticsPage() {
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>MUSCLE BALANCE</div>
 
       {volumeData && (
-        <div className="card">
-          <MuscleBalanceChart data={volumeData} />
-        </div>
+        <MuscleBalanceChart data={volumeData} />
       )}
 
-      {/* E1RM Progression Spider */}
-      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM PROGRESSION COMPARISON</div>
-
-      {exercises && exercises.length >= 3 && (
-        <E1rmSpiderChart exercises={exercises} />
-      )}
-
-      {exercises && exercises.length > 0 && exercises.length < 3 && (
-        <div className="card" style={{
-          fontFamily: 'var(--font-data)', fontSize: 12,
-          color: 'var(--text-secondary)', textAlign: 'center',
-        }}>
-          NEED 3+ EXERCISES WITH DATA
-        </div>
-      )}
+      {/* Dormant Exercises — training coverage gaps */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>DORMANT EXERCISES</div>
+      <StaleExercises />
 
       {/* e1RM Section */}
       <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>ESTIMATED 1RM</div>
@@ -247,6 +203,26 @@ export function AnalyticsPage() {
           <PRCards e1rmData={e1rmData} delta={delta} />
         </>
       )}
+
+      {/* E1RM Progression Spider */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM PROGRESSION COMPARISON</div>
+
+      {exercises && exercises.length >= 3 && (
+        <E1rmSpiderChart exercises={exercises} />
+      )}
+
+      {exercises && exercises.length > 0 && exercises.length < 3 && (
+        <div className="card" style={{
+          fontFamily: 'var(--font-data)', fontSize: 12,
+          color: 'var(--text-secondary)', textAlign: 'center',
+        }}>
+          NEED 3+ EXERCISES WITH DATA
+        </div>
+      )}
+
+      {/* E1RM Movers */}
+      <div style={{ ...sectionTitle, marginTop: 24, marginBottom: 12 }}>E1RM MOVERS — 30D</div>
+      <E1rmMovers />
     </div>
   );
 }

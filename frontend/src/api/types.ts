@@ -72,6 +72,7 @@ export interface SessionSummary {
   ended_at: string | null;
   status: string;
   set_count: number;
+  exercise_count: number;
   target_set_count: number | null;
 }
 
@@ -90,6 +91,13 @@ export interface ExerciseHistoryEntry {
 
 export interface DayActivity {
   date: string;
+  set_count: number;
+}
+
+export interface DayTemplateActivity {
+  date: string;
+  template_id: number | null;
+  template_name: string | null;
   set_count: number;
 }
 
@@ -148,6 +156,24 @@ export interface E1rmSpiderPoint {
 
 export interface E1rmSpiderPrefs {
   exercise_ids: number[];
+}
+
+export interface E1rmMover {
+  exercise_id: number;
+  exercise_name: string;
+  muscle_group: string | null;
+  current_e1rm: number;
+  previous_e1rm: number;
+  pct_change: number;
+}
+
+export interface StaleExercise {
+  exercise_id: number;
+  exercise_name: string;
+  muscle_group: string | null;
+  last_performed: string;
+  days_ago: number;
+  total_sets: number;
 }
 
 export interface ExportMeta {

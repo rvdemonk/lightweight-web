@@ -190,7 +190,7 @@ export function VolumeChart({ data }: Props) {
       </div>
 
       {containerWidth > 0 && (
-        <>
+        <div className="card" style={{ marginBottom: 0 }}>
           <svg width={width} height={height} style={{ display: 'block' }}>
             {/* Horizontal grid lines */}
             {yTicks.map(tick => (
@@ -323,7 +323,7 @@ export function VolumeChart({ data }: Props) {
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

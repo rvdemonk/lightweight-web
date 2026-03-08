@@ -13,11 +13,14 @@ use crate::auth::UserId;
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/analytics/heatmap", get(heatmap))
+        .route("/analytics/heatmap-templates", get(heatmap_templates))
         .route("/analytics/exercises", get(exercises_with_data))
         .route("/analytics/e1rm/:exercise_id", get(e1rm_progression))
         .route("/analytics/e1rm-spider", get(e1rm_spider))
         .route("/analytics/volume", get(weekly_volume))
         .route("/analytics/frequency", get(session_frequency))
+        .route("/analytics/e1rm-movers", get(e1rm_movers))
+        .route("/analytics/stale-exercises", get(stale_exercises))
         .route("/preferences/e1rm-spider", get(get_e1rm_spider_prefs).put(set_e1rm_spider_prefs))
 }
 
@@ -26,6 +29,15 @@ async fn heatmap(
     Extension(UserId(user_id)): Extension<UserId>,
 ) -> Result<Json<Vec<lightweight_core::analytics::DayActivity>>, StatusCode> {
     lightweight_core::analytics::activity_heatmap(&state.db, user_id, 365)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn heatmap_templates(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<Vec<lightweight_core::analytics::DayTemplateActivity>>, StatusCode> {
+    lightweight_core::analytics::activity_heatmap_by_template(&state.db, user_id, 365)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -66,6 +78,38 @@ async fn session_frequency(
     Extension(UserId(user_id)): Extension<UserId>,
 ) -> Result<Json<Vec<lightweight_core::analytics::WeeklyFrequency>>, StatusCode> {
     lightweight_core::analytics::session_frequency(&state.db, user_id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Deserialize)]
+struct MoversQuery {
+    days: Option<i64>,
+}
+
+async fn e1rm_movers(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Query(query): Query<MoversQuery>,
+) -> Result<Json<Vec<lightweight_core::analytics::E1rmMover>>, StatusCode> {
+    let days = query.days.unwrap_or(30);
+    lightweight_core::analytics::e1rm_movers(&state.db, user_id, days)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Deserialize)]
+struct StaleQuery {
+    days: Option<i64>,
+}
+
+async fn stale_exercises(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Query(query): Query<StaleQuery>,
+) -> Result<Json<Vec<lightweight_core::analytics::StaleExercise>>, StatusCode> {
+    let days = query.days.unwrap_or(30);
+    lightweight_core::analytics::stale_exercises(&state.db, user_id, days)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

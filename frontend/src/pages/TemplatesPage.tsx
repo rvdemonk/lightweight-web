@@ -1,11 +1,25 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 
 export function TemplatesPage() {
   const { data: templates } = useApi(() => api.listTemplates(), []);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [starting, setStarting] = useState(false);
+  const navigate = useNavigate();
+
+  const startWorkout = async (templateId: number) => {
+    setStarting(true);
+    try {
+      await api.createSession({ template_id: templateId });
+      navigate('/workout');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStarting(false);
+    }
+  };
 
   return (
     <div className="page">
@@ -80,7 +94,18 @@ export function TemplatesPage() {
                   marginTop: 12,
                   paddingTop: 12,
                   borderTop: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
                 }}>
+                  <button
+                    className="btn btn-primary btn-full"
+                    style={{ fontSize: 13, minHeight: 40 }}
+                    disabled={starting}
+                    onClick={() => startWorkout(t.id)}
+                  >
+                    Start Workout
+                  </button>
                   <Link to={`/templates/${t.id}`}>
                     <button className="btn btn-secondary btn-full" style={{ fontSize: 13, minHeight: 40 }}>
                       Edit

@@ -56,6 +56,7 @@ pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec
         (
             "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
                     (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
+                    (SELECT COUNT(DISTINCT se.id) FROM session_exercises se WHERE se.session_id = s.id) as exercise_count,
                     (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
              WHERE s.user_id = ?1 AND s.template_id = ?2
@@ -66,6 +67,7 @@ pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec
         (
             "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
                     (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
+                    (SELECT COUNT(DISTINCT se.id) FROM session_exercises se WHERE se.session_id = s.id) as exercise_count,
                     (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
              WHERE s.user_id = ?1
@@ -85,7 +87,8 @@ pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec
             ended_at: row.get(5)?,
             status: row.get(6)?,
             set_count: row.get(7)?,
-            target_set_count: row.get(8)?,
+            exercise_count: row.get(8)?,
+            target_set_count: row.get(9)?,
         })
     })?;
 
