@@ -68,11 +68,20 @@ export function ExerciseCard({
         </div>
         <div style={{
           fontSize: 12,
-          color: exercise.sets.length > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)',
           fontFamily: 'var(--font-data)',
-          textShadow: exercise.sets.length > 0 ? 'var(--glow-primary-text)' : 'none',
+          whiteSpace: 'nowrap',
         }}>
-          {String(exercise.sets.length).padStart(2, '0')}
+          <span style={{
+            color: exercise.sets.length > 0 ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            textShadow: exercise.sets.length > 0 ? 'var(--glow-primary-text)' : 'none',
+          }}>
+            {exercise.sets.length}
+          </span>
+          {templateExercise?.target_sets != null && (
+            <span style={{ color: 'var(--text-secondary)' }}>
+              /{templateExercise.target_sets}
+            </span>
+          )}
         </div>
       </div>
 

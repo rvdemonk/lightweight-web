@@ -4,6 +4,19 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.8.1 — 2026-03-08
+
+### Added
+- Heatmap day click navigates to filtered history — tap a workout day to see sessions from that date
+- Collapsed exercise cards show completed/target set count (e.g. "2/4") during active workouts
+- History date filter with header banner and "ALL HISTORY" clear button
+
+### Fixed
+- RIR defaults to null instead of zero — prevents false failure signals from accidental 0
+- Active/paused workouts in history list now link to live workout page instead of premature history view
+
+---
+
 ## v0.7.0 — 2026-03-07
 
 ### Added

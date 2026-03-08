@@ -10,21 +10,21 @@ interface SetLoggerProps {
 export function SetLogger({ defaultWeight, defaultReps, onLog }: SetLoggerProps) {
   const [weight, setWeight] = useState(defaultWeight ?? 0);
   const [reps, setReps] = useState(defaultReps);
-  const [rir, setRir] = useState(0);
+  const [rir, setRir] = useState<number | null>(null);
   const isBodyweight = defaultWeight === null && weight === 0;
 
   return (
     <div style={{ marginTop: 12 }}>
       <IncrementButton
         value={weight}
-        onChange={setWeight}
+        onChange={(v) => setWeight(v ?? 0)}
         step={1.25}
         label="weight (kg)"
       />
       <div style={{ height: 8 }} />
       <IncrementButton
         value={reps}
-        onChange={setReps}
+        onChange={(v) => setReps(v ?? 1)}
         step={1}
         label="reps"
         min={1}
@@ -37,6 +37,7 @@ export function SetLogger({ defaultWeight, defaultReps, onLog }: SetLoggerProps)
         label="RIR"
         min={0}
         muted
+        nullable
       />
 
       <div style={{ marginTop: 16 }}>

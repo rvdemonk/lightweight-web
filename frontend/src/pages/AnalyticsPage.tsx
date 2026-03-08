@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import { ActivityHeatmap } from '../components/ActivityHeatmap';
@@ -12,6 +13,7 @@ import { StaleExercises } from '../components/StaleExercises';
 import type { ExerciseE1rm } from '../api/types';
 
 export function AnalyticsPage() {
+  const navigate = useNavigate();
   const { data: heatmapData, loading: heatmapLoading } = useApi(() => api.activityHeatmap(), []);
   const { data: exercises, loading: exercisesLoading } = useApi(() => api.analyticsExercises(), []);
   const { data: volumeData, loading: volumeLoading } = useApi(() => api.weeklyVolume(), []);
@@ -93,7 +95,7 @@ export function AnalyticsPage() {
       <div style={{ ...sectionTitle, marginBottom: 12 }}>ACTIVITY</div>
 
       {heatmapData && (
-        <ActivityHeatmap data={heatmapData} />
+        <ActivityHeatmap data={heatmapData} onDayClick={(date) => navigate(`/history?date=${date}`)} />
       )}
 
       {/* Weekly Volume */}

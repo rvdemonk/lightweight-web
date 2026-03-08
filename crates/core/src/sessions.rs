@@ -52,29 +52,35 @@ pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec
     let limit = params.limit.unwrap_or(20);
     let offset = params.offset.unwrap_or(0);
 
-    let (sql, sql_params): (String, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(tid) = params.template_id {
-        (
-            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
+    let base = "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
                     (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
                     (SELECT COUNT(DISTINCT se.id) FROM session_exercises se WHERE se.session_id = s.id) as exercise_count,
                     (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-             WHERE s.user_id = ?1 AND s.template_id = ?2
-             ORDER BY s.started_at DESC LIMIT ?3 OFFSET ?4".to_string(),
-            vec![Box::new(user_id), Box::new(tid), Box::new(limit), Box::new(offset)],
-        )
-    } else {
-        (
-            "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
-                    (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
-                    (SELECT COUNT(DISTINCT se.id) FROM session_exercises se WHERE se.session_id = s.id) as exercise_count,
-                    (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
-             FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
-             WHERE s.user_id = ?1
-             ORDER BY s.started_at DESC LIMIT ?2 OFFSET ?3".to_string(),
-            vec![Box::new(user_id), Box::new(limit), Box::new(offset)],
-        )
-    };
+             WHERE s.user_id = ?1";
+
+    let mut conditions = String::new();
+    let mut sql_params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(user_id)];
+    let mut param_idx = 2;
+
+    if let Some(tid) = params.template_id {
+        conditions.push_str(&format!(" AND s.template_id = ?{}", param_idx));
+        sql_params.push(Box::new(tid));
+        param_idx += 1;
+    }
+
+    if let Some(ref date) = params.date {
+        conditions.push_str(&format!(" AND DATE(s.started_at) = ?{}", param_idx));
+        sql_params.push(Box::new(date.clone()));
+        param_idx += 1;
+    }
+
+    let sql = format!(
+        "{}{} ORDER BY s.started_at DESC LIMIT ?{} OFFSET ?{}",
+        base, conditions, param_idx, param_idx + 1
+    );
+    sql_params.push(Box::new(limit));
+    sql_params.push(Box::new(offset));
 
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(rusqlite::params_from_iter(sql_params.iter()), |row| {

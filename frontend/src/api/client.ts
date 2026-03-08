@@ -105,11 +105,12 @@ export const api = {
     request<void>(`/templates/${id}`, { method: 'DELETE' }),
 
   // Sessions
-  listSessions: (params?: { limit?: number; offset?: number; template_id?: number }) => {
+  listSessions: (params?: { limit?: number; offset?: number; template_id?: number; date?: string }) => {
     const query = new URLSearchParams();
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));
     if (params?.template_id) query.set('template_id', String(params.template_id));
+    if (params?.date) query.set('date', params.date);
     const qs = query.toString();
     return request<import('./types').SessionSummary[]>(`/sessions${qs ? '?' + qs : ''}`);
   },

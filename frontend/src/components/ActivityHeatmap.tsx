@@ -17,9 +17,10 @@ const MIXED_COLOUR = '#888888';
 
 interface Props {
   data: DayActivity[];
+  onDayClick?: (dateStr: string) => void;
 }
 
-export function ActivityHeatmap({ data }: Props) {
+export function ActivityHeatmap({ data, onDayClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [mode, setMode] = useState<HeatmapMode>('intensity');
@@ -302,12 +303,13 @@ export function ActivityHeatmap({ data }: Props) {
                   fill={getCellFill(day)}
                   stroke="var(--bg-primary)"
                   strokeWidth={1}
-                  style={canHover ? { cursor: 'pointer' } : undefined}
+                  style={(canHover || (onDayClick && day.count > 0)) ? { cursor: 'pointer' } : undefined}
                   onMouseEnter={canHover ? () => setHoveredCell({
                     dateStr: day.dateStr,
                     x: cx + cellSize / 2,
                     y: cy,
                   }) : undefined}
+                  onClick={onDayClick && day.count > 0 ? () => onDayClick(day.dateStr) : undefined}
                 />
               );
             })

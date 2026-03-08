@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // This is the source of truth for the What's New overlay.
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "0.8.1",
+    date: "2026-03-08",
+    highlights: [
+      "Tap heatmap days to view workout history for that date",
+      "Collapsed exercise cards show set progress (e.g. 2/4)",
+      "RIR defaults to unset — no more accidental zero",
+      "Active workouts in history link to live session",
+    ],
+  },
+  {
     version: "0.8.0",
     date: "2026-03-08",
     highlights: [

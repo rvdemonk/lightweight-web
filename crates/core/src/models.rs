@@ -238,6 +238,7 @@ pub struct SessionListParams {
     pub limit: Option<i64>,
     pub offset: Option<i64>,
     pub template_id: Option<i64>,
+    pub date: Option<String>,
 }
 
 // ── History ──
