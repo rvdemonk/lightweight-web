@@ -236,6 +236,17 @@ pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateSession) -> Resu
             return Err(AppError::BadRequest(format!("Invalid status: {}", status)));
         }
         if status == "completed" || status == "abandoned" {
+            // If no sets were recorded, delete the empty session instead of keeping it
+            let set_count: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = ?1",
+                rusqlite::params![id],
+                |row| row.get(0),
+            )?;
+            if set_count == 0 {
+                conn.execute("DELETE FROM session_exercises WHERE session_id = ?1", rusqlite::params![id])?;
+                conn.execute("DELETE FROM sessions WHERE id = ?1", rusqlite::params![id])?;
+                return Err(AppError::NotFound);
+            }
             conn.execute(
                 "UPDATE sessions SET status = ?1, ended_at = datetime('now') WHERE id = ?2",
                 rusqlite::params![status, id],

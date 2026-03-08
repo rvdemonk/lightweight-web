@@ -85,7 +85,11 @@ export function ActiveWorkoutPage() {
   const handleEnd = async () => {
     if (!session) return;
     if (!confirm('End this workout?')) return;
-    await api.updateSession(session.id, { status: 'completed' });
+    try {
+      await api.updateSession(session.id, { status: 'completed' });
+    } catch {
+      // Empty sessions are auto-deleted server-side — 404 is expected
+    }
     navigate('/');
   };
 
