@@ -140,7 +140,9 @@ export function VolumeChart({ data }: Props) {
   const plotH = height - pad.top - pad.bottom;
 
   const barGap = Math.max(2, Math.round(plotW * 0.02));
-  const barWidth = Math.max(8, (plotW - barGap * (weeks.length - 1)) / weeks.length);
+  const barWidth = Math.min(56, Math.max(8, (plotW - barGap * (weeks.length - 1)) / weeks.length));
+  const totalBarsW = weeks.length * barWidth + (weeks.length - 1) * barGap;
+  const barOffset = pad.left + (plotW - totalBarsW) / 2;
 
   const tickStep = niceStep(maxTotal / 4);
   const yMax = Math.ceil(maxTotal / tickStep) * tickStep;
@@ -156,7 +158,7 @@ export function VolumeChart({ data }: Props) {
   ];
 
   return (
-    <div ref={containerRef} style={{ width: '100%' }}>
+    <div style={{ width: '100%' }}>
       {/* Mode toggle */}
       <div style={{
         display: 'flex',
@@ -189,8 +191,9 @@ export function VolumeChart({ data }: Props) {
         ))}
       </div>
 
+      <div ref={containerRef} className="card" style={{ marginBottom: 0 }}>
       {containerWidth > 0 && (
-        <div className="card" style={{ marginBottom: 0 }}>
+        <>
           <svg width={width} height={height} style={{ display: 'block' }}>
             {/* Horizontal grid lines */}
             {yTicks.map(tick => (
@@ -214,7 +217,7 @@ export function VolumeChart({ data }: Props) {
 
             {/* Stacked bars */}
             {weeks.map((week, wi) => {
-              const x = pad.left + wi * (barWidth + barGap);
+              const x = barOffset + wi * (barWidth + barGap);
               let y = toY(0);
 
               return (
@@ -323,8 +326,9 @@ export function VolumeChart({ data }: Props) {
               </div>
             )}
           </div>
-        </div>
+        </>
       )}
+      </div>
     </div>
   );
 }

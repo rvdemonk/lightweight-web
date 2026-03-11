@@ -500,7 +500,7 @@ pub struct WeeklyVolume {
 pub fn weekly_volume(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyVolume>, AppError> {
     let conn = db.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT date(st.completed_at, 'weekday 1', '-7 days') as week_start,
+        "SELECT date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
                 COALESCE(e.muscle_group, 'Other') as mg,
                 COUNT(*) as set_count
          FROM sets st
@@ -537,7 +537,7 @@ pub struct WeeklyFrequency {
 pub fn session_frequency(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyFrequency>, AppError> {
     let conn = db.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT date(s.started_at, 'weekday 1', '-7 days') as week_start,
+        "SELECT date(s.started_at, '+1 day', 'weekday 1', '-7 days') as week_start,
                 COUNT(*) as session_count
          FROM sessions s
          WHERE s.user_id = ?1
