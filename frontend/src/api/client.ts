@@ -183,6 +183,8 @@ export const api = {
     request<import('./types').E1rmMover[]>(`/analytics/e1rm-movers${days ? `?days=${days}` : ''}`),
   staleExercises: (days?: number) =>
     request<import('./types').StaleExercise[]>(`/analytics/stale-exercises${days ? `?days=${days}` : ''}`),
+  sessionPRs: (sessionId: number) =>
+    request<import('./types').ExercisePRData[]>(`/analytics/session-prs/${sessionId}`),
   getE1rmSpiderPrefs: () => request<import('./types').E1rmSpiderPrefs>('/preferences/e1rm-spider'),
   setE1rmSpiderPrefs: (prefs: import('./types').E1rmSpiderPrefs) =>
     request<void>('/preferences/e1rm-spider', { method: 'PUT', body: JSON.stringify(prefs) }),

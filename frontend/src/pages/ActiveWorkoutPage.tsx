@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Session, WorkoutSet, TemplateExercise } from '../api/types';
+import type { Session, WorkoutSet, TemplateExercise, ExercisePRData } from '../api/types';
 import { Timer } from '../components/Timer';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { ExercisePicker } from '../components/ExercisePicker';
@@ -15,6 +15,7 @@ export function ActiveWorkoutPage() {
   const [showPicker, setShowPicker] = useState(false);
   const [previousData, setPreviousData] = useState<Record<number, WorkoutSet[]>>({});
   const [templateExercises, setTemplateExercises] = useState<TemplateExercise[]>([]);
+  const [prData, setPrData] = useState<Record<number, ExercisePRData>>({});
 
   const fetchSession = useCallback(async () => {
     try {
@@ -24,6 +25,18 @@ export function ActiveWorkoutPage() {
         return;
       }
       setSession(active);
+
+      // Fetch PR data for this session
+      try {
+        const prs = await api.sessionPRs(active.id);
+        const prMap: Record<number, ExercisePRData> = {};
+        for (const pr of prs) {
+          prMap[pr.exercise_id] = pr;
+        }
+        setPrData(prMap);
+      } catch {
+        // PR data is non-critical — silently ignore failures
+      }
 
       // Fetch previous data if template-based
       if (active.template_id) {
@@ -125,11 +138,13 @@ export function ActiveWorkoutPage() {
               {session.template_name || session.name || 'Freeform'}
             </div>
           </div>
-          <Timer
-            startedAt={session.started_at}
-            pausedDuration={session.paused_duration}
-            isPaused={session.status === 'paused'}
-          />
+          <span style={{ fontSize: 20 }}>
+            <Timer
+              startedAt={session.started_at}
+              pausedDuration={session.paused_duration}
+              isPaused={session.status === 'paused'}
+            />
+          </span>
         </div>
 
         {/* Workout progress bar */}
@@ -171,12 +186,13 @@ export function ActiveWorkoutPage() {
             key={exercise.id}
             exercise={exercise}
             expanded={idx === expandedIdx}
-            onToggle={() => setExpandedIdx(idx)}
+            onToggle={() => setExpandedIdx(idx === expandedIdx ? -1 : idx)}
             onLogSet={(w, r, rir) => handleLogSet(exercise.id, w, r, rir)}
             onDeleteSet={handleDeleteSet}
             onUpdateNote={(note) => handleUpdateNote(exercise.id, note)}
             previousSets={previousData[exercise.exercise_id] || []}
             templateExercise={te}
+            prData={prData[exercise.exercise_id]}
           />
         );
       })}

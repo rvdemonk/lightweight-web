@@ -21,11 +21,7 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#ux` **Dial in EVA aesthetic** — some elements are overcooked. Review glow effects, angular borders, and monospace styling for places where the theme is more corny than cool.
 
-- [ ] `#bug` **Rest timer starts at ~0:50 instead of 0:00** — timer should begin counting from zero after completing a set.
-
 - [ ] `#feature` **Show LAST and BEST per exercise** — display previous session performance and all-time best for each exercise during a workout. Include the date on LAST.
-
-- [ ] `#feature` **PR indicators on set log** — show an indicator next to a set if it's a PR for the exercise overall or for that specific set position (e.g. best-ever 2nd set). Track both rep and weight PRs.
 
 - [ ] `#feature` **Training phase tracking** — user sets phase (cutting/maintaining/bulking). Adjust progressive overload feedback so weight decreases during a cut aren't flagged negatively. Use phases to segment training history.
 
@@ -34,6 +30,14 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 - [ ] `#feature` **History: convert freeflow workout to template** — option on a completed freeflow session to save it as a reusable workout template.
 
 - [ ] `#feature` **Data export GET endpoint** — public authenticated endpoint that returns all user training data as JSON. Designed for pasting into ChatGPT/Claude for analysis. Single GET request, full history.
+
+- [ ] `#feature` **PR heatmap** — heatmap view showing days with personal records, separate from or overlaid on the activity heatmap.
+
+- [ ] `#feature` **Post-workout report** — shown after ending a session: e1RM gains for movements with PRs, how far off the others were, anomalies, comparison to last session of the same template.
+
+- [ ] `#feature` **Muscle group dimension pages** — per-muscle-group views showing template progress reports, shifting from the current "all exercises" page to group-specific analysis.
+
+- [ ] `#feature` **Weekly training report** — aggregated weekly insights. Possibly LLM-generated summaries of training trends, volume, PRs, and recommendations.
 
 ---
 
@@ -53,6 +57,22 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 ---
 
 ## Completed
+
+### v0.9.0
+- [x] `#feature` PR hazard stripes on set bars (absolute + set-position)
+- [x] `#feature` Progression targets on exercise cards (e1RM-based, rep-range-aware)
+- [x] `#ux` Active workout nav — template name + live timer replaces HOME
+- [x] `#ux` Tap exercise title to collapse card
+- [x] `#ux` Spontaneous exercises marked ADDED in session history
+
+### v0.8.1
+- [x] `#feature` Heatmap day → filtered history navigation
+- [x] `#ux` Collapsed exercise cards show set progress (2/4)
+- [x] `#ux` History date filter with banner and clear button
+- [x] `#bug` RIR defaults to null not zero
+- [x] `#bug` Active workouts in history link to live session
+- [x] `#bug` Timer clock drift on mobile (server clock calibration)
+- [x] `#ux` Auto-delete empty sessions on workout end
 
 ### v0.4.0
 - [x] `#feature` Day/night theme toggle — off-white + teal light theme, NERV-style selector in burger menu

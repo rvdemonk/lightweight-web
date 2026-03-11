@@ -176,6 +176,12 @@ export interface StaleExercise {
   total_sets: number;
 }
 
+export interface ExercisePRData {
+  exercise_id: number;
+  best_e1rm_ever: number | null;
+  best_e1rm_by_position: Record<number, number>;
+}
+
 export interface ExportMeta {
   session_count: number;
   set_count: number;

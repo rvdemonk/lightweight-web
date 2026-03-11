@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import type { WorkoutSet, TemplateExercise } from '../api/types';
+import type { WorkoutSet, TemplateExercise, ExercisePRData } from '../api/types';
+import { getPRBadge } from '../utils/e1rm';
 
 type RepStatus = 'in-range' | 'one-below' | 'under' | 'over';
 
@@ -52,9 +53,10 @@ interface SetBarsProps {
   sets: WorkoutSet[];
   templateExercise?: TemplateExercise;
   onDeleteSet?: (setId: number) => void;
+  prData?: ExercisePRData;
 }
 
-export function SetBars({ sets, templateExercise, onDeleteSet }: SetBarsProps) {
+export function SetBars({ sets, templateExercise, onDeleteSet, prData }: SetBarsProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const timerRef = useRef<number | null>(null);
 
@@ -84,6 +86,8 @@ export function SetBars({ sets, templateExercise, onDeleteSet }: SetBarsProps) {
       {sets.map(set => {
         const sc = STATUS_COLORS[getRepStatus(set.reps, templateExercise)];
         const isDeleting = deleteId === set.id;
+
+        const badge = getPRBadge(set, prData);
 
         return (
           <div
@@ -128,8 +132,12 @@ export function SetBars({ sets, templateExercise, onDeleteSet }: SetBarsProps) {
               <div style={{
                 height: '100%',
                 width: `${Math.min(100, (set.reps / maxReps) * 100)}%`,
-                background: sc.bar,
-                boxShadow: `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}`,
+                background: badge
+                  ? `${sc.bar} repeating-linear-gradient(45deg, transparent, transparent 3px, ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.9)' : 'rgba(50, 200, 232, 0.7)'} 3px, ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.9)' : 'rgba(50, 200, 232, 0.7)'} 5px)`
+                  : sc.bar,
+                boxShadow: badge
+                  ? `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}, 0 0 8px ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.4)' : 'rgba(50, 200, 232, 0.3)'}`
+                  : `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}`,
                 clipPath: 'polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%)',
                 transition: 'width 0.3s ease',
               }} />
@@ -157,6 +165,7 @@ export function SetBars({ sets, templateExercise, onDeleteSet }: SetBarsProps) {
                 </span>
               )}
             </span>
+
 
             {/* Delete overlay */}
             {isDeleting && (

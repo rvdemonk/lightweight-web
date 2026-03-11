@@ -4,6 +4,18 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.9.0 — 2026-03-11
+
+### Added
+- PR hazard stripes on set bars — amber diagonal stripes for absolute PRs, cyan for set-position PRs
+- Progression targets on exercise cards — shows reps needed to beat set PR at current and next weight, colour-coded to rep range
+- Active workout nav — menu shows template name (e.g. "UPPER A") with live timer instead of HOME
+- Collapse exercise card by tapping its own title
+- Spontaneous exercises in session history marked with ADDED tag
+- Progression target calculator utility (e1RM-based, weight-increment-aware, rep-range-aware)
+
+---
+
 ## v0.8.1 — 2026-03-08
 
 ### Added

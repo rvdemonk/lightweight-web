@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 
 use crate::db::DbPool;
 use crate::error::AppError;
@@ -555,4 +556,89 @@ pub fn session_frequency(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyFrequenc
         .collect();
 
     Ok(rows)
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExercisePRData {
+    pub exercise_id: i64,
+    pub best_e1rm_ever: Option<f64>,
+    pub best_e1rm_by_position: HashMap<i32, f64>,
+}
+
+/// For each exercise in a session, returns the historical best e1RM (absolute)
+/// and best e1RM per set_number position from all other completed sessions.
+/// The frontend can compare current-session sets against these thresholds
+/// to determine PR badges.
+pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<ExercisePRData>, AppError> {
+    let conn = db.lock().unwrap();
+
+    // Find all exercises in the given session
+    let mut ex_stmt = conn.prepare(
+        "SELECT DISTINCT se.exercise_id
+         FROM session_exercises se
+         WHERE se.session_id = ?1"
+    )?;
+
+    let exercise_ids: Vec<i64> = ex_stmt.query_map(
+        rusqlite::params![session_id],
+        |row| row.get(0),
+    )?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let mut results = Vec::new();
+
+    for exercise_id in exercise_ids {
+        let mut stmt = conn.prepare(
+            "SELECT st.set_number, st.weight_kg, st.reps, st.rir
+             FROM sets st
+             JOIN session_exercises se ON se.id = st.session_exercise_id
+             JOIN sessions s ON s.id = se.session_id
+             WHERE s.user_id = ?1
+               AND se.exercise_id = ?2
+               AND s.id != ?3
+               AND s.status = 'completed'
+               AND st.set_type = 'working'
+               AND st.weight_kg IS NOT NULL
+               AND st.weight_kg > 0
+               AND st.reps > 0"
+        )?;
+
+        let sets: Vec<(i32, f64, i64, Option<i64>)> = stmt.query_map(
+            rusqlite::params![user_id, exercise_id, session_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let mut best_ever: Option<f64> = None;
+        let mut best_by_position: HashMap<i32, f64> = HashMap::new();
+
+        for (set_number, weight, reps, rir) in sets {
+            let effective_reps = match rir {
+                Some(r) => reps + r,
+                None => reps,
+            };
+            let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+
+            if best_ever.is_none() || e1rm > best_ever.unwrap() {
+                best_ever = Some(e1rm);
+            }
+
+            let pos_entry = best_by_position.entry(set_number).or_insert(0.0);
+            if e1rm > *pos_entry {
+                *pos_entry = e1rm;
+            }
+        }
+
+        results.push(ExercisePRData {
+            exercise_id,
+            best_e1rm_ever: best_ever.map(|v| (v * 10.0).round() / 10.0),
+            best_e1rm_by_position: best_by_position.into_iter()
+                .map(|(k, v)| (k, (v * 10.0).round() / 10.0))
+                .collect(),
+        });
+    }
+
+    Ok(results)
 }

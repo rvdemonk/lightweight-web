@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 import { parseDate } from '../utils/date';
 import { SetBars } from '../components/SetBars';
-import type { TemplateExercise } from '../api/types';
+import type { TemplateExercise, ExercisePRData } from '../api/types';
 
 export function SessionDetailPage() {
   const { id } = useParams();
@@ -13,6 +13,16 @@ export function SessionDetailPage() {
     () => session?.template_id ? api.getTemplate(session.template_id) : Promise.resolve(null),
     [session?.template_id],
   );
+  const { data: prDataList } = useApi(
+    () => session ? api.sessionPRs(session.id) : Promise.resolve([] as ExercisePRData[]),
+    [session?.id],
+  );
+  const prMap: Record<number, ExercisePRData> = {};
+  if (prDataList) {
+    for (const pr of prDataList) {
+      prMap[pr.exercise_id] = pr;
+    }
+  }
 
   if (loading || !session) return <div className="page empty">Loading...</div>;
 
@@ -97,6 +107,7 @@ export function SessionDetailPage() {
 
       {session.exercises.map(exercise => {
         const te = getTemplateExercise(exercise.exercise_id);
+        const isAddon = session.template_id && template && !te;
         return (
           <div key={exercise.id} className="card">
             <div style={{
@@ -105,11 +116,26 @@ export function SessionDetailPage() {
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
               marginBottom: 8,
+              color: isAddon ? 'var(--text-secondary)' : undefined,
+              fontStyle: isAddon ? 'italic' : undefined,
             }}>
               {exercise.exercise_name}
+              {isAddon && (
+                <span style={{
+                  fontSize: 9,
+                  fontStyle: 'normal',
+                  fontWeight: 500,
+                  letterSpacing: '1px',
+                  marginLeft: 8,
+                  color: 'var(--accent-cyan)',
+                  opacity: 0.7,
+                }}>
+                  ADDED
+                </span>
+              )}
             </div>
 
-            <SetBars sets={exercise.sets} templateExercise={te} />
+            <SetBars sets={exercise.sets} templateExercise={te} prData={prMap[exercise.exercise_id]} />
 
             {exercise.notes && (
               <div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 8 }}>

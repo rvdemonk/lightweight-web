@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // This is the source of truth for the What's New overlay.
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "0.9.0",
+    date: "2026-03-11",
+    highlights: [
+      "PR badges: hazard stripes on set bars — amber for absolute PR, cyan for set-position PR",
+      "Progression targets: shows reps needed to beat your set PR at current and next weight",
+      "Active workout nav: menu shows template name and live timer instead of HOME",
+      "Tap exercise title to collapse card without opening another",
+      "Spontaneous exercises marked with ADDED tag in session history",
+    ],
+  },
+  {
     version: "0.8.1",
     date: "2026-03-08",
     highlights: [

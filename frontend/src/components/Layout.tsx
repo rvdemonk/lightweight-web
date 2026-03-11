@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { APP_VERSION } from '../version';
 import { useTheme } from '../hooks/useTheme';
+import { api } from '../api/client';
+import { Timer } from './Timer';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'HOME',
@@ -26,9 +28,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const pageTitle = getPageTitle(location.pathname);
+  const [activeWorkout, setActiveWorkout] = useState<{
+    name: string;
+    started_at: string;
+    paused_duration: number;
+    status: string;
+  } | null>(null);
+
+  useEffect(() => {
+    api.getActiveSession().then(session => {
+      if (session) {
+        setActiveWorkout({
+          name: (session.template_name || session.name || 'WORKOUT').toUpperCase(),
+          started_at: session.started_at,
+          paused_duration: session.paused_duration,
+          status: session.status,
+        });
+      } else {
+        setActiveWorkout(null);
+      }
+    }).catch(() => {});
+  }, [location.pathname]);
+
+  const homeLabel = activeWorkout ? activeWorkout.name : 'HOME';
 
   const navItems = [
-    { path: '/', label: 'HOME', num: '01' },
+    { path: activeWorkout ? '/workout' : '/', label: homeLabel, num: '01' },
     { path: '/exercises', label: 'EXERCISES', num: '02' },
     { path: '/templates', label: 'WORKOUTS', num: '03' },
     { path: '/history', label: 'HISTORY', num: '04' },
@@ -81,19 +106,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="desktop-nav">
           {navItems.map(item => {
             const active = location.pathname === item.path;
+            const highlighted = active || (activeWorkout && item.num === '01');
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 style={{
-                  color: active
+                  color: highlighted
                     ? 'var(--accent-primary)'
                     : 'var(--text-secondary)',
                   fontSize: 12,
                   fontWeight: 500,
                   textDecoration: 'none',
                   letterSpacing: '1px',
-                  textShadow: active ? 'var(--glow-primary-text)' : 'none',
+                  textShadow: highlighted ? 'var(--glow-primary-text)' : 'none',
                 }}
               >
                 {item.label}
@@ -237,15 +263,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 }}>
                   {item.num}
                 </span>
-                <span style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  letterSpacing: '2px',
-                  fontFamily: 'var(--font-data)',
-                  color: active ? 'var(--accent-primary)' : 'var(--text-primary)',
-                  textShadow: active ? 'var(--glow-primary-text)' : 'none',
-                }}>
-                  {item.label}
+                <span style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    letterSpacing: '2px',
+                    fontFamily: 'var(--font-data)',
+                    color: activeWorkout && item.num === '01'
+                      ? 'var(--accent-primary)'
+                      : active ? 'var(--accent-primary)' : 'var(--text-primary)',
+                    textShadow: (activeWorkout && item.num === '01') || active
+                      ? 'var(--glow-primary-text)' : 'none',
+                  }}>
+                    {item.label}
+                  </span>
+                  {activeWorkout && item.num === '01' && (
+                    <span style={{ fontSize: 11, marginTop: 2 }}>
+                      <Timer
+                        startedAt={activeWorkout.started_at}
+                        pausedDuration={activeWorkout.paused_duration}
+                        isPaused={activeWorkout.status === 'paused'}
+                      />
+                    </span>
+                  )}
                 </span>
               </Link>
             );

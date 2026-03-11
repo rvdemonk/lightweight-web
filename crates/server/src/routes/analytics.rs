@@ -21,6 +21,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/analytics/frequency", get(session_frequency))
         .route("/analytics/e1rm-movers", get(e1rm_movers))
         .route("/analytics/stale-exercises", get(stale_exercises))
+        .route("/analytics/session-prs/:session_id", get(session_prs))
         .route("/preferences/e1rm-spider", get(get_e1rm_spider_prefs).put(set_e1rm_spider_prefs))
 }
 
@@ -131,6 +132,16 @@ async fn e1rm_spider(
         .collect();
     let weeks = query.weeks.unwrap_or(4);
     lightweight_core::analytics::e1rm_spider(&state.db, user_id, &exercise_ids, weeks)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn session_prs(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Path(session_id): Path<i64>,
+) -> Result<Json<Vec<lightweight_core::analytics::ExercisePRData>>, StatusCode> {
+    lightweight_core::analytics::session_prs(&state.db, user_id, session_id)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

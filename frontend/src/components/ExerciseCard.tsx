@@ -1,8 +1,9 @@
-import type { SessionExercise, WorkoutSet, TemplateExercise } from '../api/types';
+import type { SessionExercise, WorkoutSet, TemplateExercise, ExercisePRData } from '../api/types';
 import { PreviousData } from './PreviousData';
 import { SetBars, getRepStatus, STATUS_COLORS } from './SetBars';
 import { SetLogger } from './SetLogger';
 import { NoteInput } from './NoteInput';
+import { setProgressionTargets, type ProgressionTarget } from '../utils/e1rm';
 
 interface ExerciseCardProps {
   exercise: SessionExercise;
@@ -13,6 +14,7 @@ interface ExerciseCardProps {
   onUpdateNote: (note: string) => void;
   previousSets?: WorkoutSet[];
   templateExercise?: TemplateExercise;
+  prData?: ExercisePRData;
 }
 
 export function ExerciseCard({
@@ -24,6 +26,7 @@ export function ExerciseCard({
   onUpdateNote,
   previousSets = [],
   templateExercise,
+  prData,
 }: ExerciseCardProps) {
   const lastSet = exercise.sets[exercise.sets.length - 1];
   const defaultWeight = lastSet?.weight_kg ?? (previousSets[0]?.weight_kg ?? null);
@@ -89,12 +92,70 @@ export function ExerciseCard({
         <div>
           <PreviousData sets={previousSets} templateExercise={templateExercise} />
 
+          {/* Progression targets for next set */}
+          {(() => {
+            const nextSetNum = exercise.sets.length + 1;
+            const weight = lastSet?.weight_kg ?? previousSets[0]?.weight_kg;
+            if (!weight || !prData) return null;
+            const targets = setProgressionTargets(prData, nextSetNum, weight, {
+              repRangeMin: templateExercise?.target_reps_min ?? undefined,
+              repRangeMax: templateExercise?.target_reps_max ?? undefined,
+            });
+            if (targets.length === 0) return null;
+
+            // Find the most relevant targets: current weight and one increment up
+            const atCurrent = targets.find(t => t.isCurrentWeight);
+            const atIncrement = targets.find(t => t.isIncrement);
+
+            if (!atCurrent && !atIncrement) return null;
+
+            const repMax = templateExercise?.target_reps_max;
+            const repMin = templateExercise?.target_reps_min;
+
+            const getTargetColor = (t: ProgressionTarget) => {
+              if (!repMin || !repMax) return 'var(--text-secondary)';
+              if (t.repsNeeded > repMax) return 'var(--accent-cyan)';
+              if (t.repsNeeded >= repMin) return 'var(--accent-green)';
+              if (t.repsNeeded === repMin - 1) return 'var(--accent-amber)';
+              return 'var(--accent-red)';
+            };
+
+            return (
+              <div style={{
+                fontSize: 12,
+                fontFamily: 'var(--font-data)',
+                color: 'var(--text-secondary)',
+                padding: '4px 0 6px',
+                letterSpacing: '0.5px',
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                textTransform: 'uppercase',
+              }}>
+                <span style={{ color: 'var(--accent-primary)', opacity: 0.5 }}>
+                  SET {nextSetNum} TO BEAT
+                </span>
+                {atCurrent && (
+                  <span style={{ color: getTargetColor(atCurrent) }}>
+                    {atCurrent.repsNeeded}R × {atCurrent.weight}KG
+                  </span>
+                )}
+                {atIncrement && atIncrement.repsNeeded >= 1 && (
+                  <span style={{ color: getTargetColor(atIncrement) }}>
+                    {atIncrement.repsNeeded}R × {atIncrement.weight}KG
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
           {exercise.sets.length > 0 && (
             <div style={{ marginBottom: 8 }}>
               <SetBars
                 sets={exercise.sets}
                 templateExercise={templateExercise}
                 onDeleteSet={onDeleteSet}
+                prData={prData}
               />
             </div>
           )}
