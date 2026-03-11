@@ -4,6 +4,16 @@ All notable changes to Lightweight.
 
 ---
 
+## v0.9.1 — 2026-03-11
+
+### Added
+- PR badges on activity heatmap — toggle overlay showing dates where e1RM personal records were set
+- Two tiers: cyan dot for absolute e1RM PR, green dot for set-position PR
+- PRs button in heatmap toolbar, works with both intensity and workouts views
+- Tooltip shows PR type on hover when overlay is active
+
+---
+
 ## v0.9.0 — 2026-03-11
 
 ### Added

@@ -14,6 +14,7 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/analytics/heatmap", get(heatmap))
         .route("/analytics/heatmap-templates", get(heatmap_templates))
+        .route("/analytics/heatmap-prs", get(heatmap_prs))
         .route("/analytics/exercises", get(exercises_with_data))
         .route("/analytics/e1rm/:exercise_id", get(e1rm_progression))
         .route("/analytics/e1rm-spider", get(e1rm_spider))
@@ -39,6 +40,15 @@ async fn heatmap_templates(
     Extension(UserId(user_id)): Extension<UserId>,
 ) -> Result<Json<Vec<lightweight_core::analytics::DayTemplateActivity>>, StatusCode> {
     lightweight_core::analytics::activity_heatmap_by_template(&state.db, user_id, 365)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn heatmap_prs(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<Vec<lightweight_core::analytics::DayPR>>, StatusCode> {
+    lightweight_core::analytics::heatmap_prs(&state.db, user_id, 365)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

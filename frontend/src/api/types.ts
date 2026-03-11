@@ -101,6 +101,12 @@ export interface DayTemplateActivity {
   set_count: number;
 }
 
+export interface DayPR {
+  date: string;
+  has_absolute_pr: boolean;
+  has_set_pr: boolean;
+}
+
 export interface E1rmDataPoint {
   date: string;
   e1rm: number;

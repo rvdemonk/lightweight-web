@@ -565,6 +565,106 @@ pub struct ExercisePRData {
     pub best_e1rm_by_position: HashMap<i32, f64>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct DayPR {
+    pub date: String,
+    pub has_absolute_pr: bool,
+    pub has_set_pr: bool,
+}
+
+/// Returns dates where e1RM personal records were set, scanning all history chronologically.
+/// An "absolute" PR means the set was the all-time best e1RM for that exercise.
+/// A "set" PR means the set was the best e1RM for that exercise at that set_number position.
+/// Single-pass O(n) over all sets, maintaining running maximums.
+pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, AppError> {
+    let conn = db.lock().unwrap();
+
+    // Fetch ALL working sets for this user ordered chronologically.
+    // We need full history to build running bests, but only report PRs within the date window.
+    let mut stmt = conn.prepare(
+        "SELECT date(st.completed_at) as day,
+                se.exercise_id,
+                st.set_number,
+                st.weight_kg,
+                st.reps,
+                st.rir
+         FROM sets st
+         JOIN session_exercises se ON se.id = st.session_exercise_id
+         JOIN sessions s ON s.id = se.session_id
+         WHERE s.user_id = ?1
+           AND s.status = 'completed'
+           AND st.set_type = 'working'
+           AND st.weight_kg IS NOT NULL
+           AND st.weight_kg > 0
+           AND st.reps > 0
+         ORDER BY st.completed_at, st.id"
+    )?;
+
+    let sets: Vec<(String, i64, i32, f64, i64, Option<i64>)> = stmt.query_map(
+        rusqlite::params![user_id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
+    )?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Compute the cutoff date for reporting (we still process all sets for running bests)
+    let cutoff: String = conn.query_row(
+        "SELECT date('now', ?1)",
+        rusqlite::params![format!("-{} days", days)],
+        |row| row.get(0),
+    )?;
+
+    // Running bests: exercise_id -> (best_absolute_e1rm, {set_number -> best_e1rm})
+    let mut best_absolute: HashMap<i64, f64> = HashMap::new();
+    let mut best_by_pos: HashMap<i64, HashMap<i32, f64>> = HashMap::new();
+
+    // Accumulate PR flags per date
+    let mut day_prs: HashMap<String, (bool, bool)> = HashMap::new(); // (absolute, set)
+
+    for (date, exercise_id, set_number, weight, reps, rir) in &sets {
+        let effective_reps = match rir {
+            Some(r) => reps + r,
+            None => *reps,
+        };
+        let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+
+        let abs_best = best_absolute.entry(*exercise_id).or_insert(0.0);
+        let pos_map = best_by_pos.entry(*exercise_id).or_default();
+        let pos_best = pos_map.entry(*set_number).or_insert(0.0);
+
+        // Only record PRs within the reporting window, but always after first set
+        if date.as_str() >= cutoff.as_str() {
+            if e1rm > *abs_best && *abs_best > 0.0 {
+                let entry = day_prs.entry(date.clone()).or_insert((false, false));
+                entry.0 = true;
+            } else if e1rm > *pos_best && *pos_best > 0.0 {
+                let entry = day_prs.entry(date.clone()).or_insert((false, false));
+                entry.1 = true;
+            }
+        }
+
+        // Update running bests AFTER comparison
+        if e1rm > *abs_best {
+            *abs_best = e1rm;
+        }
+        if e1rm > *pos_best {
+            *pos_best = e1rm;
+        }
+    }
+
+    let mut result: Vec<DayPR> = day_prs
+        .into_iter()
+        .map(|(date, (abs, set))| DayPR {
+            date,
+            has_absolute_pr: abs,
+            has_set_pr: set,
+        })
+        .collect();
+    result.sort_by(|a, b| a.date.cmp(&b.date));
+
+    Ok(result)
+}
+
 /// For each exercise in a session, returns the historical best e1RM (absolute)
 /// and best e1RM per set_number position from all other completed sessions.
 /// The frontend can compare current-session sets against these thresholds

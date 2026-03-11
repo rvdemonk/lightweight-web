@@ -173,6 +173,7 @@ export const api = {
   // Analytics
   activityHeatmap: () => request<import('./types').DayActivity[]>('/analytics/heatmap'),
   activityHeatmapTemplates: () => request<import('./types').DayTemplateActivity[]>('/analytics/heatmap-templates'),
+  activityHeatmapPRs: () => request<import('./types').DayPR[]>('/analytics/heatmap-prs'),
   analyticsExercises: () => request<import('./types').ExerciseSummary[]>('/analytics/exercises'),
   e1rmProgression: (exerciseId: number) => request<import('./types').ExerciseE1rm>(`/analytics/e1rm/${exerciseId}`),
   weeklyVolume: () => request<import('./types').WeeklyVolume[]>('/analytics/volume'),

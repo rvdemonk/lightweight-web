@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { api } from '../api/client';
-import type { DayActivity, DayTemplateActivity } from '../api/types';
+import type { DayActivity, DayTemplateActivity, DayPR } from '../api/types';
 
 type HeatmapMode = 'intensity' | 'workouts';
 
@@ -26,6 +26,9 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
   const [mode, setMode] = useState<HeatmapMode>('intensity');
   const [templateData, setTemplateData] = useState<DayTemplateActivity[] | null>(null);
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [showPRs, setShowPRs] = useState(false);
+  const [prData, setPRData] = useState<DayPR[] | null>(null);
+  const [prLoading, setPRLoading] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ dateStr: string; x: number; y: number } | null>(null);
   const [canHover, setCanHover] = useState(false);
 
@@ -43,6 +46,17 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
         .finally(() => setTemplateLoading(false));
     }
   }, [mode, templateData, templateLoading]);
+
+  // Lazy-load PR data when toggled on
+  useEffect(() => {
+    if (showPRs && !prData && !prLoading) {
+      setPRLoading(true);
+      api.activityHeatmapPRs()
+        .then(setPRData)
+        .catch(() => setPRData([]))
+        .finally(() => setPRLoading(false));
+    }
+  }, [showPRs, prData, prLoading]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -82,6 +96,14 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
     });
     // Assign freeform colour
     templateColourMap.set(null, FREEFORM_COLOUR);
+  }
+
+  // Build PR lookup: date -> DayPR
+  const prMap = new Map<string, DayPR>();
+  if (prData) {
+    for (const d of prData) {
+      prMap.set(d.date, d);
+    }
   }
 
   // Template legend entries (for workouts mode)
@@ -191,17 +213,28 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
     const dateLabel = formatDateLabel(day.dateStr);
     if (day.count === 0) return `${dateLabel}\nRest day`;
 
+    const lines: string[] = [dateLabel];
+
     if (mode === 'workouts' && templateData) {
       const templates = templateMap.get(day.dateStr);
       if (templates && templates.length > 0) {
-        const lines = templates.map(t =>
-          `${t.template_name ?? 'Freeform'}: ${t.set_count} sets`
-        );
-        return `${dateLabel}\n${lines.join('\n')}`;
+        for (const t of templates) {
+          lines.push(`${t.template_name ?? 'Freeform'}: ${t.set_count} sets`);
+        }
+      } else {
+        lines.push(`${day.count} sets`);
       }
+    } else {
+      lines.push(`${day.count} sets`);
     }
 
-    return `${dateLabel}\n${day.count} sets`;
+    if (showPRs && prData) {
+      const pr = prMap.get(day.dateStr);
+      if (pr?.has_absolute_pr) lines.push('★ E1RM PR');
+      else if (pr?.has_set_pr) lines.push('◆ SET PR');
+    }
+
+    return lines.join('\n');
   };
 
   const modes: { key: HeatmapMode; label: string }[] = [
@@ -211,7 +244,7 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
 
   return (
     <div ref={containerRef} style={{ width: '100%', position: 'relative' }}>
-      {/* Mode toggle — above the card */}
+      {/* Mode toggle + PR toggle — above the card */}
       <div style={{
         display: 'flex',
         gap: 0,
@@ -230,8 +263,8 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
               background: mode === m.key ? 'var(--bg-elevated)' : 'transparent',
               color: mode === m.key ? 'var(--text-primary)' : 'var(--text-secondary)',
               border: '1px solid var(--border-subtle)',
-              borderRight: m.key !== 'workouts' ? 'none' : '1px solid var(--border-subtle)',
-              borderRadius: m.key === 'intensity' ? '2px 0 0 2px' : '0 2px 2px 0',
+              borderRight: 'none',
+              borderRadius: m.key === 'intensity' ? '2px 0 0 2px' : 0,
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'inherit',
@@ -241,6 +274,23 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
             {m.label}
           </button>
         ))}
+        <button
+          onClick={() => setShowPRs(p => !p)}
+          style={{
+            padding: '6px 10px',
+            background: showPRs ? 'var(--bg-elevated)' : 'transparent',
+            color: showPRs ? 'var(--accent-amber)' : 'var(--text-secondary)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '0 2px 2px 0',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            letterSpacing: 'inherit',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          PRs
+        </button>
       </div>
 
       {containerWidth > 0 && (
@@ -310,6 +360,27 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
                     y: cy,
                   }) : undefined}
                   onClick={onDayClick && day.count > 0 ? () => onDayClick(day.dateStr) : undefined}
+                />
+              );
+            })
+          )}
+
+          {/* PR badges overlay */}
+          {showPRs && prData && weeks.map((week, wi) =>
+            week.map((day, di) => {
+              const pr = prMap.get(day.dateStr);
+              if (!pr) return null;
+              const cx = labelWidth + wi * step;
+              const cy = 18 + di * step;
+              const r = Math.max(1.5, cellSize * 0.2);
+              return (
+                <circle
+                  key={`pr-${day.dateStr}`}
+                  cx={cx + cellSize - r - 1}
+                  cy={cy + r + 1}
+                  r={r}
+                  fill={pr.has_absolute_pr ? 'var(--accent-cyan)' : 'var(--accent-green)'}
+                  style={{ pointerEvents: 'none' }}
                 />
               );
             })
@@ -384,61 +455,80 @@ export function ActivityHeatmap({ data, onDayClick }: Props) {
           left: 0,
           right: 0,
         }}>
-          {mode === 'workouts' && templateLegend.length > 0 ? (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '6px 12px',
-              justifyContent: 'flex-end',
-              fontFamily: 'var(--font-data)',
-              fontSize: 9,
-              color: 'var(--text-secondary)',
-            }}>
-              {templateLegend.map(t => (
-                <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{
-                    display: 'inline-block',
-                    width: 11,
-                    height: 11,
-                    borderRadius: 1,
-                    background: t.colour,
-                    border: '1px solid var(--bg-primary)',
-                  }} />
-                  <span>{t.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: 6,
-              fontFamily: 'var(--font-data)',
-              fontSize: 9,
-              color: 'var(--text-secondary)',
-            }}>
-              <span>LESS</span>
-              {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: 'inline-block',
-                    width: 11,
-                    height: 11,
-                    borderRadius: 1,
-                    background: intensity > 0
-                      ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
-                      : 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-primary)',
-                  }}
-                />
-              ))}
-              <span>MORE</span>
-            </div>
-          )}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 6,
+            fontFamily: 'var(--font-data)',
+            fontSize: 9,
+            color: 'var(--text-secondary)',
+          }}>
+            {/* PR legend (left side) */}
+            {showPRs && (
+              <>
+                <span style={{
+                  display: 'inline-block',
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: 'var(--accent-cyan)',
+                }} />
+                <span>E1RM PR</span>
+                <span style={{
+                  display: 'inline-block',
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: 'var(--accent-green)',
+                }} />
+                <span>SET PR</span>
+                <span style={{ width: 6 }} />
+              </>
+            )}
+
+            {/* Main legend (right side) */}
+            {mode === 'workouts' && templateLegend.length > 0 ? (
+              <>
+                {templateLegend.map(t => (
+                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: 11,
+                      height: 11,
+                      borderRadius: 1,
+                      background: t.colour,
+                      border: '1px solid var(--bg-primary)',
+                    }} />
+                    <span>{t.name}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <span>LESS</span>
+                {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline-block',
+                      width: 11,
+                      height: 11,
+                      borderRadius: 1,
+                      background: intensity > 0
+                        ? `color-mix(in srgb, var(--accent-primary) ${Math.round(intensity * 100)}%, var(--bg-elevated))`
+                        : 'var(--bg-elevated)',
+                      border: '1px solid var(--bg-primary)',
+                    }}
+                  />
+                ))}
+                <span>MORE</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
+
         </div>
       )}
     </div>
