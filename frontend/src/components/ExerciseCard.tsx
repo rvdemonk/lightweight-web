@@ -97,20 +97,29 @@ export function ExerciseCard({
             const nextSetNum = exercise.sets.length + 1;
             const weight = lastSet?.weight_kg ?? previousSets[0]?.weight_kg;
             if (!weight || !prData) return null;
+
+            const repMin = templateExercise?.target_reps_min;
+            const repMax = templateExercise?.target_reps_max;
+
+            // Get a wide range of weight options to find in-range targets
             const targets = setProgressionTargets(prData, nextSetNum, weight, {
-              repRangeMin: templateExercise?.target_reps_min ?? undefined,
-              repRangeMax: templateExercise?.target_reps_max ?? undefined,
+              stepsBelow: 1,
+              stepsAbove: 20,
             });
             if (targets.length === 0) return null;
 
-            // Find the most relevant targets: current weight and one increment up
-            const atCurrent = targets.find(t => t.isCurrentWeight);
-            const atIncrement = targets.find(t => t.isIncrement);
+            // 1. At-weight target: reps needed at current weight
+            const atWeight = targets.find(t => t.isCurrentWeight);
 
-            if (!atCurrent && !atIncrement) return null;
+            // 2. In-range target: first weight where repsNeeded falls within template rep range
+            const inRange = repMin && repMax
+              ? targets.find(t => t.repsNeeded >= repMin && t.repsNeeded <= repMax)
+              : null;
 
-            const repMax = templateExercise?.target_reps_max;
-            const repMin = templateExercise?.target_reps_min;
+            if (!atWeight && !inRange) return null;
+
+            // Don't show both if they're the same weight
+            const showBoth = atWeight && inRange && atWeight.weight !== inRange.weight;
 
             const getTargetColor = (t: ProgressionTarget) => {
               if (!repMin || !repMax) return 'var(--text-secondary)';
@@ -135,14 +144,19 @@ export function ExerciseCard({
                 <span style={{ color: 'var(--accent-primary)', opacity: 0.5 }}>
                   SET {nextSetNum} TO BEAT
                 </span>
-                {atCurrent && (
-                  <span style={{ color: getTargetColor(atCurrent) }}>
-                    {atCurrent.repsNeeded}R × {atCurrent.weight}KG
+                {inRange && (
+                  <span style={{ color: getTargetColor(inRange) }}>
+                    {inRange.repsNeeded}R × {inRange.weight}KG
                   </span>
                 )}
-                {atIncrement && atIncrement.repsNeeded >= 1 && (
-                  <span style={{ color: getTargetColor(atIncrement) }}>
-                    {atIncrement.repsNeeded}R × {atIncrement.weight}KG
+                {showBoth && atWeight && (
+                  <span style={{ color: getTargetColor(atWeight) }}>
+                    {atWeight.repsNeeded}R × {atWeight.weight}KG
+                  </span>
+                )}
+                {!inRange && atWeight && (
+                  <span style={{ color: getTargetColor(atWeight) }}>
+                    {atWeight.repsNeeded}R × {atWeight.weight}KG
                   </span>
                 )}
               </div>
