@@ -5,9 +5,11 @@ import { useApi } from '../hooks/useApi';
 
 export function TemplatesPage() {
   const { data: templates } = useApi(() => api.listTemplates(), []);
+  const { data: activeSession } = useApi(() => api.getActiveSession(), []);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const navigate = useNavigate();
+  const hasActive = activeSession !== null && activeSession !== undefined;
 
   const startWorkout = async (templateId: number) => {
     setStarting(true);
@@ -100,11 +102,11 @@ export function TemplatesPage() {
                 }}>
                   <button
                     className="btn btn-primary btn-full"
-                    style={{ fontSize: 13, minHeight: 40 }}
-                    disabled={starting}
+                    style={{ fontSize: 13, minHeight: 40, opacity: hasActive ? 0.4 : 1 }}
+                    disabled={starting || hasActive}
                     onClick={() => startWorkout(t.id)}
                   >
-                    Start Workout
+                    {hasActive ? 'Workout in Progress' : 'Start Workout'}
                   </button>
                   <Link to={`/templates/${t.id}`}>
                     <button className="btn btn-secondary btn-full" style={{ fontSize: 13, minHeight: 40 }}>

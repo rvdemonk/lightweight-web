@@ -94,17 +94,19 @@ export function SettingsPage() {
 
     api.exportMeta().then(setExportMeta).catch(() => {});
 
-    api.getPreference('last_export_at').then(val => {
-      if (!val) return;
-      const lastMs = new Date(val.replace(' ', 'T') + 'Z').getTime();
-      const nowMs = Date.now();
-      const weekMs = 7 * 24 * 60 * 60 * 1000;
-      const remaining = weekMs - (nowMs - lastMs);
-      if (remaining > 0) {
-        const days = Math.ceil(remaining / (24 * 60 * 60 * 1000));
-        setExportCooldown(`Available in ${days}d`);
-      }
-    }).catch(() => {});
+    if (!import.meta.env.DEV) {
+      api.getPreference('last_export_at').then(val => {
+        if (!val) return;
+        const lastMs = new Date(val.replace(' ', 'T') + 'Z').getTime();
+        const nowMs = Date.now();
+        const weekMs = 7 * 24 * 60 * 60 * 1000;
+        const remaining = weekMs - (nowMs - lastMs);
+        if (remaining > 0) {
+          const days = Math.ceil(remaining / (24 * 60 * 60 * 1000));
+          setExportCooldown(`Available in ${days}d`);
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const toggleWhatsNew = async () => {

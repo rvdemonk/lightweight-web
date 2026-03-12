@@ -32,15 +32,17 @@ async fn export_sessions(
     State(state): State<Arc<AppState>>,
     Extension(UserId(user_id)): Extension<UserId>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    // Rate limit check
-    if let Ok(Some(last_export)) =
-        lightweight_core::preferences::get_preference(&state.db, user_id, RATE_LIMIT_KEY)
-    {
-        if let Ok(last_ts) = chrono::NaiveDateTime::parse_from_str(&last_export, "%Y-%m-%d %H:%M:%S") {
-            let now = chrono::Utc::now().naive_utc();
-            let elapsed = (now - last_ts).num_seconds();
-            if elapsed < RATE_LIMIT_SECONDS {
-                return Err(StatusCode::TOO_MANY_REQUESTS);
+    // Rate limit check (skipped in debug/dev builds)
+    if !cfg!(debug_assertions) {
+        if let Ok(Some(last_export)) =
+            lightweight_core::preferences::get_preference(&state.db, user_id, RATE_LIMIT_KEY)
+        {
+            if let Ok(last_ts) = chrono::NaiveDateTime::parse_from_str(&last_export, "%Y-%m-%d %H:%M:%S") {
+                let now = chrono::Utc::now().naive_utc();
+                let elapsed = (now - last_ts).num_seconds();
+                if elapsed < RATE_LIMIT_SECONDS {
+                    return Err(StatusCode::TOO_MANY_REQUESTS);
+                }
             }
         }
     }

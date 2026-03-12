@@ -110,21 +110,23 @@ export function SetBars({ sets, templateExercise, onDeleteSet, prData }: SetBars
           >
             <span style={{
               fontSize: 11,
-              color: 'var(--text-secondary)',
+              color: badge === 'absolute' ? 'var(--accent-amber)' : badge === 'set' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
               fontFamily: 'var(--font-data)',
-              width: 20,
+              width: 24,
               letterSpacing: '0.5px',
               flexShrink: 0,
+              fontWeight: badge ? 700 : 400,
+              textShadow: badge === 'absolute' ? '0 0 8px #e8a832, 0 0 16px #e8a832' : badge === 'set' ? '0 0 8px #32c8e8, 0 0 16px #32c8e8' : 'none',
             }}>
-              {String(set.set_number).padStart(2, '0')}
+              {badge === 'absolute' ? 'PR' : badge === 'set' ? 'SPR' : String(set.set_number).padStart(2, '0')}
             </span>
 
             {/* Bar track */}
             <div style={{
               flex: 1,
               height: 10,
-              background: sc.trackBg,
-              border: `1px solid ${sc.trackBorder}`,
+              background: badge === 'absolute' ? '#2a2010' : badge === 'set' ? '#0f2028' : sc.trackBg,
+              border: `1px solid ${badge === 'absolute' ? '#4a3518' : badge === 'set' ? '#1a3040' : sc.trackBorder}`,
               borderRadius: 2,
               overflow: 'hidden',
               clipPath: 'polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%)',
@@ -132,12 +134,12 @@ export function SetBars({ sets, templateExercise, onDeleteSet, prData }: SetBars
               <div style={{
                 height: '100%',
                 width: `${Math.min(100, (set.reps / maxReps) * 100)}%`,
-                background: badge
-                  ? `${sc.bar} repeating-linear-gradient(45deg, transparent, transparent 3px, ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.9)' : 'rgba(50, 200, 232, 0.7)'} 3px, ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.9)' : 'rgba(50, 200, 232, 0.7)'} 5px)`
-                  : sc.bar,
-                boxShadow: badge
-                  ? `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}, 0 0 8px ${badge === 'absolute' ? 'rgba(232, 168, 50, 0.4)' : 'rgba(50, 200, 232, 0.3)'}`
-                  : `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}`,
+                background: badge === 'absolute' ? '#e8a832' : badge === 'set' ? '#32c8e8' : sc.bar,
+                boxShadow: badge === 'absolute'
+                  ? '0 0 12px #e8a832, 0 0 24px #e8a832'
+                  : badge === 'set'
+                    ? '0 0 12px #32c8e8, 0 0 24px #32c8e8'
+                    : `0 0 10px ${sc.glow}, 0 0 4px ${sc.glow}`,
                 clipPath: 'polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%)',
                 transition: 'width 0.3s ease',
               }} />

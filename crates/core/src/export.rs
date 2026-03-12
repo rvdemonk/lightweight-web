@@ -33,7 +33,7 @@ pub fn export_csv(db: &DbPool, user_id: i64) -> Result<String, AppError> {
 
     let mut stmt = conn.prepare(
         "SELECT
-            s.started_at,
+            DATE(s.started_at) as date,
             COALESCE(s.name, '') as session_name,
             COALESCE(t.name, '') as template_name,
             e.name as exercise_name,

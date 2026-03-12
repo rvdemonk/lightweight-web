@@ -51,9 +51,10 @@ pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Exercise, AppError> {
 
 pub fn create(db: &DbPool, user_id: i64, input: &CreateExercise) -> Result<Exercise, AppError> {
     let conn = db.lock().unwrap();
+    let name = input.name.to_uppercase();
     conn.execute(
         "INSERT INTO exercises (user_id, name, muscle_group, equipment, notes) VALUES (?1, ?2, ?3, ?4, ?5)",
-        rusqlite::params![user_id, input.name, input.muscle_group, input.equipment, input.notes],
+        rusqlite::params![user_id, name, input.muscle_group, input.equipment, input.notes],
     )
     .map_err(|e| match e {
         rusqlite::Error::SqliteFailure(_, _) => AppError::AlreadyExists,
@@ -80,6 +81,7 @@ pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateExercise) -> Res
     }
 
     if let Some(ref name) = input.name {
+        let name = name.to_uppercase();
         conn.execute("UPDATE exercises SET name = ?1 WHERE id = ?2", rusqlite::params![name, id])?;
     }
     if let Some(ref mg) = input.muscle_group {

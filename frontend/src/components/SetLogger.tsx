@@ -1,17 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IncrementButton } from './IncrementButton';
 
 interface SetLoggerProps {
   defaultWeight: number | null;
   defaultReps: number;
   onLog: (weight: number | null, reps: number, rir: number | null) => void;
+  onWeightChange?: (weight: number) => void;
 }
 
-export function SetLogger({ defaultWeight, defaultReps, onLog }: SetLoggerProps) {
+export function SetLogger({ defaultWeight, defaultReps, onLog, onWeightChange }: SetLoggerProps) {
   const [weight, setWeight] = useState(defaultWeight ?? 0);
   const [reps, setReps] = useState(defaultReps);
   const [rir, setRir] = useState<number | null>(null);
   const isBodyweight = defaultWeight === null && weight === 0;
+
+  useEffect(() => {
+    onWeightChange?.(weight);
+  }, [weight]);
 
   return (
     <div style={{ marginTop: 12 }}>

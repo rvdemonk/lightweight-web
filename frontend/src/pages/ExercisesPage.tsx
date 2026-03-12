@@ -20,6 +20,7 @@ export function ExercisesPage() {
   const [name, setName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [equipment, setEquipment] = useState('');
+  const [search, setSearch] = useState('');
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +43,13 @@ export function ExercisesPage() {
     refetch();
   };
 
-  // Group by muscle group
+  // Filter and group by muscle group
+  const searchLower = search.toLowerCase();
   const grouped: Record<string, Exercise[]> = {};
   if (exercises) {
     for (const ex of exercises) {
+      if (search && !ex.name.toLowerCase().includes(searchLower) &&
+          !(ex.muscle_group && ex.muscle_group.toLowerCase().includes(searchLower))) continue;
       const group = ex.muscle_group || 'Other';
       if (!grouped[group]) grouped[group] = [];
       grouped[group].push(ex);
@@ -54,13 +58,20 @@ export function ExercisesPage() {
 
   return (
     <div className="page">
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+        <input
+          type="text"
+          placeholder="Search exercises..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ flex: 1 }}
+        />
         <button
-          className="btn btn-primary btn-full"
-          style={{ fontSize: 13, minHeight: 44 }}
+          className="btn btn-primary"
+          style={{ fontSize: 13, minHeight: 44, padding: '0 16px', whiteSpace: 'nowrap' }}
           onClick={() => setShowForm(!showForm)}
         >
-          {showForm ? 'Cancel' : '+ New Exercise'}
+          {showForm ? 'Cancel' : '+ New'}
         </button>
       </div>
 
@@ -126,7 +137,7 @@ export function ExercisesPage() {
                     }
                   }}
                 >
-                  <div style={{ fontWeight: 400 }}>{ex.name}</div>
+                  <div style={{ fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ex.name}</div>
 
                   {expanded && edit && (
                     <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>

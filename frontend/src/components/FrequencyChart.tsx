@@ -5,7 +5,18 @@ interface Props {
   data: WeeklyFrequency[];
 }
 
-export function FrequencyChart({ data }: Props) {
+export function FrequencyChart({ data: rawData }: Props) {
+  // Exclude current (incomplete) week — it shows a premature dip in the MA
+  const data = useMemo(() => {
+    if (rawData.length === 0) return rawData;
+    const now = new Date();
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const currentWeek = currentMonday.toISOString().slice(0, 10);
+    const last = rawData[rawData.length - 1];
+    return last.week === currentWeek ? rawData.slice(0, -1) : rawData;
+  }, [rawData]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
