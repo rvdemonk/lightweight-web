@@ -38,7 +38,7 @@ pub fn activity_heatmap(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayA
     Ok(rows)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct E1rmDataPoint {
     pub date: String,
     pub e1rm: f64,
@@ -1011,4 +1011,69 @@ pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<Exe
     }
 
     Ok(results)
+}
+
+// ── Report ──
+
+#[derive(Debug, Serialize)]
+pub struct Report {
+    pub watched: Vec<WatchedExercise>,
+    pub all_exercises: Vec<AnalyticsSummary>,
+    pub movers: Vec<E1rmMover>,
+    pub frequency: Vec<WeeklyFrequency>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WatchedExercise {
+    pub exercise_id: i64,
+    pub exercise_name: String,
+    pub muscle_group: Option<String>,
+    pub current_e1rm: Option<f64>,
+    pub trend: Option<String>,
+    pub last_trained: Option<String>,
+    pub recent_sessions: Vec<E1rmDataPoint>,
+}
+
+/// Single-call report: watched exercises with recent e1RM history, full exercise summary,
+/// top movers, and training frequency. Designed for Claude Code health analysis sessions.
+pub fn report(db: &DbPool, user_id: i64, watched_ids: &[i64]) -> Result<Report, AppError> {
+    let all_exercises = summary(db, user_id)?;
+
+    let mut watched = Vec::new();
+    for &eid in watched_ids {
+        let summary_entry = all_exercises.iter().find(|e| e.exercise_id == eid);
+
+        // Get recent e1rm progression (last 8 sessions)
+        let recent_sessions = match e1rm_progression(db, user_id, eid, None, None) {
+            Ok(prog) => {
+                let len = prog.data.len();
+                let start = if len > 8 { len - 8 } else { 0 };
+                prog.data[start..].to_vec()
+            }
+            Err(_) => vec![],
+        };
+
+        watched.push(WatchedExercise {
+            exercise_id: eid,
+            exercise_name: summary_entry.map_or_else(
+                || "Unknown".to_string(),
+                |e| e.exercise_name.clone(),
+            ),
+            muscle_group: summary_entry.and_then(|e| e.muscle_group.clone()),
+            current_e1rm: summary_entry.and_then(|e| e.current_e1rm),
+            trend: summary_entry.and_then(|e| e.trend.clone()),
+            last_trained: summary_entry.and_then(|e| e.last_trained.clone()),
+            recent_sessions,
+        });
+    }
+
+    let movers = e1rm_movers(db, user_id, 30).unwrap_or_default();
+    let frequency = session_frequency(db, user_id)?;
+
+    Ok(Report {
+        watched,
+        all_exercises,
+        movers,
+        frequency,
+    })
 }

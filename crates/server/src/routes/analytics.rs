@@ -25,6 +25,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/analytics/session-prs/:session_id", get(session_prs))
         .route("/analytics/exercise-volume", get(exercise_volume))
         .route("/analytics/summary", get(analytics_summary))
+        .route("/analytics/report", get(analytics_report))
         .route("/preferences/e1rm-spider", get(get_e1rm_spider_prefs).put(set_e1rm_spider_prefs))
 }
 
@@ -197,6 +198,25 @@ async fn analytics_summary(
     Extension(UserId(user_id)): Extension<UserId>,
 ) -> Result<Json<Vec<lightweight_core::analytics::AnalyticsSummary>>, StatusCode> {
     lightweight_core::analytics::summary(&state.db, user_id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+const WATCHED_EXERCISES_KEY: &str = "watched_exercises";
+
+async fn analytics_report(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<lightweight_core::analytics::Report>, StatusCode> {
+    // Read watched exercise IDs from preferences
+    let watched_ids: Vec<i64> = match lightweight_core::preferences::get_preference(
+        &state.db, user_id, WATCHED_EXERCISES_KEY,
+    ) {
+        Ok(Some(val)) => serde_json::from_str(&val).unwrap_or_default(),
+        _ => vec![],
+    };
+
+    lightweight_core::analytics::report(&state.db, user_id, &watched_ids)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
