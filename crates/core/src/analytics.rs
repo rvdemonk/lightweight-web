@@ -60,6 +60,8 @@ pub struct ExerciseE1rm {
     pub exercise_name: String,
     pub data: Vec<E1rmDataPoint>,
     pub prs: ExercisePRs,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all_time_prs: Option<ExercisePRs>,
 }
 
 #[derive(Debug, Serialize)]
@@ -186,11 +188,58 @@ pub fn e1rm_progression(
         }),
     };
 
+    // Compute all-time PRs when date filtering is active (for comparison)
+    let has_date_filter = since.is_some() || until.is_some();
+    let all_time_prs = if has_date_filter {
+        let mut at_e1rm: Option<(f64, String, f64, i64)> = None;
+        let mut at_weight: Option<(f64, String, i64)> = None;
+        let mut at_reps: Option<(i64, String, f64)> = None;
+
+        for (date, weight, reps, rir) in &all_sets {
+            let effective_reps = match rir {
+                Some(r) => reps + r,
+                None => *reps,
+            };
+            let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+
+            if at_e1rm.is_none() || e1rm > at_e1rm.as_ref().unwrap().0 {
+                at_e1rm = Some((e1rm, date.clone(), *weight, *reps));
+            }
+            if at_weight.is_none() || *weight > at_weight.as_ref().unwrap().0 {
+                at_weight = Some((*weight, date.clone(), *reps));
+            }
+            if at_reps.is_none() || *reps > at_reps.as_ref().unwrap().0 {
+                at_reps = Some((*reps, date.clone(), *weight));
+            }
+        }
+
+        Some(ExercisePRs {
+            best_e1rm: at_e1rm.map(|(e1rm, date, w, r)| PersonalRecord {
+                value: (e1rm * 10.0).round() / 10.0,
+                date,
+                detail: format!("{:.1}kg x {}", w, r),
+            }),
+            heaviest_weight: at_weight.map(|(w, date, r)| PersonalRecord {
+                value: w,
+                date,
+                detail: format!("{} reps", r),
+            }),
+            most_reps: at_reps.map(|(r, date, w)| PersonalRecord {
+                value: r as f64,
+                date,
+                detail: format!("{:.1}kg", w),
+            }),
+        })
+    } else {
+        None
+    };
+
     Ok(ExerciseE1rm {
         exercise_id,
         exercise_name,
         data,
         prs,
+        all_time_prs,
     })
 }
 
@@ -822,7 +871,12 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
                   SELECT MAX(date(s2.started_at))
                   FROM sessions s2
                   JOIN session_exercises se2 ON se2.session_id = s2.id
+                  JOIN sets st2 ON st2.session_exercise_id = se2.id
                   WHERE s2.user_id = ?1 AND se2.exercise_id = se.exercise_id
+                    AND st2.set_type = 'working'
+                    AND st2.weight_kg IS NOT NULL
+                    AND st2.weight_kg > 0
+                    AND st2.reps > 0
               )
             GROUP BY se.exercise_id
         )
@@ -849,7 +903,8 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
         .filter_map(|r| r.ok())
         .collect();
 
-    // Compute trends: best e1RM per session per exercise, last 4 sessions each
+    // Compute trends: best e1RM per session per exercise, last 8 sessions each
+    // (fetch extra to have enough after filtering deloads)
     let mut trend_stmt = conn.prepare(
         "WITH ranked AS (
             SELECT se.exercise_id,
@@ -867,7 +922,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
         )
         SELECT exercise_id, rn, best_e1rm
         FROM ranked
-        WHERE rn <= 4
+        WHERE rn <= 8
         ORDER BY exercise_id, rn"
     )?;
 
@@ -878,7 +933,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
         .filter_map(|r| r.ok())
         .collect();
 
-    // Group by exercise, compute trend direction
+    // Group by exercise, filter deloads, compute trend direction
     let mut trends: HashMap<i64, String> = HashMap::new();
     let mut current_id: Option<i64> = None;
     let mut session_e1rms: Vec<f64> = Vec::new();
@@ -886,7 +941,8 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     for (exercise_id, _rn, e1rm) in &trend_data {
         if current_id != Some(*exercise_id) {
             if let Some(id) = current_id {
-                if let Some(t) = compute_trend(&session_e1rms) {
+                let filtered = filter_deloads(&session_e1rms);
+                if let Some(t) = compute_trend(&filtered) {
                     trends.insert(id, t);
                 }
             }
@@ -897,7 +953,8 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     }
     // Final exercise
     if let Some(id) = current_id {
-        if let Some(t) = compute_trend(&session_e1rms) {
+        let filtered = filter_deloads(&session_e1rms);
+        if let Some(t) = compute_trend(&filtered) {
             trends.insert(id, t);
         }
     }
@@ -908,6 +965,28 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     }
 
     Ok(rows)
+}
+
+/// Filter out deload sessions from e1RM series (ordered most recent first).
+/// A session is considered a deload if its e1RM is <85% of the series max,
+/// indicating an intentional light day rather than genuine regression.
+fn filter_deloads(e1rms: &[f64]) -> Vec<f64> {
+    if e1rms.len() < 3 {
+        return e1rms.to_vec();
+    }
+
+    let max = e1rms.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let threshold = max * 0.85;
+
+    let filtered: Vec<f64> = e1rms.iter().copied().filter(|&v| v >= threshold).collect();
+
+    // If filtering removed too many, fall back to unfiltered
+    if filtered.len() < 3 {
+        e1rms.to_vec()
+    } else {
+        // Take at most 4 after filtering
+        filtered.into_iter().take(4).collect()
+    }
 }
 
 /// Compute trend direction from session e1RMs (ordered most recent first).

@@ -241,13 +241,16 @@ async fn lookup_exercise_by_name(client: &Client, auth: &str, query: &str) -> Re
         .await
         .map_err(|e| format!("Parse error: {}", e))?;
 
-    let query_lower = query.to_lowercase();
+    let query_tokens: Vec<String> = query.to_lowercase().split_whitespace().map(String::from).collect();
     let matches: Vec<&serde_json::Value> = exercises
         .iter()
         .filter(|e| {
             e["name"]
                 .as_str()
-                .map_or(false, |n| n.to_lowercase().contains(&query_lower))
+                .map_or(false, |n| {
+                    let name_lower = n.to_lowercase();
+                    query_tokens.iter().all(|t| name_lower.contains(t.as_str()))
+                })
         })
         .collect();
 
