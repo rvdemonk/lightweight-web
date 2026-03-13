@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod exercises;
 pub mod import;
 pub mod sessions;
@@ -6,10 +7,18 @@ pub mod templates;
 use crate::client::Client;
 
 pub async fn login(client: &Client) -> Result<(), String> {
-    print!("Password: ");
     use std::io::Write;
-    std::io::stdout().flush().unwrap();
 
+    print!("Username: ");
+    std::io::stdout().flush().unwrap();
+    let mut username = String::new();
+    std::io::stdin()
+        .read_line(&mut username)
+        .map_err(|e| format!("Read error: {}", e))?;
+    let username = username.trim();
+
+    print!("Password: ");
+    std::io::stdout().flush().unwrap();
     let mut password = String::new();
     std::io::stdin()
         .read_line(&mut password)
@@ -19,7 +28,7 @@ pub async fn login(client: &Client) -> Result<(), String> {
     let resp = client
         .http
         .post(client.url("/auth/login"))
-        .json(&serde_json::json!({ "password": password }))
+        .json(&serde_json::json!({ "username": username, "password": password }))
         .send()
         .await
         .map_err(|e| format!("Request failed: {}", e))?;

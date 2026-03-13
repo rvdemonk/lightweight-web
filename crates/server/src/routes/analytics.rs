@@ -23,6 +23,8 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/analytics/e1rm-movers", get(e1rm_movers))
         .route("/analytics/stale-exercises", get(stale_exercises))
         .route("/analytics/session-prs/:session_id", get(session_prs))
+        .route("/analytics/exercise-volume", get(exercise_volume))
+        .route("/analytics/summary", get(analytics_summary))
         .route("/preferences/e1rm-spider", get(get_e1rm_spider_prefs).put(set_e1rm_spider_prefs))
 }
 
@@ -152,6 +154,30 @@ async fn session_prs(
     Path(session_id): Path<i64>,
 ) -> Result<Json<Vec<lightweight_core::analytics::ExercisePRData>>, StatusCode> {
     lightweight_core::analytics::session_prs(&state.db, user_id, session_id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Deserialize)]
+struct ExerciseVolumeQuery {
+    exercise_id: Option<i64>,
+}
+
+async fn exercise_volume(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Query(query): Query<ExerciseVolumeQuery>,
+) -> Result<Json<Vec<lightweight_core::analytics::ExerciseWeeklyVolume>>, StatusCode> {
+    lightweight_core::analytics::exercise_volume(&state.db, user_id, query.exercise_id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn analytics_summary(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+) -> Result<Json<Vec<lightweight_core::analytics::AnalyticsSummary>>, StatusCode> {
+    lightweight_core::analytics::summary(&state.db, user_id)
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

@@ -665,6 +665,163 @@ pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, A
     Ok(result)
 }
 
+#[derive(Debug, Serialize)]
+pub struct ExerciseWeeklyVolume {
+    pub exercise_id: i64,
+    pub exercise_name: String,
+    pub week: String,
+    pub sets: i64,
+    pub reps: i64,
+    pub tonnage: f64,
+}
+
+/// Returns per-exercise weekly breakdown: sets, total reps, and tonnage (weight × reps).
+/// When exercise_id is Some, filters to that exercise. When None, returns all exercises.
+/// Week is the Monday date of that ISO week.
+pub fn exercise_volume(
+    db: &DbPool,
+    user_id: i64,
+    exercise_id: Option<i64>,
+) -> Result<Vec<ExerciseWeeklyVolume>, AppError> {
+    let conn = db.lock().unwrap();
+
+    let (sql, params): (&str, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(eid) = exercise_id {
+        (
+            "SELECT se.exercise_id, e.name,
+                    date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
+                    COUNT(*) as sets,
+                    SUM(st.reps) as reps,
+                    SUM(st.weight_kg * st.reps) as tonnage
+             FROM sets st
+             JOIN session_exercises se ON se.id = st.session_exercise_id
+             JOIN sessions s ON s.id = se.session_id
+             JOIN exercises e ON e.id = se.exercise_id
+             WHERE s.user_id = ?1
+               AND se.exercise_id = ?2
+               AND st.set_type = 'working'
+               AND st.weight_kg IS NOT NULL
+               AND st.weight_kg > 0
+               AND st.reps > 0
+             GROUP BY se.exercise_id, week_start
+             ORDER BY week_start, e.name",
+            vec![Box::new(user_id), Box::new(eid)],
+        )
+    } else {
+        (
+            "SELECT se.exercise_id, e.name,
+                    date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
+                    COUNT(*) as sets,
+                    SUM(st.reps) as reps,
+                    SUM(st.weight_kg * st.reps) as tonnage
+             FROM sets st
+             JOIN session_exercises se ON se.id = st.session_exercise_id
+             JOIN sessions s ON s.id = se.session_id
+             JOIN exercises e ON e.id = se.exercise_id
+             WHERE s.user_id = ?1
+               AND st.set_type = 'working'
+               AND st.weight_kg IS NOT NULL
+               AND st.weight_kg > 0
+               AND st.reps > 0
+             GROUP BY se.exercise_id, week_start
+             ORDER BY week_start, e.name",
+            vec![Box::new(user_id)],
+        )
+    };
+
+    let mut stmt = conn.prepare(sql)?;
+    let params_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let rows = stmt.query_map(params_refs.as_slice(), |row| {
+        Ok(ExerciseWeeklyVolume {
+            exercise_id: row.get(0)?,
+            exercise_name: row.get(1)?,
+            week: row.get(2)?,
+            sets: row.get(3)?,
+            reps: row.get(4)?,
+            tonnage: row.get::<_, f64>(5).map(|v| (v * 10.0).round() / 10.0)?,
+        })
+    })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(rows)
+}
+
+#[derive(Debug, Serialize)]
+pub struct AnalyticsSummary {
+    pub exercise_id: i64,
+    pub exercise_name: String,
+    pub muscle_group: Option<String>,
+    pub session_count: i64,
+    pub last_trained: Option<String>,
+    pub current_e1rm: Option<f64>,
+}
+
+/// One-shot orientation: all exercises with session count, last trained date, and current best e1RM.
+/// "Current e1RM" is the best e1RM from the most recent session for each exercise.
+pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppError> {
+    let conn = db.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "WITH exercise_stats AS (
+            SELECT e.id as exercise_id,
+                   e.name as exercise_name,
+                   e.muscle_group,
+                   COUNT(DISTINCT s.id) as session_count,
+                   MAX(date(s.started_at)) as last_trained
+            FROM exercises e
+            JOIN session_exercises se ON se.exercise_id = e.id
+            JOIN sessions s ON s.id = se.session_id
+            JOIN sets st ON st.session_exercise_id = se.id
+            WHERE s.user_id = ?1
+              AND st.set_type = 'working'
+              AND st.weight_kg IS NOT NULL
+              AND st.weight_kg > 0
+              AND st.reps > 0
+            GROUP BY e.id
+        ),
+        latest_e1rm AS (
+            SELECT se.exercise_id,
+                   MAX(st.weight_kg * (1.0 + (st.reps + COALESCE(st.rir, 0)) / 30.0)) as best_e1rm
+            FROM sets st
+            JOIN session_exercises se ON se.id = st.session_exercise_id
+            JOIN sessions s ON s.id = se.session_id
+            WHERE s.user_id = ?1
+              AND st.set_type = 'working'
+              AND st.weight_kg IS NOT NULL
+              AND st.weight_kg > 0
+              AND st.reps > 0
+              AND date(s.started_at) = (
+                  SELECT MAX(date(s2.started_at))
+                  FROM sessions s2
+                  JOIN session_exercises se2 ON se2.session_id = s2.id
+                  WHERE s2.user_id = ?1 AND se2.exercise_id = se.exercise_id
+              )
+            GROUP BY se.exercise_id
+        )
+        SELECT es.exercise_id, es.exercise_name, es.muscle_group,
+               es.session_count, es.last_trained,
+               le.best_e1rm
+        FROM exercise_stats es
+        LEFT JOIN latest_e1rm le ON le.exercise_id = es.exercise_id
+        ORDER BY es.session_count DESC, es.exercise_name"
+    )?;
+
+    let rows = stmt.query_map(rusqlite::params![user_id], |row| {
+        Ok(AnalyticsSummary {
+            exercise_id: row.get(0)?,
+            exercise_name: row.get(1)?,
+            muscle_group: row.get(2)?,
+            session_count: row.get(3)?,
+            last_trained: row.get(4)?,
+            current_e1rm: row.get::<_, Option<f64>>(5)?
+                .map(|v| (v * 10.0).round() / 10.0),
+        })
+    })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(rows)
+}
+
 /// For each exercise in a session, returns the historical best e1RM (absolute)
 /// and best e1RM per set_number position from all other completed sessions.
 /// The frontend can compare current-session sets against these thresholds

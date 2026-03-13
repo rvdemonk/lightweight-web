@@ -29,6 +29,11 @@ enum Commands {
         #[command(subcommand)]
         command: commands::sessions::SessionCommands,
     },
+    /// Workout analytics (JSON output)
+    Analytics {
+        #[command(subcommand)]
+        command: commands::analytics::AnalyticsCommands,
+    },
     /// Import workout data
     Import {
         #[arg(long)]
@@ -50,6 +55,7 @@ async fn main() {
 
     let result = match cli.command {
         Commands::Login => commands::login(&client).await,
+        Commands::Analytics { command } => commands::analytics::handle(&client, command).await,
         Commands::Exercises { command } => commands::exercises::handle(&client, command).await,
         Commands::Templates { command } => commands::templates::handle(&client, command).await,
         Commands::Sessions { command } => commands::sessions::handle(&client, command).await,
