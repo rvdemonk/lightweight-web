@@ -64,12 +64,22 @@ async fn exercises_with_data(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[derive(Deserialize)]
+struct DateRangeQuery {
+    since: Option<String>,
+    until: Option<String>,
+}
+
 async fn e1rm_progression(
     State(state): State<Arc<AppState>>,
     Extension(UserId(user_id)): Extension<UserId>,
     Path(exercise_id): Path<i64>,
+    Query(query): Query<DateRangeQuery>,
 ) -> Result<Json<lightweight_core::analytics::ExerciseE1rm>, StatusCode> {
-    lightweight_core::analytics::e1rm_progression(&state.db, user_id, exercise_id)
+    lightweight_core::analytics::e1rm_progression(
+        &state.db, user_id, exercise_id,
+        query.since.as_deref(), query.until.as_deref(),
+    )
         .map(Json)
         .map_err(|e| match e {
             lightweight_core::error::AppError::NotFound => StatusCode::NOT_FOUND,
@@ -80,8 +90,12 @@ async fn e1rm_progression(
 async fn weekly_volume(
     State(state): State<Arc<AppState>>,
     Extension(UserId(user_id)): Extension<UserId>,
+    Query(query): Query<DateRangeQuery>,
 ) -> Result<Json<Vec<lightweight_core::analytics::WeeklyVolume>>, StatusCode> {
-    lightweight_core::analytics::weekly_volume(&state.db, user_id)
+    lightweight_core::analytics::weekly_volume(
+        &state.db, user_id,
+        query.since.as_deref(), query.until.as_deref(),
+    )
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -161,6 +175,8 @@ async fn session_prs(
 #[derive(Deserialize)]
 struct ExerciseVolumeQuery {
     exercise_id: Option<i64>,
+    since: Option<String>,
+    until: Option<String>,
 }
 
 async fn exercise_volume(
@@ -168,7 +184,10 @@ async fn exercise_volume(
     Extension(UserId(user_id)): Extension<UserId>,
     Query(query): Query<ExerciseVolumeQuery>,
 ) -> Result<Json<Vec<lightweight_core::analytics::ExerciseWeeklyVolume>>, StatusCode> {
-    lightweight_core::analytics::exercise_volume(&state.db, user_id, query.exercise_id)
+    lightweight_core::analytics::exercise_volume(
+        &state.db, user_id, query.exercise_id,
+        query.since.as_deref(), query.until.as_deref(),
+    )
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

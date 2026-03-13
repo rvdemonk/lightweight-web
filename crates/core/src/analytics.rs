@@ -72,7 +72,14 @@ pub struct ExercisePRs {
 /// Returns best e1RM per session for each exercise the user has performed.
 /// Epley formula: e1rm = weight * (1 + reps / 30)
 /// When RIR is recorded, effective reps = reps + rir for a more accurate estimate.
-pub fn e1rm_progression(db: &DbPool, user_id: i64, exercise_id: i64) -> Result<ExerciseE1rm, AppError> {
+/// Optional since/until filter output to a date range (YYYY-MM-DD).
+pub fn e1rm_progression(
+    db: &DbPool,
+    user_id: i64,
+    exercise_id: i64,
+    since: Option<&str>,
+    until: Option<&str>,
+) -> Result<ExerciseE1rm, AppError> {
     let conn = db.lock().unwrap();
 
     // Get exercise name
@@ -108,15 +115,24 @@ pub fn e1rm_progression(db: &DbPool, user_id: i64, exercise_id: i64) -> Result<E
         .filter_map(|r| r.ok())
         .collect();
 
+    // Filter by date range if specified
+    let filtered_sets: Vec<&(String, f64, i64, Option<i64>)> = all_sets.iter()
+        .filter(|(date, _, _, _)| {
+            if let Some(s) = since { if date.as_str() < s { return false; } }
+            if let Some(u) = until { if date.as_str() > u { return false; } }
+            true
+        })
+        .collect();
+
     // Group by session date, take best e1rm per date
-    // Also track PRs across all sets
+    // Also track PRs across filtered sets
     let mut best_by_date: std::collections::BTreeMap<String, E1rmDataPoint> = std::collections::BTreeMap::new();
 
     let mut pr_e1rm: Option<(f64, String, f64, i64)> = None;       // (e1rm, date, weight, reps)
     let mut pr_weight: Option<(f64, String, i64)> = None;           // (weight, date, reps)
     let mut pr_reps: Option<(i64, String, f64)> = None;             // (reps, date, weight)
 
-    for (date, weight, reps, rir) in &all_sets {
+    for (date, weight, reps, rir) in filtered_sets {
         let effective_reps = match rir {
             Some(r) => reps + r,
             None => *reps,
@@ -497,9 +513,16 @@ pub struct WeeklyVolume {
 
 /// Returns working sets per week broken down by muscle group.
 /// Week is the Monday date of that ISO week.
-pub fn weekly_volume(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyVolume>, AppError> {
+/// Optional since/until filter to a date range (YYYY-MM-DD).
+pub fn weekly_volume(
+    db: &DbPool,
+    user_id: i64,
+    since: Option<&str>,
+    until: Option<&str>,
+) -> Result<Vec<WeeklyVolume>, AppError> {
     let conn = db.lock().unwrap();
-    let mut stmt = conn.prepare(
+
+    let mut sql = String::from(
         "SELECT date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
                 COALESCE(e.muscle_group, 'Other') as mg,
                 COUNT(*) as set_count
@@ -508,12 +531,23 @@ pub fn weekly_volume(db: &DbPool, user_id: i64) -> Result<Vec<WeeklyVolume>, App
          JOIN sessions s ON s.id = se.session_id
          JOIN exercises e ON e.id = se.exercise_id
          WHERE s.user_id = ?1
-           AND st.set_type = 'working'
-         GROUP BY week_start, mg
-         ORDER BY week_start, mg"
-    )?;
+           AND st.set_type = 'working'"
+    );
 
-    let rows = stmt.query_map(rusqlite::params![user_id], |row| {
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(user_id)];
+    if let Some(s) = since {
+        params.push(Box::new(s.to_string()));
+        sql.push_str(&format!(" AND date(s.started_at) >= ?{}", params.len()));
+    }
+    if let Some(u) = until {
+        params.push(Box::new(u.to_string()));
+        sql.push_str(&format!(" AND date(s.started_at) <= ?{}", params.len()));
+    }
+    sql.push_str(" GROUP BY week_start, mg ORDER BY week_start, mg");
+
+    let mut stmt = conn.prepare(&sql)?;
+    let params_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+    let rows = stmt.query_map(params_refs.as_slice(), |row| {
         Ok(WeeklyVolume {
             week: row.get(0)?,
             muscle_group: row.get(1)?,
@@ -678,57 +712,49 @@ pub struct ExerciseWeeklyVolume {
 /// Returns per-exercise weekly breakdown: sets, total reps, and tonnage (weight × reps).
 /// When exercise_id is Some, filters to that exercise. When None, returns all exercises.
 /// Week is the Monday date of that ISO week.
+/// Optional since/until filter to a date range (YYYY-MM-DD).
 pub fn exercise_volume(
     db: &DbPool,
     user_id: i64,
     exercise_id: Option<i64>,
+    since: Option<&str>,
+    until: Option<&str>,
 ) -> Result<Vec<ExerciseWeeklyVolume>, AppError> {
     let conn = db.lock().unwrap();
 
-    let (sql, params): (&str, Vec<Box<dyn rusqlite::types::ToSql>>) = if let Some(eid) = exercise_id {
-        (
-            "SELECT se.exercise_id, e.name,
-                    date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
-                    COUNT(*) as sets,
-                    SUM(st.reps) as reps,
-                    SUM(st.weight_kg * st.reps) as tonnage
-             FROM sets st
-             JOIN session_exercises se ON se.id = st.session_exercise_id
-             JOIN sessions s ON s.id = se.session_id
-             JOIN exercises e ON e.id = se.exercise_id
-             WHERE s.user_id = ?1
-               AND se.exercise_id = ?2
-               AND st.set_type = 'working'
-               AND st.weight_kg IS NOT NULL
-               AND st.weight_kg > 0
-               AND st.reps > 0
-             GROUP BY se.exercise_id, week_start
-             ORDER BY week_start, e.name",
-            vec![Box::new(user_id), Box::new(eid)],
-        )
-    } else {
-        (
-            "SELECT se.exercise_id, e.name,
-                    date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
-                    COUNT(*) as sets,
-                    SUM(st.reps) as reps,
-                    SUM(st.weight_kg * st.reps) as tonnage
-             FROM sets st
-             JOIN session_exercises se ON se.id = st.session_exercise_id
-             JOIN sessions s ON s.id = se.session_id
-             JOIN exercises e ON e.id = se.exercise_id
-             WHERE s.user_id = ?1
-               AND st.set_type = 'working'
-               AND st.weight_kg IS NOT NULL
-               AND st.weight_kg > 0
-               AND st.reps > 0
-             GROUP BY se.exercise_id, week_start
-             ORDER BY week_start, e.name",
-            vec![Box::new(user_id)],
-        )
-    };
+    let mut sql = String::from(
+        "SELECT se.exercise_id, e.name,
+                date(st.completed_at, '+1 day', 'weekday 1', '-7 days') as week_start,
+                COUNT(*) as sets,
+                SUM(st.reps) as reps,
+                SUM(st.weight_kg * st.reps) as tonnage
+         FROM sets st
+         JOIN session_exercises se ON se.id = st.session_exercise_id
+         JOIN sessions s ON s.id = se.session_id
+         JOIN exercises e ON e.id = se.exercise_id
+         WHERE s.user_id = ?1
+           AND st.set_type = 'working'
+           AND st.weight_kg IS NOT NULL
+           AND st.weight_kg > 0
+           AND st.reps > 0"
+    );
 
-    let mut stmt = conn.prepare(sql)?;
+    let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(user_id)];
+    if let Some(eid) = exercise_id {
+        params.push(Box::new(eid));
+        sql.push_str(&format!(" AND se.exercise_id = ?{}", params.len()));
+    }
+    if let Some(s) = since {
+        params.push(Box::new(s.to_string()));
+        sql.push_str(&format!(" AND date(s.started_at) >= ?{}", params.len()));
+    }
+    if let Some(u) = until {
+        params.push(Box::new(u.to_string()));
+        sql.push_str(&format!(" AND date(s.started_at) <= ?{}", params.len()));
+    }
+    sql.push_str(" GROUP BY se.exercise_id, week_start ORDER BY week_start, e.name");
+
+    let mut stmt = conn.prepare(&sql)?;
     let params_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
     let rows = stmt.query_map(params_refs.as_slice(), |row| {
         Ok(ExerciseWeeklyVolume {
@@ -754,12 +780,15 @@ pub struct AnalyticsSummary {
     pub session_count: i64,
     pub last_trained: Option<String>,
     pub current_e1rm: Option<f64>,
+    pub trend: Option<String>,
 }
 
-/// One-shot orientation: all exercises with session count, last trained date, and current best e1RM.
-/// "Current e1RM" is the best e1RM from the most recent session for each exercise.
+/// One-shot orientation: all exercises with session count, last trained date, current best e1RM,
+/// and trend direction (up/flat/down) based on last 4 sessions.
 pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppError> {
     let conn = db.lock().unwrap();
+
+    // Main stats query
     let mut stmt = conn.prepare(
         "WITH exercise_stats AS (
             SELECT e.id as exercise_id,
@@ -805,7 +834,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
         ORDER BY es.session_count DESC, es.exercise_name"
     )?;
 
-    let rows = stmt.query_map(rusqlite::params![user_id], |row| {
+    let mut rows: Vec<AnalyticsSummary> = stmt.query_map(rusqlite::params![user_id], |row| {
         Ok(AnalyticsSummary {
             exercise_id: row.get(0)?,
             exercise_name: row.get(1)?,
@@ -814,12 +843,96 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
             last_trained: row.get(4)?,
             current_e1rm: row.get::<_, Option<f64>>(5)?
                 .map(|v| (v * 10.0).round() / 10.0),
+            trend: None,
         })
     })?
         .filter_map(|r| r.ok())
         .collect();
 
+    // Compute trends: best e1RM per session per exercise, last 4 sessions each
+    let mut trend_stmt = conn.prepare(
+        "WITH ranked AS (
+            SELECT se.exercise_id,
+                   MAX(st.weight_kg * (1.0 + (st.reps + COALESCE(st.rir, 0)) / 30.0)) as best_e1rm,
+                   DENSE_RANK() OVER (PARTITION BY se.exercise_id ORDER BY date(s.started_at) DESC) as rn
+            FROM sets st
+            JOIN session_exercises se ON se.id = st.session_exercise_id
+            JOIN sessions s ON s.id = se.session_id
+            WHERE s.user_id = ?1
+              AND st.set_type = 'working'
+              AND st.weight_kg IS NOT NULL
+              AND st.weight_kg > 0
+              AND st.reps > 0
+            GROUP BY se.exercise_id, s.id
+        )
+        SELECT exercise_id, rn, best_e1rm
+        FROM ranked
+        WHERE rn <= 4
+        ORDER BY exercise_id, rn"
+    )?;
+
+    let trend_data: Vec<(i64, i64, f64)> = trend_stmt.query_map(
+        rusqlite::params![user_id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Group by exercise, compute trend direction
+    let mut trends: HashMap<i64, String> = HashMap::new();
+    let mut current_id: Option<i64> = None;
+    let mut session_e1rms: Vec<f64> = Vec::new();
+
+    for (exercise_id, _rn, e1rm) in &trend_data {
+        if current_id != Some(*exercise_id) {
+            if let Some(id) = current_id {
+                if let Some(t) = compute_trend(&session_e1rms) {
+                    trends.insert(id, t);
+                }
+            }
+            current_id = Some(*exercise_id);
+            session_e1rms.clear();
+        }
+        session_e1rms.push(*e1rm);
+    }
+    // Final exercise
+    if let Some(id) = current_id {
+        if let Some(t) = compute_trend(&session_e1rms) {
+            trends.insert(id, t);
+        }
+    }
+
+    // Merge trends into summary rows
+    for row in &mut rows {
+        row.trend = trends.remove(&row.exercise_id);
+    }
+
     Ok(rows)
+}
+
+/// Compute trend direction from session e1RMs (ordered most recent first).
+/// Requires at least 3 data points. Compares avg of last 2 vs avg of prior sessions.
+/// Returns "up" (>2%), "down" (<-2%), or "flat".
+fn compute_trend(e1rms: &[f64]) -> Option<String> {
+    if e1rms.len() < 3 {
+        return None;
+    }
+    let recent_avg = (e1rms[0] + e1rms[1]) / 2.0;
+    let prior: &[f64] = &e1rms[2..];
+    let prior_avg: f64 = prior.iter().sum::<f64>() / prior.len() as f64;
+
+    if prior_avg == 0.0 {
+        return None;
+    }
+
+    let pct = (recent_avg - prior_avg) / prior_avg;
+    Some(if pct > 0.02 {
+        "up".to_string()
+    } else if pct < -0.02 {
+        "down".to_string()
+    } else {
+        "flat".to_string()
+    })
 }
 
 /// For each exercise in a session, returns the historical best e1RM (absolute)
