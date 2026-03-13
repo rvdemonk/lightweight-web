@@ -5,17 +5,17 @@ interface Props {
   data: WeeklyFrequency[];
 }
 
-export function FrequencyChart({ data: rawData }: Props) {
-  // Exclude current (incomplete) week — it shows a premature dip in the MA
-  const data = useMemo(() => {
-    if (rawData.length === 0) return rawData;
+export function FrequencyChart({ data }: Props) {
+  // Identify current (incomplete) week — show it but exclude from MA
+  const currentWeek = useMemo(() => {
     const now = new Date();
-    const currentMonday = new Date(now);
-    currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    const currentWeek = currentMonday.toISOString().slice(0, 10);
-    const last = rawData[rawData.length - 1];
-    return last.week === currentWeek ? rawData.slice(0, -1) : rawData;
-  }, [rawData]);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, '0');
+    const d = String(monday.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -43,15 +43,21 @@ export function FrequencyChart({ data: rawData }: Props) {
     const yTicks: number[] = [];
     for (let v = 0; v <= yMax; v += Math.max(1, Math.ceil(yMax / 4))) yTicks.push(v);
 
-    // Rolling average (4-week window)
-    const rolling = data.map((_, i) => {
+    // Rolling average (4-week window, excluding current incomplete week)
+    const completedData = data.filter(d => d.week !== currentWeek);
+    const rolling = completedData.map((_, i) => {
       const windowStart = Math.max(0, i - 3);
-      const window = data.slice(windowStart, i + 1);
+      const window = completedData.slice(windowStart, i + 1);
       return window.reduce((sum, d) => sum + d.session_count, 0) / window.length;
     });
 
     const toX = (i: number) => pad.left + (i / Math.max(1, data.length - 1)) * plotW;
     const toY = (v: number) => pad.top + plotH - (v / yMax) * plotH;
+
+    // Map completed-data indices back to all-data indices for MA line positioning
+    const completedIndices = data
+      .map((d, i) => d.week !== currentWeek ? i : -1)
+      .filter(i => i >= 0);
 
     // X-axis labels: show ~5 evenly spaced
     const labelStep = Math.max(1, Math.floor(data.length / 5));
@@ -59,8 +65,8 @@ export function FrequencyChart({ data: rawData }: Props) {
       .map((d, i) => ({ i, label: formatWeekLabel(d.week) }))
       .filter((_, i) => i % labelStep === 0 || i === data.length - 1);
 
-    return { height, width, pad, plotW, plotH, yMax, yTicks, rolling, toX, toY, xLabels };
-  }, [data, containerWidth]);
+    return { height, width, pad, plotW, plotH, yMax, yTicks, rolling, completedIndices, toX, toY, xLabels };
+  }, [data, containerWidth, currentWeek]);
 
   if (data.length === 0) {
     return (
@@ -105,6 +111,7 @@ export function FrequencyChart({ data: rawData }: Props) {
             const barWidth = Math.max(4, (chart.plotW / data.length) * 0.6);
             const x = chart.toX(i) - barWidth / 2;
             const barH = (d.session_count / chart.yMax) * chart.plotH;
+            const isCurrent = d.week === currentWeek;
             return (
               <rect
                 key={d.week}
@@ -113,19 +120,22 @@ export function FrequencyChart({ data: rawData }: Props) {
                 width={barWidth}
                 height={barH}
                 fill="var(--accent-cyan)"
-                opacity={0.35}
+                opacity={isCurrent ? 0.18 : 0.35}
                 rx={1}
               >
-                <title>{d.week}: {d.session_count} sessions</title>
+                <title>{d.week}: {d.session_count} sessions{isCurrent ? ' (in progress)' : ''}</title>
               </rect>
             );
           })}
 
-          {/* Rolling average line */}
+          {/* Rolling average line (completed weeks only) */}
           {chart.rolling.length > 1 && (
             <path
               d={chart.rolling
-                .map((v, i) => `${i === 0 ? 'M' : 'L'}${chart.toX(i).toFixed(1)},${chart.toY(v).toFixed(1)}`)
+                .map((v, ri) => {
+                  const di = chart.completedIndices[ri];
+                  return `${ri === 0 ? 'M' : 'L'}${chart.toX(di).toFixed(1)},${chart.toY(v).toFixed(1)}`;
+                })
                 .join(' ')}
               fill="none"
               stroke="var(--accent-primary)"
@@ -133,12 +143,12 @@ export function FrequencyChart({ data: rawData }: Props) {
             />
           )}
 
-          {/* Dots on rolling line */}
-          {data.map((_, i) => (
+          {/* Dots on rolling line (completed weeks only) */}
+          {chart.rolling.map((v, ri) => (
             <circle
-              key={i}
-              cx={chart.toX(i)}
-              cy={chart.toY(chart.rolling[i])}
+              key={ri}
+              cx={chart.toX(chart.completedIndices[ri])}
+              cy={chart.toY(v)}
               r={2.5}
               fill="var(--accent-primary)"
             />
