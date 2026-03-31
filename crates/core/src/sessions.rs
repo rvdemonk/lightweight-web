@@ -4,6 +4,31 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::models::*;
 
+// ── Stale session cleanup ──
+
+/// Close sessions that have been active/paused for over 2 hours since the last
+/// logged set. Sets `ended_at` to the last set's `completed_at` timestamp.
+/// Sessions with no sets are left alone (user may still be picking exercises).
+fn close_stale_sessions(conn: &rusqlite::Connection, user_id: i64) {
+    let _ = conn.execute(
+        "UPDATE sessions SET
+            ended_at = (
+                SELECT MAX(st.completed_at) FROM sets st
+                JOIN session_exercises se ON se.id = st.session_exercise_id
+                WHERE se.session_id = sessions.id
+            ),
+            status = 'completed'
+         WHERE user_id = ?1
+           AND status IN ('active', 'paused')
+           AND (
+               SELECT MAX(st.completed_at) FROM sets st
+               JOIN session_exercises se ON se.id = st.session_exercise_id
+               WHERE se.session_id = sessions.id
+           ) < datetime('now', '-120 minutes')",
+        rusqlite::params![user_id],
+    );
+}
+
 // ── Ownership verification helpers ──
 
 fn verify_session_ownership(conn: &rusqlite::Connection, session_id: i64, user_id: i64) -> Result<(), AppError> {
@@ -49,13 +74,15 @@ fn verify_session_exercise_ownership(conn: &rusqlite::Connection, se_id: i64, us
 
 pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec<SessionSummary>, AppError> {
     let conn = db.lock().unwrap();
+    close_stale_sessions(&conn, user_id);
     let limit = params.limit.unwrap_or(20);
     let offset = params.offset.unwrap_or(0);
 
     let base = "SELECT s.id, s.template_id, t.name, s.name, s.started_at, s.ended_at, s.status,
                     (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count,
                     (SELECT COUNT(DISTINCT se.id) FROM session_exercises se WHERE se.session_id = s.id) as exercise_count,
-                    (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count
+                    (SELECT SUM(te.target_sets) FROM template_exercises te WHERE te.template_id = s.template_id) as target_set_count,
+                    s.template_version
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
              WHERE s.user_id = ?1";
 
@@ -95,6 +122,7 @@ pub fn list(db: &DbPool, user_id: i64, params: &SessionListParams) -> Result<Vec
             set_count: row.get(7)?,
             exercise_count: row.get(8)?,
             target_set_count: row.get(9)?,
+            template_version: row.get(10)?,
         })
     })?;
 
@@ -125,9 +153,9 @@ pub fn get_active(db: &DbPool, user_id: i64) -> Result<Option<Session>, AppError
 
 pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Session, AppError> {
     let conn = db.lock().unwrap();
-    let (template_id, template_name, name, started_at, ended_at, paused_duration, notes, status) = conn
+    let (template_id, template_name, name, started_at, ended_at, paused_duration, notes, status, template_version) = conn
         .query_row(
-            "SELECT s.template_id, t.name, s.name, s.started_at, s.ended_at, s.paused_duration, s.notes, s.status
+            "SELECT s.template_id, t.name, s.name, s.started_at, s.ended_at, s.paused_duration, s.notes, s.status, s.template_version
              FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
              WHERE s.id = ?1 AND s.user_id = ?2",
             rusqlite::params![id, user_id],
@@ -141,6 +169,7 @@ pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Session, AppError> {
                     row.get::<_, i64>(5)?,
                     row.get::<_, Option<String>>(6)?,
                     row.get::<_, String>(7)?,
+                    row.get::<_, Option<i64>>(8)?,
                 ))
             },
         )
@@ -158,12 +187,14 @@ pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Session, AppError> {
         paused_duration,
         notes,
         status,
+        template_version,
         exercises,
     })
 }
 
 pub fn create(db: &DbPool, user_id: i64, input: &CreateSession) -> Result<Session, AppError> {
     let conn = db.lock().unwrap();
+    close_stale_sessions(&conn, user_id);
 
     // Verify template belongs to user if provided
     if let Some(template_id) = input.template_id {
@@ -179,20 +210,31 @@ pub fn create(db: &DbPool, user_id: i64, input: &CreateSession) -> Result<Sessio
 
     let status = input.status.as_deref().unwrap_or("active");
 
+    // Read template version if creating from a template
+    let template_version: Option<i64> = if let Some(template_id) = input.template_id {
+        Some(conn.query_row(
+            "SELECT version FROM templates WHERE id = ?1",
+            [template_id],
+            |row| row.get(0),
+        )?)
+    } else {
+        None
+    };
+
     if input.started_at.is_some() || input.ended_at.is_some() {
         conn.execute(
-            "INSERT INTO sessions (user_id, template_id, name, started_at, ended_at, status, notes)
-             VALUES (?1, ?2, ?3, COALESCE(?4, datetime('now')), ?5, ?6, ?7)",
+            "INSERT INTO sessions (user_id, template_id, name, started_at, ended_at, status, notes, template_version)
+             VALUES (?1, ?2, ?3, COALESCE(?4, datetime('now')), ?5, ?6, ?7, ?8)",
             rusqlite::params![
                 user_id, input.template_id, input.name,
                 input.started_at, input.ended_at,
-                status, input.notes
+                status, input.notes, template_version
             ],
         )?;
     } else {
         conn.execute(
-            "INSERT INTO sessions (user_id, template_id, name, status, notes) VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![user_id, input.template_id, input.name, status, input.notes],
+            "INSERT INTO sessions (user_id, template_id, name, status, notes, template_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![user_id, input.template_id, input.name, status, input.notes, template_version],
         )?;
     }
 
@@ -783,6 +825,7 @@ pub fn import_sessions(db: &DbPool, user_id: i64, input: Vec<ImportSession>) -> 
             paused_duration,
             notes,
             status,
+            template_version: None,
             exercises,
         });
     }
