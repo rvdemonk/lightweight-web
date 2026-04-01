@@ -25,6 +25,7 @@ export function SetLogger({ defaultWeight, defaultReps, onLog, onWeightChange }:
         onChange={(v) => setWeight(v ?? 0)}
         step={1.25}
         label="weight (kg)"
+        decimal
       />
       <div style={{ height: 8 }} />
       <IncrementButton
