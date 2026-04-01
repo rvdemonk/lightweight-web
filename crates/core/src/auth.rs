@@ -119,23 +119,30 @@ pub fn register(
 pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse, AppError> {
     let conn = db.lock().unwrap();
 
-    let result: Result<(i64, String), _> = conn.query_row(
-        "SELECT id, password_hash FROM users WHERE username = ?1",
+    let result: Result<(i64, String, Option<String>), _> = conn.query_row(
+        "SELECT id, password_hash, token FROM users WHERE username = ?1",
         rusqlite::params![username],
-        |row| Ok((row.get(0)?, row.get(1)?)),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     );
 
-    let (user_id, hash) = result.map_err(|_| AppError::Unauthorized)?;
+    let (user_id, hash, existing_token) = result.map_err(|_| AppError::Unauthorized)?;
 
     if !verify_password(password, &hash)? {
         return Err(AppError::Unauthorized);
     }
 
-    let token = generate_token();
-    conn.execute(
-        "UPDATE users SET token = ?1 WHERE id = ?2",
-        rusqlite::params![token, user_id],
-    )?;
+    // Reuse existing token if present, otherwise generate a new one
+    let token = match existing_token {
+        Some(t) if !t.is_empty() => t,
+        _ => {
+            let new_token = generate_token();
+            conn.execute(
+                "UPDATE users SET token = ?1 WHERE id = ?2",
+                rusqlite::params![new_token, user_id],
+            )?;
+            new_token
+        }
+    };
 
     Ok(AuthResponse { token })
 }
