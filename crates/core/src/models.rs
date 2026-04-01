@@ -39,7 +39,17 @@ pub struct Template {
     pub archived: bool,
     pub created_at: String,
     pub updated_at: String,
+    pub version: i64,
     pub exercises: Vec<TemplateExercise>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TemplateSnapshot {
+    pub id: i64,
+    pub template_id: i64,
+    pub version: i64,
+    pub snapshot_json: String,
+    pub created_at: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -93,6 +103,7 @@ pub struct Session {
     pub paused_duration: i64,
     pub notes: Option<String>,
     pub status: String,
+    pub template_version: Option<i64>,
     pub exercises: Vec<SessionExerciseWithSets>,
 }
 
@@ -108,6 +119,7 @@ pub struct SessionSummary {
     pub set_count: i64,
     pub exercise_count: i64,
     pub target_set_count: Option<i64>,
+    pub template_version: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

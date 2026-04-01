@@ -27,7 +27,16 @@ export interface Template {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  version: number;
   exercises: TemplateExercise[];
+}
+
+export interface TemplateSnapshot {
+  id: number;
+  template_id: number;
+  version: number;
+  snapshot_json: string;
+  created_at: string;
 }
 
 export interface WorkoutSet {
@@ -60,6 +69,7 @@ export interface Session {
   paused_duration: number;
   notes: string | null;
   status: string;
+  template_version: number | null;
   exercises: SessionExercise[];
 }
 
@@ -74,6 +84,7 @@ export interface SessionSummary {
   set_count: number;
   exercise_count: number;
   target_set_count: number | null;
+  template_version: number | null;
 }
 
 export interface ExerciseHistory {

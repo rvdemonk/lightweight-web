@@ -1,15 +1,15 @@
 use crate::db::DbPool;
 use crate::error::AppError;
-use crate::models::{CreateTemplate, Template, TemplateExercise, UpdateTemplate};
+use crate::models::{CreateTemplate, Template, TemplateExercise, TemplateSnapshot, UpdateTemplate};
 
 pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Template>, AppError> {
     let conn = db.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT id, name, notes, archived, created_at, updated_at
+        "SELECT id, name, notes, archived, created_at, updated_at, version
          FROM templates WHERE archived = 0 AND user_id = ?1 ORDER BY name"
     )?;
 
-    let templates: Vec<(i64, String, Option<String>, i32, String, String)> = stmt
+    let templates: Vec<(i64, String, Option<String>, i32, String, String, i64)> = stmt
         .query_map([user_id], |row| {
             Ok((
                 row.get(0)?,
@@ -18,13 +18,14 @@ pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Template>, AppError> {
                 row.get(3)?,
                 row.get(4)?,
                 row.get(5)?,
+                row.get(6)?,
             ))
         })?
         .filter_map(|r| r.ok())
         .collect();
 
     let mut result = Vec::new();
-    for (id, name, notes, archived, created_at, updated_at) in templates {
+    for (id, name, notes, archived, created_at, updated_at, version) in templates {
         let exercises = get_template_exercises(&conn, id)?;
         result.push(Template {
             id,
@@ -33,6 +34,7 @@ pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Template>, AppError> {
             archived: archived != 0,
             created_at,
             updated_at,
+            version,
             exercises,
         });
     }
@@ -41,9 +43,9 @@ pub fn list(db: &DbPool, user_id: i64) -> Result<Vec<Template>, AppError> {
 
 pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Template, AppError> {
     let conn = db.lock().unwrap();
-    let (name, notes, archived, created_at, updated_at) = conn
+    let (name, notes, archived, created_at, updated_at, version) = conn
         .query_row(
-            "SELECT name, notes, archived, created_at, updated_at FROM templates WHERE id = ?1 AND user_id = ?2",
+            "SELECT name, notes, archived, created_at, updated_at, version FROM templates WHERE id = ?1 AND user_id = ?2",
             rusqlite::params![id, user_id],
             |row| {
                 Ok((
@@ -52,6 +54,7 @@ pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Template, AppError> {
                     row.get::<_, i32>(2)?,
                     row.get::<_, String>(3)?,
                     row.get::<_, String>(4)?,
+                    row.get::<_, i64>(5)?,
                 ))
             },
         )
@@ -66,6 +69,7 @@ pub fn get(db: &DbPool, user_id: i64, id: i64) -> Result<Template, AppError> {
         archived: archived != 0,
         created_at,
         updated_at,
+        version,
         exercises,
     })
 }
@@ -123,6 +127,35 @@ pub fn update(db: &DbPool, user_id: i64, id: i64, input: &UpdateTemplate) -> Res
         return Err(AppError::NotFound);
     }
 
+    // Snapshot current state before mutation
+    let (current_name, current_notes, current_version): (String, Option<String>, i64) = conn.query_row(
+        "SELECT name, notes, version FROM templates WHERE id = ?1",
+        [id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+
+    let current_exercises = get_template_exercises(&conn, id)?;
+
+    let snapshot = serde_json::json!({
+        "name": current_name,
+        "notes": current_notes,
+        "version": current_version,
+        "exercises": current_exercises,
+    });
+    let snapshot_json = serde_json::to_string(&snapshot)
+        .map_err(|_| AppError::BadRequest("Failed to serialize snapshot".into()))?;
+
+    conn.execute(
+        "INSERT INTO template_snapshots (template_id, version, snapshot_json) VALUES (?1, ?2, ?3)",
+        rusqlite::params![id, current_version, snapshot_json],
+    )?;
+
+    conn.execute(
+        "UPDATE templates SET version = version + 1 WHERE id = ?1",
+        [id],
+    )?;
+
+    // Apply mutations
     if let Some(ref name) = input.name {
         conn.execute("UPDATE templates SET name = ?1, updated_at = datetime('now') WHERE id = ?2", rusqlite::params![name, id])?;
     }
@@ -171,6 +204,70 @@ pub fn archive(db: &DbPool, user_id: i64, id: i64) -> Result<(), AppError> {
         return Err(AppError::NotFound);
     }
     Ok(())
+}
+
+pub fn list_versions(db: &DbPool, user_id: i64, template_id: i64) -> Result<Vec<TemplateSnapshot>, AppError> {
+    let conn = db.lock().unwrap();
+
+    let exists: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM templates WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![template_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !exists {
+        return Err(AppError::NotFound);
+    }
+
+    let mut stmt = conn.prepare(
+        "SELECT id, template_id, version, snapshot_json, created_at
+         FROM template_snapshots WHERE template_id = ?1
+         ORDER BY version DESC"
+    )?;
+
+    let rows = stmt.query_map([template_id], |row| {
+        Ok(TemplateSnapshot {
+            id: row.get(0)?,
+            template_id: row.get(1)?,
+            version: row.get(2)?,
+            snapshot_json: row.get(3)?,
+            created_at: row.get(4)?,
+        })
+    })?;
+
+    let mut snapshots = Vec::new();
+    for row in rows {
+        snapshots.push(row?);
+    }
+    Ok(snapshots)
+}
+
+pub fn get_version(db: &DbPool, user_id: i64, template_id: i64, version: i64) -> Result<TemplateSnapshot, AppError> {
+    let conn = db.lock().unwrap();
+
+    let exists: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM templates WHERE id = ?1 AND user_id = ?2",
+        rusqlite::params![template_id, user_id],
+        |row| row.get(0),
+    )?;
+    if !exists {
+        return Err(AppError::NotFound);
+    }
+
+    conn.query_row(
+        "SELECT id, template_id, version, snapshot_json, created_at
+         FROM template_snapshots WHERE template_id = ?1 AND version = ?2",
+        rusqlite::params![template_id, version],
+        |row| {
+            Ok(TemplateSnapshot {
+                id: row.get(0)?,
+                template_id: row.get(1)?,
+                version: row.get(2)?,
+                snapshot_json: row.get(3)?,
+                created_at: row.get(4)?,
+            })
+        },
+    )
+    .map_err(|_| AppError::NotFound)
 }
 
 fn get_template_exercises(conn: &rusqlite::Connection, template_id: i64) -> Result<Vec<TemplateExercise>, AppError> {

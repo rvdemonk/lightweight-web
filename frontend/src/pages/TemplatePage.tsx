@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Exercise, Template } from '../api/types';
+import type { Exercise, Template, TemplateSnapshot } from '../api/types';
 import { useApi } from '../hooks/useApi';
 import { ExercisePicker } from '../components/ExercisePicker';
 
@@ -14,20 +14,36 @@ interface TemplateExerciseInput {
   target_reps_max: number;
 }
 
+interface SnapshotExercise {
+  exercise_name: string;
+  position: number;
+  target_sets: number | null;
+  target_reps_min: number | null;
+  target_reps_max: number | null;
+}
+
 export function TemplatePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = id === 'new';
 
   const [name, setName] = useState('');
+  const [version, setVersion] = useState(1);
   const [exercises, setExercises] = useState<TemplateExerciseInput[]>([]);
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
+
+  const { data: versions, refetch: refetchVersions } = useApi<TemplateSnapshot[]>(
+    () => !isNew && id ? api.listTemplateVersions(Number(id)) : Promise.resolve([]),
+    [id],
+  );
 
   useEffect(() => {
     if (!isNew && id) {
       api.getTemplate(Number(id)).then(t => {
         setName(t.name);
+        setVersion(t.version);
         setExercises(t.exercises.map(e => ({
           exercise_id: e.exercise_id,
           exercise_name: e.exercise_name,
@@ -101,6 +117,17 @@ export function TemplatePage() {
       }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, textTransform: 'uppercase' as const }}>
           {isNew ? 'New Workout' : 'Edit Workout'}
+          {!isNew && (
+            <span style={{
+              fontSize: 12,
+              fontFamily: 'var(--font-data)',
+              color: 'var(--text-secondary)',
+              marginLeft: 8,
+              fontWeight: 400,
+            }}>
+              v{version}
+            </span>
+          )}
         </h1>
         {!isNew && (
           <button
@@ -234,6 +261,53 @@ export function TemplatePage() {
       >
         {isNew ? 'Create Workout' : 'Save Changes'}
       </button>
+
+      {!isNew && versions && versions.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div className="label" style={{ marginBottom: 8 }}>Version History</div>
+          {versions.map(snap => {
+            const isExpanded = expandedVersion === snap.version;
+            let parsed: { name?: string; exercises?: SnapshotExercise[] } | null = null;
+            if (isExpanded) {
+              try { parsed = JSON.parse(snap.snapshot_json); } catch { /* ignore */ }
+            }
+            return (
+              <div
+                key={snap.version}
+                className="card"
+                style={{ padding: '10px 14px', cursor: 'pointer' }}
+                onClick={() => setExpandedVersion(isExpanded ? null : snap.version)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--font-data)', fontSize: 13 }}>
+                    v{snap.version}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-data)' }}>
+                    {snap.created_at.slice(0, 10)}
+                  </span>
+                </div>
+                {isExpanded && parsed?.exercises && (
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+                    {parsed.exercises.map((ex, i) => (
+                      <div key={i} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        padding: '4px 0',
+                        fontSize: 13,
+                      }}>
+                        <span>{ex.exercise_name}</span>
+                        <span style={{ fontFamily: 'var(--font-data)', color: 'var(--text-secondary)', fontSize: 12 }}>
+                          {ex.target_sets ?? '?'}×{ex.target_reps_min ?? '?'}-{ex.target_reps_max ?? '?'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

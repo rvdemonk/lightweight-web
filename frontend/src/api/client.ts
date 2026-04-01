@@ -116,6 +116,10 @@ export const api = {
     }),
   deleteTemplate: (id: number) =>
     request<void>(`/templates/${id}`, { method: 'DELETE' }),
+  listTemplateVersions: (templateId: number) =>
+    request<import('./types').TemplateSnapshot[]>(`/templates/${templateId}/versions`),
+  getTemplateVersion: (templateId: number, version: number) =>
+    request<import('./types').TemplateSnapshot>(`/templates/${templateId}/versions/${version}`),
 
   // Sessions
   listSessions: (params?: { limit?: number; offset?: number; template_id?: number; date?: string }) => {
