@@ -1,0 +1,13 @@
+[package]
+name = "lightweight-admin"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lw-admin"
+path = "src/main.rs"
+
+[dependencies]
+rusqlite = { version = "0.31", features = ["bundled"] }
+clap = { version = "4", features = ["derive"] }
+chrono = "0.4"

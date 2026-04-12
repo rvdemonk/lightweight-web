@@ -49,7 +49,8 @@ Web app is a prototype — mid-term goal is Android native. The Rust/Axum API se
 - Check: `cargo check` then `cd frontend && npx tsc --noEmit`
 - Build frontend before Rust release — `rust-embed` embeds `frontend/dist/`
 - A placeholder `frontend/dist/index.html` must exist or rust-embed won't compile
-- Deploy: `./deploy.sh` — builds frontend, cross-compiles via cargo-zigbuild, auto-backups prod DB, SCPs to droplet, restarts service
+- Deploy: `./deploy.sh` — builds frontend, cross-compiles server + lw-admin via cargo-zigbuild, auto-backups prod DB, SCPs to droplet, restarts service
+- Admin: `ssh root@170.64.189.221 /var/www/lightweight/lw-admin --db /var/www/lightweight/data/lightweight.db` — read-only CLI for user/invite/activity stats. Subcommands: `overview` (default), `users`, `invites`, `activity [--days N]`. Lives in `crates/admin/`, intentionally decoupled from the web app.
 - Backup: `./backup.sh [label]` — stops server (WAL checkpoint), SCPs DB, restarts. Backups in `backups/YYYY-MM-DD/`
 - Production: `https://lightweight.3rigby.xyz` (DO droplet 170.64.189.221, systemd + nginx + Let's Encrypt)
 - Env vars in prod systemd: `LW_DB_PATH`, `LW_PORT`, `LW_INVITE_CODE` (admin backdoor), `LW_CORS_ORIGIN` (locked to production URL)

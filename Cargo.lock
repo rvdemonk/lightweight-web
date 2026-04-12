@@ -941,6 +941,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightweight-admin"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "rusqlite",
+]
+
+[[package]]
 name = "lightweight-calc"
 version = "0.1.0"
 dependencies = [

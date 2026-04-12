@@ -10,7 +10,7 @@ echo "Building frontend..."
 cd frontend && npm ci && npm run build && cd ..
 
 echo "Cross-compiling for $TARGET..."
-cargo zigbuild --release -p lightweight-server --target $TARGET
+cargo zigbuild --release -p lightweight-server -p lightweight-admin --target $TARGET
 
 echo "Backing up production database..."
 BACKUP_DIR="backups/$(date +%Y-%m-%d)"
@@ -21,7 +21,7 @@ scp "$REMOTE:/var/www/lightweight/data/lightweight.db" "$BACKUP_FILE"
 echo "Backup saved: $BACKUP_FILE"
 
 echo "Deploying to droplet..."
-scp target/$TARGET/release/lightweight-server $REMOTE:/var/www/lightweight/
+scp target/$TARGET/release/lightweight-server target/$TARGET/release/lw-admin $REMOTE:/var/www/lightweight/
 scp migrations/*.sql $REMOTE:/var/www/lightweight/migrations/
 
 echo "Starting service..."
