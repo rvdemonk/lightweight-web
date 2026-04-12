@@ -52,25 +52,13 @@ fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
 }
 
 pub(crate) fn validate_password(password: &str) -> Result<(), AppError> {
-    if password.len() < 8 {
-        return Err(AppError::WeakPassword);
-    }
-    Ok(())
+    lightweight_calc::validation::validate_password(password)
+        .map_err(|_| AppError::WeakPassword)
 }
 
 pub(crate) fn validate_username(username: &str) -> Result<String, AppError> {
-    let lowered = username.to_lowercase();
-    if lowered.len() < 3 || lowered.len() > 20 {
-        return Err(AppError::InvalidUsername(
-            "Username must be 3-20 characters".to_string(),
-        ));
-    }
-    if !lowered.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(AppError::InvalidUsername(
-            "Username must contain only alphanumeric characters and underscores".to_string(),
-        ));
-    }
-    Ok(lowered)
+    lightweight_calc::validation::validate_username(username)
+        .map_err(|e| AppError::InvalidUsername(e.to_string()))
 }
 
 pub(crate) fn seed_exercises(conn: &rusqlite::Connection, user_id: i64) -> Result<(), AppError> {

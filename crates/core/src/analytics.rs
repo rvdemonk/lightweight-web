@@ -1,6 +1,10 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
+use lightweight_calc::e1rm;
+use lightweight_calc::pr;
+use lightweight_calc::trend;
+
 use crate::db::DbPool;
 use crate::error::AppError;
 
@@ -135,11 +139,7 @@ pub fn e1rm_progression(
     let mut pr_reps: Option<(i64, String, f64)> = None;             // (reps, date, weight)
 
     for (date, weight, reps, rir) in filtered_sets {
-        let effective_reps = match rir {
-            Some(r) => reps + r,
-            None => *reps,
-        };
-        let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+        let e = e1rm::e1rm(*weight, *reps, *rir);
 
         let entry = best_by_date.entry(date.clone()).or_insert(E1rmDataPoint {
             date: date.clone(),
@@ -149,16 +149,16 @@ pub fn e1rm_progression(
             rir: None,
         });
 
-        if e1rm > entry.e1rm {
-            entry.e1rm = e1rm;
+        if e > entry.e1rm {
+            entry.e1rm = e;
             entry.weight_kg = *weight;
             entry.reps = *reps;
             entry.rir = *rir;
         }
 
         // Track PRs
-        if pr_e1rm.is_none() || e1rm > pr_e1rm.as_ref().unwrap().0 {
-            pr_e1rm = Some((e1rm, date.clone(), *weight, *reps));
+        if pr_e1rm.is_none() || e > pr_e1rm.as_ref().unwrap().0 {
+            pr_e1rm = Some((e, date.clone(), *weight, *reps));
         }
         if pr_weight.is_none() || *weight > pr_weight.as_ref().unwrap().0 {
             pr_weight = Some((*weight, date.clone(), *reps));
@@ -171,8 +171,8 @@ pub fn e1rm_progression(
     let data: Vec<E1rmDataPoint> = best_by_date.into_values().collect();
 
     let prs = ExercisePRs {
-        best_e1rm: pr_e1rm.map(|(e1rm, date, w, r)| PersonalRecord {
-            value: (e1rm * 10.0).round() / 10.0,
+        best_e1rm: pr_e1rm.map(|(val, date, w, r)| PersonalRecord {
+            value: e1rm::round(val),
             date,
             detail: format!("{:.1}kg x {}", w, r),
         }),
@@ -196,14 +196,10 @@ pub fn e1rm_progression(
         let mut at_reps: Option<(i64, String, f64)> = None;
 
         for (date, weight, reps, rir) in &all_sets {
-            let effective_reps = match rir {
-                Some(r) => reps + r,
-                None => *reps,
-            };
-            let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
+            let e = e1rm::e1rm(*weight, *reps, *rir);
 
-            if at_e1rm.is_none() || e1rm > at_e1rm.as_ref().unwrap().0 {
-                at_e1rm = Some((e1rm, date.clone(), *weight, *reps));
+            if at_e1rm.is_none() || e > at_e1rm.as_ref().unwrap().0 {
+                at_e1rm = Some((e, date.clone(), *weight, *reps));
             }
             if at_weight.is_none() || *weight > at_weight.as_ref().unwrap().0 {
                 at_weight = Some((*weight, date.clone(), *reps));
@@ -214,8 +210,8 @@ pub fn e1rm_progression(
         }
 
         Some(ExercisePRs {
-            best_e1rm: at_e1rm.map(|(e1rm, date, w, r)| PersonalRecord {
-                value: (e1rm * 10.0).round() / 10.0,
+            best_e1rm: at_e1rm.map(|(val, date, w, r)| PersonalRecord {
+                value: e1rm::round(val),
                 date,
                 detail: format!("{:.1}kg x {}", w, r),
             }),
@@ -289,7 +285,7 @@ pub fn e1rm_spider(
         )?;
 
         let pct_change = match (current_e1rm, previous_e1rm) {
-            (Some(curr), Some(prev)) if prev > 0.0 => Some(((curr - prev) / prev) * 100.0),
+            (Some(curr), Some(prev)) => e1rm::pct_change(curr, prev),
             _ => None,
         };
 
@@ -334,19 +330,12 @@ fn best_e1rm_in_range(
         .filter_map(|r| r.ok())
         .collect();
 
-    let mut best: Option<f64> = None;
-    for (weight, reps, rir) in sets {
-        let effective_reps = match rir {
-            Some(r) => reps + r,
-            None => reps,
-        };
-        let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
-        if best.is_none() || e1rm > best.unwrap() {
-            best = Some(e1rm);
-        }
-    }
+    let set_data: Vec<e1rm::SetData> = sets
+        .into_iter()
+        .map(|(weight, reps, rir)| e1rm::SetData { weight_kg: weight, reps, rir })
+        .collect();
 
-    Ok(best)
+    Ok(e1rm::best(&set_data))
 }
 
 #[derive(Debug, Serialize)]
@@ -397,15 +386,14 @@ pub fn e1rm_movers(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<E1rmMover
         let previous = best_e1rm_in_range(&conn, user_id, exercise_id, &previous_from, &previous_to)?;
 
         if let (Some(curr), Some(prev)) = (current, previous) {
-            if prev > 0.0 {
-                let pct = ((curr - prev) / prev) * 100.0;
+            if let Some(pct) = e1rm::pct_change(curr, prev) {
                 movers.push(E1rmMover {
                     exercise_id,
                     exercise_name: name,
                     muscle_group,
-                    current_e1rm: (curr * 10.0).round() / 10.0,
-                    previous_e1rm: (prev * 10.0).round() / 10.0,
-                    pct_change: (pct * 10.0).round() / 10.0,
+                    current_e1rm: e1rm::round(curr),
+                    previous_e1rm: e1rm::round(prev),
+                    pct_change: e1rm::round(pct),
                 });
             }
         }
@@ -697,53 +685,28 @@ pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, A
         |row| row.get(0),
     )?;
 
-    // Running bests: exercise_id -> (best_absolute_e1rm, {set_number -> best_e1rm})
-    let mut best_absolute: HashMap<i64, f64> = HashMap::new();
-    let mut best_by_pos: HashMap<i64, HashMap<i32, f64>> = HashMap::new();
-
-    // Accumulate PR flags per date
-    let mut day_prs: HashMap<String, (bool, bool)> = HashMap::new(); // (absolute, set)
-
-    for (date, exercise_id, set_number, weight, reps, rir) in &sets {
-        let effective_reps = match rir {
-            Some(r) => reps + r,
-            None => *reps,
-        };
-        let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
-
-        let abs_best = best_absolute.entry(*exercise_id).or_insert(0.0);
-        let pos_map = best_by_pos.entry(*exercise_id).or_default();
-        let pos_best = pos_map.entry(*set_number).or_insert(0.0);
-
-        // Only record PRs within the reporting window, but always after first set
-        if date.as_str() >= cutoff.as_str() {
-            if e1rm > *abs_best && *abs_best > 0.0 {
-                let entry = day_prs.entry(date.clone()).or_insert((false, false));
-                entry.0 = true;
-            } else if e1rm > *pos_best && *pos_best > 0.0 {
-                let entry = day_prs.entry(date.clone()).or_insert((false, false));
-                entry.1 = true;
-            }
-        }
-
-        // Update running bests AFTER comparison
-        if e1rm > *abs_best {
-            *abs_best = e1rm;
-        }
-        if e1rm > *pos_best {
-            *pos_best = e1rm;
-        }
-    }
-
-    let mut result: Vec<DayPR> = day_prs
+    let timed_sets: Vec<pr::TimedSet> = sets
         .into_iter()
-        .map(|(date, (abs, set))| DayPR {
+        .map(|(date, exercise_id, set_number, weight, reps, rir)| pr::TimedSet {
+            exercise_id,
+            set_number,
+            weight_kg: weight,
+            reps,
+            rir,
             date,
-            has_absolute_pr: abs,
-            has_set_pr: set,
         })
         .collect();
-    result.sort_by(|a, b| a.date.cmp(&b.date));
+
+    let calc_prs = pr::detect_prs(&timed_sets, &cutoff);
+
+    let result: Vec<DayPR> = calc_prs
+        .into_iter()
+        .map(|p| DayPR {
+            date: p.date,
+            has_absolute_pr: p.has_absolute_pr,
+            has_set_pr: p.has_set_pr,
+        })
+        .collect();
 
     Ok(result)
 }
@@ -896,7 +859,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
             session_count: row.get(3)?,
             last_trained: row.get(4)?,
             current_e1rm: row.get::<_, Option<f64>>(5)?
-                .map(|v| (v * 10.0).round() / 10.0),
+                .map(e1rm::round),
             trend: None,
         })
     })?
@@ -941,9 +904,9 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     for (exercise_id, _rn, e1rm) in &trend_data {
         if current_id != Some(*exercise_id) {
             if let Some(id) = current_id {
-                let filtered = filter_deloads(&session_e1rms);
-                if let Some(t) = compute_trend(&filtered) {
-                    trends.insert(id, t);
+                let filtered = trend::filter_deloads(&session_e1rms);
+                if let Some(t) = trend::compute_trend(&filtered) {
+                    trends.insert(id, t.as_str().to_string());
                 }
             }
             current_id = Some(*exercise_id);
@@ -953,9 +916,9 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     }
     // Final exercise
     if let Some(id) = current_id {
-        let filtered = filter_deloads(&session_e1rms);
-        if let Some(t) = compute_trend(&filtered) {
-            trends.insert(id, t);
+        let filtered = trend::filter_deloads(&session_e1rms);
+        if let Some(t) = trend::compute_trend(&filtered) {
+            trends.insert(id, t.as_str().to_string());
         }
     }
 
@@ -965,53 +928,6 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     }
 
     Ok(rows)
-}
-
-/// Filter out deload sessions from e1RM series (ordered most recent first).
-/// A session is considered a deload if its e1RM is <85% of the series max,
-/// indicating an intentional light day rather than genuine regression.
-fn filter_deloads(e1rms: &[f64]) -> Vec<f64> {
-    if e1rms.len() < 3 {
-        return e1rms.to_vec();
-    }
-
-    let max = e1rms.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let threshold = max * 0.85;
-
-    let filtered: Vec<f64> = e1rms.iter().copied().filter(|&v| v >= threshold).collect();
-
-    // If filtering removed too many, fall back to unfiltered
-    if filtered.len() < 3 {
-        e1rms.to_vec()
-    } else {
-        // Take at most 4 after filtering
-        filtered.into_iter().take(4).collect()
-    }
-}
-
-/// Compute trend direction from session e1RMs (ordered most recent first).
-/// Requires at least 3 data points. Compares avg of last 2 vs avg of prior sessions.
-/// Returns "up" (>2%), "down" (<-2%), or "flat".
-fn compute_trend(e1rms: &[f64]) -> Option<String> {
-    if e1rms.len() < 3 {
-        return None;
-    }
-    let recent_avg = (e1rms[0] + e1rms[1]) / 2.0;
-    let prior: &[f64] = &e1rms[2..];
-    let prior_avg: f64 = prior.iter().sum::<f64>() / prior.len() as f64;
-
-    if prior_avg == 0.0 {
-        return None;
-    }
-
-    let pct = (recent_avg - prior_avg) / prior_avg;
-    Some(if pct > 0.02 {
-        "up".to_string()
-    } else if pct < -0.02 {
-        "down".to_string()
-    } else {
-        "flat".to_string()
-    })
 }
 
 /// For each exercise in a session, returns the historical best e1RM (absolute)
@@ -1054,39 +970,27 @@ pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<Exe
                AND st.reps > 0"
         )?;
 
-        let sets: Vec<(i32, f64, i64, Option<i64>)> = stmt.query_map(
+        let sets: Vec<pr::TimedSet> = stmt.query_map(
             rusqlite::params![user_id, exercise_id, session_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get::<_, i32>(0)?, row.get::<_, f64>(1)?, row.get::<_, i64>(2)?, row.get::<_, Option<i64>>(3)?)),
         )?
             .filter_map(|r| r.ok())
+            .map(|(set_number, weight, reps, rir)| pr::TimedSet {
+                exercise_id,
+                set_number,
+                weight_kg: weight,
+                reps,
+                rir,
+                date: String::new(),
+            })
             .collect();
 
-        let mut best_ever: Option<f64> = None;
-        let mut best_by_position: HashMap<i32, f64> = HashMap::new();
-
-        for (set_number, weight, reps, rir) in sets {
-            let effective_reps = match rir {
-                Some(r) => reps + r,
-                None => reps,
-            };
-            let e1rm = weight * (1.0 + effective_reps as f64 / 30.0);
-
-            if best_ever.is_none() || e1rm > best_ever.unwrap() {
-                best_ever = Some(e1rm);
-            }
-
-            let pos_entry = best_by_position.entry(set_number).or_insert(0.0);
-            if e1rm > *pos_entry {
-                *pos_entry = e1rm;
-            }
-        }
+        let (best_ever, best_by_position) = pr::historical_bests(&sets);
 
         results.push(ExercisePRData {
             exercise_id,
-            best_e1rm_ever: best_ever.map(|v| (v * 10.0).round() / 10.0),
-            best_e1rm_by_position: best_by_position.into_iter()
-                .map(|(k, v)| (k, (v * 10.0).round() / 10.0))
-                .collect(),
+            best_e1rm_ever: best_ever,
+            best_e1rm_by_position: best_by_position,
         });
     }
 

@@ -941,6 +941,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightweight-calc"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "lightweight-cli"
 version = "0.1.0"
 dependencies = [
@@ -960,6 +967,7 @@ dependencies = [
  "argon2",
  "chrono",
  "hex",
+ "lightweight-calc",
  "rand",
  "rusqlite",
  "serde",
