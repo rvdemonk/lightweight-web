@@ -193,6 +193,11 @@ export interface StaleExercise {
   total_sets: number;
 }
 
+export interface ExercisePreviousSets {
+  exercise_id: number;
+  sets: WorkoutSet[];
+}
+
 export interface ExercisePRData {
   exercise_id: number;
   best_e1rm_ever: number | null;

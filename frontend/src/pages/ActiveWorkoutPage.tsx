@@ -38,8 +38,8 @@ export function ActiveWorkoutPage() {
         // PR data is non-critical — silently ignore failures
       }
 
-      // Fetch previous data if template-based
       if (active.template_id) {
+        // Template: fetch previous data from last run of this template
         const prev = await api.templatePrevious(active.template_id);
         if (prev) {
           const map: Record<number, WorkoutSet[]> = {};
@@ -49,9 +49,20 @@ export function ActiveWorkoutPage() {
           setPreviousData(map);
         }
 
-        // Get template exercise targets
         const template = await api.getTemplate(active.template_id);
         setTemplateExercises(template.exercises);
+      } else {
+        // Freeform: fetch previous data from last time each exercise was done
+        try {
+          const prevSets = await api.sessionExercisePrevious(active.id);
+          const map: Record<number, WorkoutSet[]> = {};
+          for (const ep of prevSets) {
+            map[ep.exercise_id] = ep.sets;
+          }
+          setPreviousData(map);
+        } catch {
+          // Non-critical
+        }
       }
     } catch (e) {
       console.error(e);

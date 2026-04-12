@@ -269,3 +269,9 @@ pub struct ExerciseHistoryEntry {
     pub date: String,
     pub sets: Vec<Set>,
 }
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ExercisePreviousSets {
+    pub exercise_id: i64,
+    pub sets: Vec<Set>,
+}

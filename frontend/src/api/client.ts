@@ -234,4 +234,6 @@ export const api = {
     request<import('./types').ExerciseHistory>(`/exercises/${exerciseId}/history`),
   templatePrevious: (templateId: number) =>
     request<import('./types').Session | null>(`/templates/${templateId}/previous`),
+  sessionExercisePrevious: (sessionId: number) =>
+    request<import('./types').ExercisePreviousSets[]>(`/sessions/${sessionId}/exercise-previous`),
 };

@@ -611,6 +611,66 @@ pub fn template_previous(db: &DbPool, user_id: i64, template_id: i64) -> Result<
     }
 }
 
+pub fn session_exercise_previous(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<ExercisePreviousSets>, AppError> {
+    let conn = db.lock().unwrap();
+
+    // Get all exercise IDs in this session
+    let mut ex_stmt = conn.prepare(
+        "SELECT DISTINCT se.exercise_id FROM session_exercises se WHERE se.session_id = ?1"
+    )?;
+    let exercise_ids: Vec<i64> = ex_stmt
+        .query_map(rusqlite::params![session_id], |row| row.get(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    let mut results = Vec::new();
+
+    for exercise_id in exercise_ids {
+        // Find the most recent completed session (not this one) that has this exercise
+        let prev_session_id: Result<i64, _> = conn.query_row(
+            "SELECT s.id FROM sessions s
+             JOIN session_exercises se ON se.session_id = s.id
+             WHERE se.exercise_id = ?1 AND s.user_id = ?2 AND s.id != ?3 AND s.status = 'completed'
+             ORDER BY s.started_at DESC LIMIT 1",
+            rusqlite::params![exercise_id, user_id, session_id],
+            |row| row.get(0),
+        );
+
+        let sets = match prev_session_id {
+            Ok(prev_id) => {
+                let mut set_stmt = conn.prepare(
+                    "SELECT st.id, st.session_exercise_id, st.set_number, st.weight_kg, st.reps, st.set_type, st.rir, st.completed_at
+                     FROM sets st
+                     JOIN session_exercises se ON se.id = st.session_exercise_id
+                     WHERE se.session_id = ?1 AND se.exercise_id = ?2
+                     ORDER BY st.set_number"
+                )?;
+                let rows: Vec<Set> = set_stmt
+                    .query_map(rusqlite::params![prev_id, exercise_id], |row| {
+                        Ok(Set {
+                            id: row.get(0)?,
+                            session_exercise_id: row.get(1)?,
+                            set_number: row.get(2)?,
+                            weight_kg: row.get(3)?,
+                            reps: row.get(4)?,
+                            set_type: row.get(5)?,
+                            rir: row.get(6)?,
+                            completed_at: row.get(7)?,
+                        })
+                    })?
+                    .filter_map(|r| r.ok())
+                    .collect();
+                rows
+            }
+            Err(_) => Vec::new(),
+        };
+
+        results.push(ExercisePreviousSets { exercise_id, sets });
+    }
+
+    Ok(results)
+}
+
 // ── Import ──
 
 fn parse_import_date(date: &str) -> Result<String, AppError> {

@@ -14,6 +14,7 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/exercises/:id/history", get(exercise_history))
         .route("/templates/:id/previous", get(template_previous))
+        .route("/sessions/:id/exercise-previous", get(session_exercise_previous))
 }
 
 async fn exercise_history(
@@ -27,6 +28,16 @@ async fn exercise_history(
             lightweight_core::error::AppError::NotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         })
+}
+
+async fn session_exercise_previous(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Path(id): Path<i64>,
+) -> Result<Json<Vec<ExercisePreviousSets>>, StatusCode> {
+    lightweight_core::sessions::session_exercise_previous(&state.db, user_id, id)
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 async fn template_previous(

@@ -14,6 +14,19 @@ export function SetLogger({ defaultWeight, defaultReps, onLog, onWeightChange }:
   const [rir, setRir] = useState<number | null>(null);
   const isBodyweight = defaultWeight === null && weight === 0;
 
+  // Sync when previous data arrives after mount (e.g. freeform exercise added)
+  useEffect(() => {
+    if (defaultWeight !== null && weight === 0) {
+      setWeight(defaultWeight);
+    }
+  }, [defaultWeight]);
+
+  useEffect(() => {
+    if (defaultReps !== reps && reps === 8 && defaultReps !== 8) {
+      setReps(defaultReps);
+    }
+  }, [defaultReps]);
+
   useEffect(() => {
     onWeightChange?.(weight);
   }, [weight]);
