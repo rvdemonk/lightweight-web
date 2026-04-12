@@ -187,8 +187,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         className="mobile-menu grid-bg"
         style={{
           position: 'fixed',
-          inset: 0,
           top: 48,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 'calc(100dvh - 48px)',
           background: 'var(--bg-primary)',
           zIndex: 150,
           display: 'flex',
