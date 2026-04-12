@@ -21,7 +21,7 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#ux` **Dial in EVA aesthetic** — some elements are overcooked. Review glow effects, angular borders, and monospace styling for places where the theme is more corny than cool.
 
-- [ ] `#feature` **Show LAST and BEST per exercise** — display previous session performance and all-time best for each exercise during a workout. Include the date on LAST.
+- [ ] `#feature` **Android native app** — port Lightweight to Tauri v2 / Android. Rust backend stays, native frontend. Invite links work via deep links / intent filters.
 
 - [ ] `#feature` **Training phase tracking** — user sets phase (cutting/maintaining/bulking). Adjust progressive overload feedback so weight decreases during a cut aren't flagged negatively. Use phases to segment training history.
 
@@ -29,21 +29,27 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#feature` **History: convert freeflow workout to template** — option on a completed freeflow session to save it as a reusable workout template.
 
-- [ ] `#feature` **Data export GET endpoint** — public authenticated endpoint that returns all user training data as JSON. Designed for pasting into ChatGPT/Claude for analysis. Single GET request, full history.
-
-- [ ] `#feature` **PR heatmap** — heatmap view showing days with personal records, separate from or overlaid on the activity heatmap.
-
 - [ ] `#feature` **Post-workout report** — shown after ending a session: e1RM gains for movements with PRs, how far off the others were, anomalies, comparison to last session of the same template.
 
 - [ ] `#feature` **Muscle group dimension pages** — per-muscle-group views showing template progress reports, shifting from the current "all exercises" page to group-specific analysis.
 
 - [ ] `#feature` **Weekly training report** — aggregated weekly insights. Possibly LLM-generated summaries of training trends, volume, PRs, and recommendations.
 
+- [ ] `#ux` **BriefingPage onboarding rework** — currently a marketing page. Needs to function as post-registration welcome for new users arriving via invite links. Show getting-started guidance, not feature marketing.
+
+- [ ] `#feature` **Email integration** — password reset, account recovery. Required before full public launch. Not needed for invite-gated beta.
+
+- [ ] `#ux` **Dial in EVA aesthetic** — some elements are overcooked. Review glow effects, angular borders, and monospace styling for places where the theme is more corny than cool.
+
 ---
 
 ## Later
 
-- [ ] `#tech-debt` **Harden deploy.sh** — add health check (curl after restart, confirm 200), backup previous binary as `lightweight-server.prev` for quick rollback, auto-tag git on successful deploy.
+- [ ] `#tech-debt` **Harden deploy.sh** — add health check (curl after restart, confirm 200), auto-tag git on successful deploy.
+
+- [ ] `#tech-debt` **Expired auth_sessions cleanup** — rows accumulate indefinitely. Add periodic sweep or lazy cleanup in verify_token.
+
+- [ ] `#tech-debt` **CSP header** — add Content-Security-Policy via nginx or meta tag for XSS defense-in-depth.
 
 - [ ] `#feature` Pull-ups exercise metadata — auto-created during import with no muscle group or equipment. Fill in (Back, Bodyweight) or merge with Chin-ups.
 
@@ -57,6 +63,28 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 ---
 
 ## Completed
+
+### v1.0.0
+- [x] `#feature` Per-user invite link system — generate, share via QR/URL, one-time use, quota tracking
+- [x] `#feature` Auth sessions with 30-day expiry — multi-device, server-side logout
+- [x] `#feature` EST. TARGET WEIGHT in template editor — e1RM-derived weight for rep range
+- [x] `#feature` Template version history — snapshots before edits, expandable in editor
+- [x] `#feature` Freeform workouts show previous data and PR targets
+- [x] `#feature` Tap-to-type on increment buttons
+- [x] `#feature` Stale sessions auto-close after 2 hours of inactivity
+- [x] `#feature` CLI analytics subcommand with report endpoint
+- [x] `#feature` Data export GET endpoint (JSON via analytics report)
+- [x] `#feature` PR heatmap overlay on activity heatmap
+- [x] `#ux` New user onboarding — template button always active, + New Template in selector
+- [x] `#ux` Menu reorganisation — SYSTEM section with Settings + Invites, BETA status
+- [x] `#ux` BriefingPage context-aware CTA (Continue/SKIP vs Login/ACCESS)
+- [x] `#security` Rate limiting on auth endpoints (10/min per IP)
+- [x] `#security` CORS locked to production origin
+- [x] `#security` Password minimum 8 characters
+- [x] `#security` Session ownership checks on analytics endpoints
+- [x] `#security` Invite registration wrapped in transaction
+- [x] `#tech-debt` Backup protocol — backup.sh + auto-backup in deploy.sh
+- [x] `#tech-debt` Server binds 127.0.0.1 by default (behind nginx)
 
 ### v0.9.0
 - [x] `#feature` PR hazard stripes on set bars (absolute + set-position)

@@ -7,7 +7,7 @@ Multi-user workout tracker. Frictionless mobile logging, progressive overload tr
 - Optimised for one-handed phone use between sets
 - Progressive disclosure everywhere — show names first, details on demand
 - NGE-influenced dark aesthetic: angular, monospace data, amber/cyan accents
-- Multi-user with invite-code-gated registration, single binary, no cloud dependencies
+- Multi-user with invite-link-gated registration, single binary, no cloud dependencies
 
 ## Memory Principles
 
@@ -49,5 +49,8 @@ Web app is a prototype — mid-term goal is Android native. The Rust/Axum API se
 - Check: `cargo check` then `cd frontend && npx tsc --noEmit`
 - Build frontend before Rust release — `rust-embed` embeds `frontend/dist/`
 - A placeholder `frontend/dist/index.html` must exist or rust-embed won't compile
-- Deploy: `./deploy.sh` — builds frontend, cross-compiles via cargo-zigbuild, SCPs to droplet, restarts service
+- Deploy: `./deploy.sh` — builds frontend, cross-compiles via cargo-zigbuild, auto-backups prod DB, SCPs to droplet, restarts service
+- Backup: `./backup.sh [label]` — stops server (WAL checkpoint), SCPs DB, restarts. Backups in `backups/YYYY-MM-DD/`
 - Production: `https://lightweight.3rigby.xyz` (DO droplet 170.64.189.221, systemd + nginx + Let's Encrypt)
+- Env vars in prod systemd: `LW_DB_PATH`, `LW_PORT`, `LW_INVITE_CODE` (admin backdoor), `LW_CORS_ORIGIN` (locked to production URL)
+- Server binds 127.0.0.1 by default (behind nginx). Set `LW_HOST=0.0.0.0` for direct access in dev.
