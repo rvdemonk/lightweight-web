@@ -23,3 +23,7 @@ frontend/dist/
 
 # Archive
 archive/
+
+# Local
+.claude/
+backups/

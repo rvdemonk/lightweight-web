@@ -1,0 +1,204 @@
+[
+  {
+    "template": "Upper A",
+    "date": "2026-02-02",
+    "notes": "Near failure bench set 3 rep 8. Flies could go heavier (RIR >4).",
+    "exercises": [
+      {
+        "name": "Incline Barbell Bench",
+        "notes": "Near failure at set 3 rep 8",
+        "sets": [
+          { "weight_kg": 60, "reps": 8 },
+          { "weight_kg": 60, "reps": 8 },
+          { "weight_kg": 60, "reps": 8 }
+        ]
+      },
+      {
+        "name": "DB Chest Flies",
+        "notes": "Incline. Could've gone heavier, RIR >4 after third set",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 12 },
+          { "weight_kg": 7.5, "reps": 12 },
+          { "weight_kg": 7.5, "reps": 12 }
+        ]
+      },
+      {
+        "name": "Egyptian Raises",
+        "notes": "Controlled eccentric. RIR 1-2 end of set",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 15 },
+          { "weight_kg": 7.5, "reps": 15 }
+        ]
+      },
+      {
+        "name": "Seated Incline DB Curls",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 12 },
+          { "weight_kg": 7.5, "reps": 12 },
+          { "weight_kg": 7.5, "reps": 12 }
+        ]
+      }
+    ]
+  },
+  {
+    "template": "Lower A",
+    "date": "2026-02-03",
+    "notes": "Lunges very light first set. HLR: cheating last set, abs tenting",
+    "exercises": [
+      {
+        "name": "Back Squat",
+        "notes": "1.5 RIR both sets",
+        "sets": [
+          { "weight_kg": 80, "reps": 9 },
+          { "weight_kg": 80, "reps": 7 }
+        ]
+      },
+      {
+        "name": "Reverse Lunges",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 20 },
+          { "weight_kg": 7.5, "reps": 24 }
+        ]
+      },
+      {
+        "name": "Hanging Leg Raise",
+        "notes": "Legs up to squat rack height",
+        "sets": [
+          { "reps": 8 },
+          { "reps": 8 },
+          { "reps": 8 }
+        ]
+      }
+    ]
+  },
+  {
+    "template": "Upper B",
+    "date": "2026-02-05",
+    "notes": "Bent rows too light to start, near failure by end. Controlled eccentrics throughout.",
+    "exercises": [
+      {
+        "name": "Barbell Bent Row",
+        "notes": "Too light/few to begin with; near failure at end. Control eccentric",
+        "sets": [
+          { "weight_kg": 50, "reps": 12 },
+          { "weight_kg": 50, "reps": 12 },
+          { "weight_kg": 50, "reps": 15 },
+          { "weight_kg": 50, "reps": 12 }
+        ]
+      },
+      {
+        "name": "Pull-ups",
+        "notes": "Control eccentric, no banana back",
+        "sets": [
+          { "reps": 6 },
+          { "reps": 6 },
+          { "reps": 6 },
+          { "reps": 6 }
+        ]
+      },
+      {
+        "name": "Incline Barbell Bench",
+        "notes": "Half reps at 50kg. Control eccentric",
+        "sets": [
+          { "weight_kg": 50, "reps": 15 },
+          { "weight_kg": 50, "reps": 12 }
+        ]
+      },
+      {
+        "name": "Overhead DB Tricep Extension",
+        "sets": [
+          { "weight_kg": 8.75, "reps": 12 },
+          { "weight_kg": 8.75, "reps": 12 }
+        ]
+      }
+    ]
+  },
+  {
+    "template": "Lower B",
+    "date": "2026-02-06",
+    "exercises": [
+      {
+        "name": "Romanian Deadlift",
+        "sets": [
+          { "weight_kg": 80, "reps": 8 },
+          { "weight_kg": 80, "reps": 8 },
+          { "weight_kg": 80, "reps": 8 }
+        ]
+      }
+    ]
+  },
+  {
+    "template": "Upper A",
+    "date": "2026-02-09",
+    "notes": "Near failure bench set 3 rep 8",
+    "exercises": [
+      {
+        "name": "Incline Barbell Bench",
+        "notes": "Near failure set 3 rep 8",
+        "sets": [
+          { "weight_kg": 60, "reps": 9 },
+          { "weight_kg": 60, "reps": 9 },
+          { "weight_kg": 60, "reps": 8 }
+        ]
+      },
+      {
+        "name": "DB Chest Flies",
+        "notes": "Incline. Progressed to bar+10",
+        "sets": [
+          { "weight_kg": 10, "reps": 12 },
+          { "weight_kg": 10, "reps": 12 },
+          { "weight_kg": 10, "reps": 12 }
+        ]
+      },
+      {
+        "name": "Egyptian Raises",
+        "notes": "Controlling eccentric more",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 15 },
+          { "weight_kg": 7.5, "reps": 15 }
+        ]
+      },
+      {
+        "name": "Seated Incline DB Curls",
+        "sets": [
+          { "weight_kg": 7.5, "reps": 14 },
+          { "weight_kg": 7.5, "reps": 11 },
+          { "weight_kg": 7.5, "reps": 12 }
+        ]
+      }
+    ]
+  },
+  {
+    "template": "Lower A",
+    "date": "2026-02-13",
+    "notes": "Squats stronger. Lunges close to failure. HLR controlled, no cheating, mind-muscle connection",
+    "exercises": [
+      {
+        "name": "Back Squat",
+        "notes": "1-1.5 RIR across sets",
+        "sets": [
+          { "weight_kg": 80, "reps": 10 },
+          { "weight_kg": 80, "reps": 10 },
+          { "weight_kg": 80, "reps": 7 }
+        ]
+      },
+      {
+        "name": "Reverse Lunges",
+        "notes": "Close to failure",
+        "sets": [
+          { "weight_kg": 10, "reps": 24 },
+          { "weight_kg": 10, "reps": 24 }
+        ]
+      },
+      {
+        "name": "Hanging Leg Raise",
+        "notes": "Controlled, no cheating, leg curl cue",
+        "sets": [
+          { "reps": 7 },
+          { "reps": 7 },
+          { "reps": 5 }
+        ]
+      }
+    ]
+  }
+]
