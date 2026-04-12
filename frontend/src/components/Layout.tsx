@@ -194,6 +194,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           display: 'flex',
           flexDirection: 'column',
           padding: '0 24px',
+          overflowY: 'auto',
           opacity: menuOpen ? 1 : 0,
           pointerEvents: menuOpen ? 'auto' : 'none',
           transition: 'opacity 0.15s ease',

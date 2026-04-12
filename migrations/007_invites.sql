@@ -1,6 +1,6 @@
 -- Per-user invite links
 
-ALTER TABLE users ADD COLUMN invite_quota INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE users ADD COLUMN invite_quota INTEGER NOT NULL DEFAULT 10;
 
 CREATE TABLE invites (
     id          INTEGER PRIMARY KEY,
