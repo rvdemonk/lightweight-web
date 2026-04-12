@@ -110,7 +110,7 @@ export function ExerciseCard({
           {/* Progression targets for next set */}
           {(() => {
             const nextSetNum = exercise.sets.length + 1;
-            const baseWeight = lastSet?.weight_kg ?? previousSets[0]?.weight_kg;
+            const baseWeight = lastSet?.weight_kg ?? previousSets[0]?.weight_kg ?? loggerWeight;
             if (!baseWeight || !prData) return null;
 
             const repMin = templateExercise?.target_reps_min;
@@ -142,7 +142,7 @@ export function ExerciseCard({
             const showBoth = atWeight && inRange && atWeight.weight !== inRange.weight;
 
             const getTargetColor = (t: ProgressionTarget) => {
-              if (!repMin || !repMax) return 'var(--text-secondary)';
+              if (!repMin || !repMax) return 'var(--accent-cyan)';
               if (t.repsNeeded > repMax) return 'var(--accent-cyan)';
               if (t.repsNeeded >= repMin) return 'var(--accent-green)';
               if (t.repsNeeded === repMin - 1) return 'var(--accent-amber)';
