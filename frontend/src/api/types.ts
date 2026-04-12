@@ -210,3 +210,19 @@ export interface ExportMeta {
   first_session: string | null;
   last_session: string | null;
 }
+
+// ── Invites ──
+
+export interface Invite {
+  id: number;
+  code: string;
+  created_at: string;
+  used_by_username: string | null;
+  used_at: string | null;
+}
+
+export interface InviteList {
+  quota: number;
+  used_count: number;
+  invites: Invite[];
+}

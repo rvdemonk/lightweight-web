@@ -85,6 +85,20 @@ export const api = {
       body: JSON.stringify({ username, password, invite_code }),
     }),
   checkAuth: () => request<void>('/auth/check'),
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
+  validateJoinCode: (code: string) =>
+    request<{ valid: boolean; invited_by: string | null }>(`/auth/join/${code}`),
+  joinWithCode: (code: string, username: string, password: string) =>
+    request<{ token: string }>(`/auth/join/${code}`, {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  // Invites
+  createInvite: () =>
+    request<import('./types').Invite>('/invites', { method: 'POST' }),
+  listInvites: () =>
+    request<import('./types').InviteList>('/invites'),
 
   // Exercises
   listExercises: () => request<import('./types').Exercise[]>('/exercises'),

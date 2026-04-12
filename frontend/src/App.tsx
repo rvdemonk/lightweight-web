@@ -12,6 +12,8 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BriefingPage } from './pages/BriefingPage';
+import { JoinPage } from './pages/JoinPage';
+import { InvitesPage } from './pages/InvitesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { WhatsNewPage } from './pages/WhatsNewPage';
 
@@ -29,6 +31,7 @@ export function App() {
       {loggedIn && <WhatsNew />}
       <Routes>
         <Route path="/primer" element={<BriefingPage />} />
+        <Route path="/join/:code" element={<JoinPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/workout" element={<ProtectedRoute><ActiveWorkoutPage /></ProtectedRoute>} />
@@ -39,6 +42,7 @@ export function App() {
         <Route path="/sessions/:id" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/settings/invites" element={<ProtectedRoute><InvitesPage /></ProtectedRoute>} />
         <Route path="/whats-new" element={<ProtectedRoute><WhatsNewPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
 import { APP_VERSION } from '../version';
 
@@ -12,6 +12,7 @@ const fieldLabelStyle = {
 
 function errorMessage(status: number): string {
   switch (status) {
+    case 400: return 'USERNAME 3-20 CHARS, PASSWORD 8+ CHARS';
     case 401: return 'INVALID CREDENTIALS';
     case 409: return 'USERNAME TAKEN';
     case 403: return 'INVALID INVITE CODE';
@@ -22,10 +23,11 @@ function errorMessage(status: number): string {
 export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const adminCode = searchParams.get('code');
 
   if (isLoggedIn()) {
     return <Navigate to="/" replace />;
@@ -36,10 +38,10 @@ export function LoginPage() {
     setError('');
 
     try {
-      if (isRegistering) {
-        const { token } = await api.register(username, password, inviteCode || undefined);
+      if (isRegistering && adminCode) {
+        const { token } = await api.register(username, password, adminCode);
         setToken(token);
-        navigate('/');
+        navigate('/primer');
       } else {
         const { token } = await api.login(username, password);
         setToken(token);
@@ -128,23 +130,6 @@ export function LoginPage() {
           style={inputStyle(!!error)}
         />
 
-        {/* Invite code field (register mode only) */}
-        {isRegistering && (
-          <>
-            <div style={{ marginBottom: 4 }}>
-              <span style={fieldLabelStyle}>INVITE CODE</span>
-            </div>
-            <input
-              type="text"
-              placeholder="required"
-              value={inviteCode}
-              onChange={e => setInviteCode(e.target.value)}
-              autoComplete="off"
-              style={inputStyle(!!error)}
-            />
-          </>
-        )}
-
         {error && (
           <div style={{
             color: 'var(--accent-red)',
@@ -163,27 +148,30 @@ export function LoginPage() {
           {isRegistering ? 'Register' : 'Login'}
         </button>
 
-        {/* Divider */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          margin: '16px 0',
-        }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-          <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-        </div>
+        {/* Mode toggle — only show Register when admin code is in URL */}
+        {(adminCode || isRegistering) && (
+          <>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              margin: '16px 0',
+            }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+            </div>
 
-        {/* Mode toggle */}
-        <button
-          type="button"
-          className="btn btn-secondary btn-full"
-          style={{ fontSize: 13 }}
-          onClick={toggleMode}
-        >
-          {isRegistering ? 'Login' : 'Register'}
-        </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-full"
+              style={{ fontSize: 13 }}
+              onClick={toggleMode}
+            >
+              {isRegistering ? 'Login' : 'Register'}
+            </button>
+          </>
+        )}
       </form>
     </div>
   );

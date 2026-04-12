@@ -217,8 +217,9 @@ export function BriefingPage() {
     return () => observerRef.current?.disconnect();
   }, []);
 
-  const handleRegister = () => {
-    navigate(isLoggedIn() ? '/' : '/login');
+  const loggedIn = isLoggedIn();
+  const handleAccess = () => {
+    navigate(loggedIn ? '/' : '/login');
   };
 
   return (
@@ -451,22 +452,24 @@ export function BriefingPage() {
             textAlign: 'center',
             paddingBottom: 48,
           }}>
-            <div style={{
-              fontSize: 13,
-              fontFamily: 'var(--font-data)',
-              color: 'var(--text-secondary)',
-              letterSpacing: '2px',
-              marginBottom: 24,
-              opacity: 0.6,
-            }}>
-              INVITE-GATED REGISTRATION
-            </div>
+            {!loggedIn && (
+              <div style={{
+                fontSize: 13,
+                fontFamily: 'var(--font-data)',
+                color: 'var(--text-secondary)',
+                letterSpacing: '2px',
+                marginBottom: 24,
+                opacity: 0.6,
+              }}>
+                INVITE-ONLY ACCESS
+              </div>
+            )}
             <button
               className="btn btn-primary"
               style={{ ['--btn-cut' as string]: '10px', padding: '16px 80px', fontSize: 16 }}
-              onClick={handleRegister}
+              onClick={handleAccess}
             >
-              Register
+              {loggedIn ? 'Continue' : 'Login'}
             </button>
           </div>
 
@@ -498,7 +501,7 @@ export function BriefingPage() {
 
       {/* ── FIXED ACCESS BUTTON ── */}
       <button
-        onClick={handleRegister}
+        onClick={handleAccess}
         style={{
           position: 'fixed',
           top: 12,
@@ -516,7 +519,7 @@ export function BriefingPage() {
           borderRadius: 2,
         }}
       >
-        ACCESS
+        {loggedIn ? 'SKIP' : 'ACCESS'}
       </button>
     </>
   );

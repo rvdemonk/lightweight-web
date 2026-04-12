@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useApi } from '../hooks/useApi';
 
@@ -152,9 +152,11 @@ export function HomePage() {
           );
         })}
 
-        {templates && templates.length === 0 && (
-          <div className="empty">No workouts saved yet.</div>
-        )}
+        <Link to="/templates/new" style={{ textDecoration: 'none', display: 'block', marginTop: templates && templates.length > 0 ? 8 : 0 }}>
+          <button className="btn btn-secondary btn-full" style={{ fontSize: 13, minHeight: 44 }}>
+            + New Template
+          </button>
+        </Link>
       </div>
     );
   }
@@ -195,7 +197,6 @@ export function HomePage() {
             ['--btn-cut' as string]: '12px',
           }}
           onClick={() => setMode('template')}
-          disabled={!templates || templates.length === 0}
         >
           Template
         </button>

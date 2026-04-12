@@ -25,4 +25,10 @@ pub enum AppError {
 
     #[error("Invalid username: {0}")]
     InvalidUsername(String),
+
+    #[error("Invite quota exceeded")]
+    InviteQuotaExceeded,
+
+    #[error("Password too short")]
+    WeakPassword,
 }

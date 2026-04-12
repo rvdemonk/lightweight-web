@@ -28,13 +28,13 @@ const SEED_EXERCISES: &[(&str, &str, &str)] = &[
     ("Standing Calf Raise", "Calves", "Machine"),
 ];
 
-fn generate_token() -> String {
+pub(crate) fn generate_token() -> String {
     let mut rng = rand::thread_rng();
     let bytes: Vec<u8> = (0..32).map(|_| rng.gen()).collect();
     hex::encode(bytes)
 }
 
-fn hash_password(password: &str) -> Result<String, AppError> {
+pub(crate) fn hash_password(password: &str) -> Result<String, AppError> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hash = argon2
@@ -51,7 +51,14 @@ fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
         .is_ok())
 }
 
-fn validate_username(username: &str) -> Result<String, AppError> {
+pub(crate) fn validate_password(password: &str) -> Result<(), AppError> {
+    if password.len() < 8 {
+        return Err(AppError::WeakPassword);
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_username(username: &str) -> Result<String, AppError> {
     let lowered = username.to_lowercase();
     if lowered.len() < 3 || lowered.len() > 20 {
         return Err(AppError::InvalidUsername(
@@ -64,6 +71,27 @@ fn validate_username(username: &str) -> Result<String, AppError> {
         ));
     }
     Ok(lowered)
+}
+
+pub(crate) fn seed_exercises(conn: &rusqlite::Connection, user_id: i64) -> Result<(), AppError> {
+    for (name, muscle_group, equipment) in SEED_EXERCISES {
+        conn.execute(
+            "INSERT OR IGNORE INTO exercises (user_id, name, muscle_group, equipment) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![user_id, name, muscle_group, equipment],
+        )?;
+    }
+    Ok(())
+}
+
+const SESSION_DURATION_DAYS: i32 = 30;
+
+pub(crate) fn create_auth_session(conn: &rusqlite::Connection, user_id: i64) -> Result<String, AppError> {
+    let token = generate_token();
+    conn.execute(
+        "INSERT INTO auth_sessions (user_id, token, expires_at) VALUES (?1, ?2, datetime('now', ?3))",
+        rusqlite::params![user_id, token, format!("+{} days", SESSION_DURATION_DAYS)],
+    )?;
+    Ok(token)
 }
 
 pub fn register(
@@ -82,8 +110,8 @@ pub fn register(
     }
 
     let username = validate_username(username)?;
+    validate_password(password)?;
     let hash = hash_password(password)?;
-    let token = generate_token();
 
     let conn = db.lock().unwrap();
 
@@ -97,60 +125,51 @@ pub fn register(
         return Err(AppError::UsernameTaken);
     }
 
-    // Insert user
+    // Insert user (token column no longer used)
     conn.execute(
-        "INSERT INTO users (username, password_hash, token) VALUES (?1, ?2, ?3)",
-        rusqlite::params![username, hash, token],
+        "INSERT INTO users (username, password_hash) VALUES (?1, ?2)",
+        rusqlite::params![username, hash],
     )?;
     let user_id = conn.last_insert_rowid();
 
-    // Clone seed exercises for new user (OR IGNORE handles fresh-DB case
-    // where migration already assigned orphaned seed data to user_id=1)
-    for (name, muscle_group, equipment) in SEED_EXERCISES {
-        conn.execute(
-            "INSERT OR IGNORE INTO exercises (user_id, name, muscle_group, equipment) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![user_id, name, muscle_group, equipment],
-        )?;
-    }
+    seed_exercises(&conn, user_id)?;
 
+    let token = create_auth_session(&conn, user_id)?;
     Ok(AuthResponse { token })
 }
 
 pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse, AppError> {
     let conn = db.lock().unwrap();
 
-    let result: Result<(i64, String, Option<String>), _> = conn.query_row(
-        "SELECT id, password_hash, token FROM users WHERE username = ?1",
+    let result: Result<(i64, String), _> = conn.query_row(
+        "SELECT id, password_hash FROM users WHERE username = ?1",
         rusqlite::params![username],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        |row| Ok((row.get(0)?, row.get(1)?)),
     );
 
-    let (user_id, hash, existing_token) = result.map_err(|_| AppError::Unauthorized)?;
+    let (user_id, hash) = result.map_err(|_| AppError::Unauthorized)?;
 
     if !verify_password(password, &hash)? {
         return Err(AppError::Unauthorized);
     }
 
-    // Reuse existing token if present, otherwise generate a new one
-    let token = match existing_token {
-        Some(t) if !t.is_empty() => t,
-        _ => {
-            let new_token = generate_token();
-            conn.execute(
-                "UPDATE users SET token = ?1 WHERE id = ?2",
-                rusqlite::params![new_token, user_id],
-            )?;
-            new_token
-        }
-    };
-
+    let token = create_auth_session(&conn, user_id)?;
     Ok(AuthResponse { token })
+}
+
+pub fn logout(db: &DbPool, token: &str) -> Result<(), AppError> {
+    let conn = db.lock().unwrap();
+    conn.execute(
+        "DELETE FROM auth_sessions WHERE token = ?1",
+        rusqlite::params![token],
+    )?;
+    Ok(())
 }
 
 pub fn verify_token(db: &DbPool, token: &str) -> Result<Option<i64>, AppError> {
     let conn = db.lock().unwrap();
     let result: Result<i64, _> = conn.query_row(
-        "SELECT id FROM users WHERE token = ?1",
+        "SELECT user_id FROM auth_sessions WHERE token = ?1 AND expires_at > datetime('now')",
         rusqlite::params![token],
         |row| row.get(0),
     );

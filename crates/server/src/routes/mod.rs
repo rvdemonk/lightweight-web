@@ -2,6 +2,7 @@ mod analytics;
 mod exercises;
 mod export;
 mod history;
+mod invites;
 mod preferences;
 mod sessions;
 mod templates;
@@ -15,11 +16,13 @@ pub fn public_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/login", post(auth_login))
         .route("/auth/register", post(auth_register))
+        .merge(invites::public_routes())
 }
 
 pub fn protected_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/check", get(auth_check))
+        .route("/auth/logout", post(auth_logout))
         .merge(exercises::routes())
         .merge(templates::routes())
         .merge(sessions::routes())
@@ -27,11 +30,13 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
         .merge(analytics::routes())
         .merge(preferences::routes())
         .merge(export::routes())
+        .merge(invites::routes())
 }
 
 // ── Auth handlers ──
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, Extension, Json};
+use crate::auth::AuthToken;
 use lightweight_core::models::{AuthResponse, LoginRequest, RegisterRequest};
 
 async fn auth_register(
@@ -51,6 +56,7 @@ async fn auth_register(
         lightweight_core::error::AppError::UsernameTaken => StatusCode::CONFLICT,
         lightweight_core::error::AppError::InvalidInviteCode => StatusCode::FORBIDDEN,
         lightweight_core::error::AppError::InvalidUsername(_) => StatusCode::BAD_REQUEST,
+        lightweight_core::error::AppError::WeakPassword => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })
 }
@@ -66,4 +72,14 @@ async fn auth_login(
 
 async fn auth_check() -> StatusCode {
     StatusCode::OK
+}
+
+async fn auth_logout(
+    State(state): State<Arc<AppState>>,
+    Extension(AuthToken(token)): Extension<AuthToken>,
+) -> StatusCode {
+    match lightweight_core::auth::logout(&state.db, &token) {
+        Ok(()) => StatusCode::NO_CONTENT,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }

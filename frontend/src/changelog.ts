@@ -8,6 +8,18 @@ export interface ChangelogVersion {
 // This is the source of truth for the What's New overlay.
 export const CHANGELOG: ChangelogVersion[] = [
   {
+    version: "1.0.0",
+    date: "2026-04-12",
+    highlights: [
+      "Invite links — share Lightweight with friends via QR code or link from the Invites page",
+      "EST. TARGET WEIGHT in template editor — shows your estimated working weight for the rep range",
+      "Tap-to-type on increment buttons — tap the number to type directly",
+      "Template version history — see previous versions of your workout templates",
+      "Freeform workouts now show previous session data and PR targets",
+      "Stale workouts auto-close after 2 hours of inactivity",
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2026-03-11",
     highlights: [

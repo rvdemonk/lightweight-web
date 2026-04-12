@@ -33,6 +33,7 @@ export function TemplatePage() {
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
+  const [e1rmMap, setE1rmMap] = useState<Record<number, number>>({});
 
   const { data: versions, refetch: refetchVersions } = useApi<TemplateSnapshot[]>(
     () => !isNew && id ? api.listTemplateVersions(Number(id)) : Promise.resolve([]),
@@ -55,6 +56,22 @@ export function TemplatePage() {
       });
     }
   }, [id]);
+
+  // Fetch E1RM for exercises not yet in the map
+  useEffect(() => {
+    const missing = exercises.filter(ex => !(ex.exercise_id in e1rmMap));
+    if (missing.length === 0) return;
+    missing.forEach(ex => {
+      api.e1rmProgression(ex.exercise_id).then(data => {
+        if (data.prs.best_e1rm) {
+          setE1rmMap(prev => ({ ...prev, [ex.exercise_id]: data.prs.best_e1rm!.value }));
+        }
+      }).catch(() => {});
+    });
+  }, [exercises.length]);
+
+  const weightForReps = (e1rm: number, reps: number) =>
+    Math.round(e1rm / (1 + reps / 30));
 
   const addExercise = (ex: Exercise) => {
     setExercises([...exercises, {
@@ -116,7 +133,7 @@ export function TemplatePage() {
         marginBottom: 16,
       }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, textTransform: 'uppercase' as const }}>
-          {isNew ? 'New Workout' : 'Edit Workout'}
+          {isNew ? 'New Workout Template' : 'Edit Workout'}
           {!isNew && (
             <span style={{
               fontSize: 12,
@@ -224,6 +241,33 @@ export function TemplatePage() {
               </div>
             </div>
           ))}
+
+          {e1rmMap[ex.exercise_id] && (
+            <div style={{
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span className="label" style={{ fontSize: 11, margin: 0, letterSpacing: '0.05em' }}>
+                EST. TARGET WEIGHT
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: 15,
+                color: 'var(--accent-cyan)',
+                textShadow: 'var(--glow-cyan-text)',
+                letterSpacing: '0.5px',
+              }}>
+                {ex.target_reps_min === ex.target_reps_max
+                  ? `${weightForReps(e1rmMap[ex.exercise_id], ex.target_reps_min)} KG`
+                  : `${weightForReps(e1rmMap[ex.exercise_id], ex.target_reps_max)} — ${weightForReps(e1rmMap[ex.exercise_id], ex.target_reps_min)} KG`
+                }
+              </span>
+            </div>
+          )}
         </div>
       ))}
 
@@ -259,7 +303,7 @@ export function TemplatePage() {
         disabled={saving || !name.trim() || exercises.length === 0}
         style={{ opacity: saving ? 0.5 : 1 }}
       >
-        {isNew ? 'Create Workout' : 'Save Changes'}
+        {isNew ? 'Create Template' : 'Save Changes'}
       </button>
 
       {!isNew && versions && versions.length > 0 && (

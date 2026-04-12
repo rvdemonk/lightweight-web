@@ -11,7 +11,8 @@ async fn main() {
 
     let db_path = std::env::var("LW_DB_PATH").unwrap_or_else(|_| "lightweight.db".to_string());
     let port = std::env::var("LW_PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
+    let host = std::env::var("LW_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let addr = format!("{}:{}", host, port);
 
     let db = lightweight_core::db::init_db(&db_path).expect("Failed to initialize database");
     let app = app::create_app(db);

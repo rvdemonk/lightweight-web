@@ -616,10 +616,12 @@ pub fn session_exercise_previous(db: &DbPool, user_id: i64, session_id: i64) -> 
 
     // Get all exercise IDs in this session
     let mut ex_stmt = conn.prepare(
-        "SELECT DISTINCT se.exercise_id FROM session_exercises se WHERE se.session_id = ?1"
+        "SELECT DISTINCT se.exercise_id FROM session_exercises se
+         JOIN sessions s ON s.id = se.session_id
+         WHERE se.session_id = ?1 AND s.user_id = ?2"
     )?;
     let exercise_ids: Vec<i64> = ex_stmt
-        .query_map(rusqlite::params![session_id], |row| row.get(0))?
+        .query_map(rusqlite::params![session_id, user_id], |row| row.get(0))?
         .filter_map(|r| r.ok())
         .collect();
 
@@ -642,11 +644,12 @@ pub fn session_exercise_previous(db: &DbPool, user_id: i64, session_id: i64) -> 
                     "SELECT st.id, st.session_exercise_id, st.set_number, st.weight_kg, st.reps, st.set_type, st.rir, st.completed_at
                      FROM sets st
                      JOIN session_exercises se ON se.id = st.session_exercise_id
-                     WHERE se.session_id = ?1 AND se.exercise_id = ?2
+                     JOIN sessions s ON s.id = se.session_id
+                     WHERE se.session_id = ?1 AND se.exercise_id = ?2 AND s.user_id = ?3
                      ORDER BY st.set_number"
                 )?;
                 let rows: Vec<Set> = set_stmt
-                    .query_map(rusqlite::params![prev_id, exercise_id], |row| {
+                    .query_map(rusqlite::params![prev_id, exercise_id, user_id], |row| {
                         Ok(Set {
                             id: row.get(0)?,
                             session_exercise_id: row.get(1)?,

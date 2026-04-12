@@ -12,8 +12,13 @@ cd frontend && npm ci && npm run build && cd ..
 echo "Cross-compiling for $TARGET..."
 cargo zigbuild --release -p lightweight-server --target $TARGET
 
-echo "Stopping service..."
+echo "Backing up production database..."
+BACKUP_DIR="backups/$(date +%Y-%m-%d)"
+mkdir -p "$BACKUP_DIR"
+BACKUP_FILE="$BACKUP_DIR/lightweight.db.pre-deploy-$(date +%H%M%S)"
 ssh $REMOTE "systemctl stop lightweight"
+scp "$REMOTE:/var/www/lightweight/data/lightweight.db" "$BACKUP_FILE"
+echo "Backup saved: $BACKUP_FILE"
 
 echo "Deploying to droplet..."
 scp target/$TARGET/release/lightweight-server $REMOTE:/var/www/lightweight/

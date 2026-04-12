@@ -25,6 +25,7 @@ Multi-user workout tracker. Frictionless mobile logging, progressive overload tr
 - Don't change card padding between expanded/collapsed states — causes visible content shift. Keep padding constant.
 - Don't use military jargon in UI copy (callsign, access code, operator, authenticate) — the aesthetic is MAGI/NERV scientific program, not modern military. Think Manhattan Project researchers at a classified terminal, not Pentagon. Labels should be clinical and functional: "USERNAME", "PASSWORD", "Login". Computer science and research lab language, not combat ops.
 - Don't modify production DB sessions belonging to other users — Lewis is user_id 1. We accidentally closed another user's active session when fixing Lewis's. Always filter by `user_id = 1` (or confirm the user) before UPDATE/DELETE on sessions.
+- Don't deploy without backing up the production DB first — `deploy.sh` does this automatically (stops server, SCPs the DB, then deploys). For manual backups: `./backup.sh [label]`. Always check for active workout sessions before stopping the server (`SELECT ... FROM sessions WHERE status IN ('active', 'paused')`). Backups live in `backups/YYYY-MM-DD/`.
 
 ## Design Tokens
 

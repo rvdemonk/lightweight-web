@@ -243,6 +243,36 @@ pub struct AuthResponse {
     pub token: String,
 }
 
+// ── Invites ──
+
+#[derive(Debug, Serialize)]
+pub struct Invite {
+    pub id: i64,
+    pub code: String,
+    pub created_at: String,
+    pub used_by_username: Option<String>,
+    pub used_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InviteList {
+    pub quota: i64,
+    pub used_count: i64,
+    pub invites: Vec<Invite>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InviteValidation {
+    pub valid: bool,
+    pub invited_by: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JoinRequest {
+    pub username: String,
+    pub password: String,
+}
+
 // ── Query params ──
 
 #[derive(Debug, Deserialize)]

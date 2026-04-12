@@ -4,6 +4,38 @@ All notable changes to Lightweight.
 
 ---
 
+## v1.0.0 — 2026-04-12
+
+### Added
+- Per-user invite link system — generate one-time invite links (5 per user), share via QR code or URL, track pending/joined status
+- `/join/:code` registration flow — validates invite, shows inviter attribution, username + password only
+- Auth sessions with 30-day expiry — multi-device support, server-side logout revokes individual tokens
+- Rate limiting on auth endpoints — 10 requests per IP per 60-second window
+- EST. TARGET WEIGHT in template editor — e1RM-derived weight range for configured reps, updates live
+- Invites page at `/settings/invites` — expandable pending invites with QR + copy link, joined user list
+- SYSTEM section in mobile menu — Settings and Invites grouped below DISPLAY; BETA status label
+- `backup.sh` for manual database backups; auto-backup integrated into `deploy.sh`
+- Template version history — snapshots before every edit, expandable version list in editor
+- Tap-to-type on increment buttons — direct number input via keyboard
+- Freeform workouts show previous session data and PR targets
+- Stale sessions auto-close after 2 hours of inactivity
+- CLI analytics: `lw analytics` with e1rm, volume, summary, report subcommands
+- Exercise watch list and analytics report endpoint for AI health-analysis workflows
+
+### Fixed
+- Session ownership checks on `session_prs` and `session_exercise_previous` endpoints
+- Login no longer invalidates other active sessions
+- Frequency chart current-week bar shown at reduced opacity instead of hidden
+
+### Changed
+- Registration gated by invite links — shared `LW_INVITE_CODE` kept as admin backdoor via `/login?code=`
+- Password minimum 8 characters enforced server-side
+- BriefingPage CTA context-aware — "Continue"/"SKIP" for logged-in, "Login"/"ACCESS" for guests
+- CORS lockable via `LW_CORS_ORIGIN` env var; server binds to 127.0.0.1 by default
+- Invite registration wrapped in transaction to prevent orphaned users on race conditions
+
+---
+
 ## v0.9.1 — 2026-03-11
 
 ### Added

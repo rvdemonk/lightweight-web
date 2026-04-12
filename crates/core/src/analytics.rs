@@ -1025,11 +1025,12 @@ pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<Exe
     let mut ex_stmt = conn.prepare(
         "SELECT DISTINCT se.exercise_id
          FROM session_exercises se
-         WHERE se.session_id = ?1"
+         JOIN sessions s ON s.id = se.session_id
+         WHERE se.session_id = ?1 AND s.user_id = ?2"
     )?;
 
     let exercise_ids: Vec<i64> = ex_stmt.query_map(
-        rusqlite::params![session_id],
+        rusqlite::params![session_id, user_id],
         |row| row.get(0),
     )?
         .filter_map(|r| r.ok())

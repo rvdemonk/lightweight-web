@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod exercises;
 pub mod export;
+pub mod invites;
 pub mod models;
 pub mod preferences;
 pub mod sessions;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, clearToken } from '../api/client';
 import { useTheme } from '../hooks/useTheme';
 import { APP_VERSION } from '../version';
-import type { ExportMeta } from '../api/types';
+import type { ExportMeta, InviteList } from '../api/types';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -86,6 +86,7 @@ export function SettingsPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportDone, setExportDone] = useState(false);
   const [exportCooldown, setExportCooldown] = useState<string | null>(null);
+  const [inviteData, setInviteData] = useState<InviteList | null>(null);
 
   useEffect(() => {
     api.getPreference('show_whats_new').then(val => {
@@ -93,6 +94,7 @@ export function SettingsPage() {
     }).catch(() => {});
 
     api.exportMeta().then(setExportMeta).catch(() => {});
+    api.listInvites().then(setInviteData).catch(() => {});
 
     if (!import.meta.env.DEV) {
       api.getPreference('last_export_at').then(val => {
@@ -145,7 +147,8 @@ export function SettingsPage() {
     setExporting(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try { await api.logout(); } catch { /* best effort */ }
     clearToken();
     window.location.href = '/login';
   };
@@ -208,6 +211,21 @@ export function SettingsPage() {
           onClick={handleExport}
           right={exportRight}
         />
+      </div>
+
+      {/* Invites */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="label" style={{ marginBottom: 12 }}>INVITES</div>
+        <Link to="/settings/invites" style={{ textDecoration: 'none' }}>
+          <SettingsRow
+            label="MANAGE INVITES"
+            description={inviteData
+              ? `${inviteData.quota - inviteData.invites.length} of ${inviteData.quota} remaining`
+              : 'Invite others to Lightweight'
+            }
+            right={<span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)', letterSpacing: '1px' }}>→</span>}
+          />
+        </Link>
       </div>
 
       {/* About */}

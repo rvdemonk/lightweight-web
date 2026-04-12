@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/history': 'HISTORY',
   '/analytics': 'ANALYTICS',
   '/settings': 'SETTINGS',
+  '/settings/invites': 'INVITES',
   '/whats-new': 'CHANGELOG',
 };
 
@@ -350,43 +351,64 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           </div>
 
-          {/* Settings link */}
+          {/* Secondary links */}
           <div style={{ marginTop: 24 }}>
-            <Link
-              to="/settings"
-              onClick={() => setMenuOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '14px 16px',
-                textDecoration: 'none',
-                background: location.pathname === '/settings'
-                  ? 'var(--menu-active-bg)' : 'transparent',
-                border: location.pathname === '/settings'
-                  ? '1px solid var(--menu-active-border)' : '1px solid transparent',
-              }}
-            >
-              <span style={{
-                fontSize: 14,
-                color: 'var(--text-secondary)',
-                lineHeight: 1,
-              }}>
-                ⚙
-              </span>
-              <span style={{
-                fontFamily: 'var(--font-data)',
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: '2px',
-                color: location.pathname === '/settings'
-                  ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                textShadow: location.pathname === '/settings'
-                  ? 'var(--glow-primary-text)' : 'none',
-              }}>
-                SETTINGS
-              </span>
-            </Link>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 12,
+          }}>
+            <div style={{ width: 12, height: 1, background: 'var(--border-active)', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, color: 'var(--accent-primary)', letterSpacing: '2px', opacity: 0.6, whiteSpace: 'nowrap' }}>
+              SYSTEM
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {[
+              { path: '/settings', label: 'SETTINGS', icon: '⚙' },
+              { path: '/settings/invites', label: 'INVITES', icon: '✉' },
+            ].map(item => {
+              const active = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '14px 16px',
+                    textDecoration: 'none',
+                    background: active ? 'var(--menu-active-bg)' : 'transparent',
+                    border: active ? '1px solid var(--menu-active-border)' : '1px solid transparent',
+                  }}
+                >
+                  <span style={{
+                    fontSize: 13,
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1,
+                    width: 16,
+                    textAlign: 'center',
+                  }}>
+                    {item.icon}
+                  </span>
+                  <span style={{
+                    fontFamily: 'var(--font-data)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    letterSpacing: '2px',
+                    color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                    textShadow: active ? 'var(--glow-primary-text)' : 'none',
+                  }}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
           </div>
         </div>
 
@@ -413,7 +435,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             whiteSpace: 'nowrap',
             textShadow: 'var(--glow-green-text)',
           }}>
-            OPERATIONAL
+            BETA
           </span>
           <div style={{
             width: 12,
