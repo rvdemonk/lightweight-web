@@ -77,10 +77,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
           <span style={{
-            fontWeight: 700,
-            fontSize: 16,
+            fontWeight: 600,
+            fontSize: 20,
             color: 'var(--accent-primary)',
-            fontFamily: 'var(--font-data)',
+            fontFamily: 'var(--font-display)',
             textShadow: 'var(--glow-primary-text)',
             letterSpacing: '2px',
           }}>
@@ -90,15 +90,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Active page title — same size as logo */}
         <span style={{
-          fontSize: 16,
-          fontWeight: 700,
+          fontSize: 18,
+          fontWeight: 600,
           color: 'var(--text-secondary)',
           letterSpacing: '2px',
           textTransform: 'uppercase',
           position: 'absolute',
           left: '50%',
           transform: 'translateX(-50%)',
-          fontFamily: 'var(--font-data)',
+          fontFamily: 'var(--font-display)',
         }}>
           {pageTitle}
         </span>
@@ -270,10 +270,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </span>
                 <span style={{ display: 'flex', flexDirection: 'column' }}>
                   <span style={{
-                    fontSize: 22,
-                    fontWeight: 700,
+                    fontSize: 24,
+                    fontWeight: 600,
                     letterSpacing: '2px',
-                    fontFamily: 'var(--font-data)',
+                    fontFamily: 'var(--font-display)',
                     color: activeWorkout && item.num === '01'
                       ? 'var(--accent-primary)'
                       : active ? 'var(--accent-primary)' : 'var(--text-primary)',
@@ -340,9 +340,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     boxShadow: active ? 'var(--glow-primary-soft)' : 'none',
                   }} />
                   <span style={{
-                    fontFamily: 'var(--font-data)',
-                    fontSize: 14,
-                    fontWeight: 700,
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 15,
+                    fontWeight: 600,
                     letterSpacing: '2px',
                     color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
                     textShadow: active ? 'var(--glow-primary-text)' : 'none',
@@ -400,8 +400,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {item.icon}
                   </span>
                   <span style={{
-                    fontFamily: 'var(--font-data)',
-                    fontSize: 13,
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 14,
                     fontWeight: 600,
                     letterSpacing: '2px',
                     color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
@@ -451,8 +451,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
         {/* Version */}
         <div style={{
-          fontFamily: 'var(--font-data)',
-          fontSize: 13,
+          fontFamily: 'var(--font-display)',
+          fontSize: 15,
+          fontWeight: 500,
           color: 'var(--accent-primary)',
           letterSpacing: '2px',
           opacity: 0.7,

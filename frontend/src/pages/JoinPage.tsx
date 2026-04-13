@@ -77,18 +77,19 @@ export function JoinPage() {
         background: 'var(--bg-primary)',
       }}>
         <div style={{
-          fontSize: 32,
-          fontWeight: 700,
-          fontFamily: 'var(--font-data)',
+          fontSize: 40,
+          fontWeight: 600,
+          fontFamily: 'var(--font-display)',
           color: 'var(--accent-primary)',
-          letterSpacing: '6px',
+          letterSpacing: '4px',
           textShadow: 'var(--glow-primary-text)',
         }}>
           LIGHTWEIGHT
         </div>
         <div style={{
-          fontSize: 11,
-          fontFamily: 'var(--font-data)',
+          fontSize: 13,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 400,
           color: 'var(--text-secondary)',
           letterSpacing: '2px',
           marginTop: 16,
@@ -112,19 +113,20 @@ export function JoinPage() {
         background: 'var(--bg-primary)',
       }}>
         <div style={{
-          fontSize: 32,
-          fontWeight: 700,
-          fontFamily: 'var(--font-data)',
+          fontSize: 40,
+          fontWeight: 600,
+          fontFamily: 'var(--font-display)',
           color: 'var(--accent-primary)',
-          letterSpacing: '6px',
+          letterSpacing: '4px',
           textShadow: 'var(--glow-primary-text)',
           marginBottom: 32,
         }}>
           LIGHTWEIGHT
         </div>
         <div style={{
-          fontSize: 13,
-          fontFamily: 'var(--font-data)',
+          fontSize: 14,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 500,
           color: 'var(--accent-red)',
           textShadow: 'var(--glow-red-text)',
           letterSpacing: '1px',
@@ -134,8 +136,9 @@ export function JoinPage() {
           INVITE LINK INVALID OR ALREADY USED
         </div>
         <Link to="/primer" style={{
-          fontSize: 12,
-          fontFamily: 'var(--font-data)',
+          fontSize: 13,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 500,
           color: 'var(--accent-cyan)',
           textShadow: 'var(--glow-cyan-text)',
           letterSpacing: '1px',
@@ -161,18 +164,19 @@ export function JoinPage() {
       {/* Wordmark */}
       <div style={{ textAlign: 'center', marginBottom: 48 }}>
         <div style={{
-          fontSize: 32,
-          fontWeight: 700,
-          fontFamily: 'var(--font-data)',
+          fontSize: 40,
+          fontWeight: 600,
+          fontFamily: 'var(--font-display)',
           color: 'var(--accent-primary)',
-          letterSpacing: '6px',
+          letterSpacing: '4px',
           textShadow: 'var(--glow-primary-text)',
         }}>
           LIGHTWEIGHT
         </div>
         <div style={{
-          fontSize: 11,
-          fontFamily: 'var(--font-data)',
+          fontSize: 12,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 400,
           color: 'var(--text-secondary)',
           letterSpacing: '2px',
           marginTop: 8,

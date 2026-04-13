@@ -81,18 +81,19 @@ export function LoginPage() {
         marginBottom: 48,
       }}>
         <div style={{
-          fontSize: 32,
-          fontWeight: 700,
-          fontFamily: 'var(--font-data)',
+          fontSize: 40,
+          fontWeight: 600,
+          fontFamily: 'var(--font-display)',
           color: 'var(--accent-primary)',
-          letterSpacing: '6px',
+          letterSpacing: '4px',
           textShadow: 'var(--glow-primary-text)',
         }}>
           LIGHTWEIGHT
         </div>
         <div style={{
-          fontSize: 11,
-          fontFamily: 'var(--font-data)',
+          fontSize: 12,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 400,
           color: 'var(--text-secondary)',
           letterSpacing: '2px',
           marginTop: 8,

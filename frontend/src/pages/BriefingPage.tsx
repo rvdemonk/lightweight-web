@@ -267,18 +267,19 @@ export function BriefingPage() {
             textAlign: 'center',
           }}>
             <div ref={heroRef} style={{
-              fontSize: 40,
-              fontWeight: 700,
-              fontFamily: 'var(--font-data)',
+              fontSize: 48,
+              fontWeight: 600,
+              fontFamily: 'var(--font-display)',
               color: 'var(--accent-primary)',
-              letterSpacing: '8px',
+              letterSpacing: '6px',
               textShadow: 'var(--glow-primary-text)',
             }}>
               LIGHTWEIGHT
             </div>
             <div style={{
-              fontSize: 14,
-              fontFamily: 'var(--font-data)',
+              fontSize: 16,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 400,
               color: 'var(--text-secondary)',
               letterSpacing: '3px',
               marginTop: 12,
@@ -286,8 +287,9 @@ export function BriefingPage() {
               RESISTANCE TRAINING LOGGER
             </div>
             <div style={{
-              fontSize: 12,
-              fontFamily: 'var(--font-data)',
+              fontSize: 13,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 400,
               color: 'var(--text-secondary)',
               letterSpacing: '1.5px',
               marginTop: 20,
@@ -488,11 +490,11 @@ export function BriefingPage() {
         pointerEvents: heroVisible ? 'none' : 'auto',
       }}>
         <span style={{
-          fontSize: 14,
-          fontFamily: 'var(--font-data)',
-          fontWeight: 700,
+          fontSize: 18,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 600,
           color: 'var(--accent-primary)',
-          letterSpacing: '4px',
+          letterSpacing: '3px',
           textShadow: 'var(--glow-primary-text)',
         }}>
           LIGHTWEIGHT

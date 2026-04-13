@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIGHTWEIGHT — Branding Exploration</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Michroma&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Bebas+Neue&family=Teko:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #07070d;
+    color: #d4d4e0;
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    padding: 3rem 2rem;
+  }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: #6a6a82;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(212, 118, 44, 0.15);
+  }
+
+  .section {
+    margin-bottom: 4rem;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: #6a6a82;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+  }
+
+  .card {
+    background: #0c0c14;
+    border: 1px solid rgba(212, 118, 44, 0.1);
+    border-radius: 4px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    color: #6a6a82;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Glow variants */
+  .glow-hot svg {
+    filter: drop-shadow(0 0 6px rgba(212, 118, 44, 0.6)) drop-shadow(0 0 18px rgba(212, 118, 44, 0.2));
+  }
+  .glow-medium svg {
+    filter: drop-shadow(0 0 4px rgba(212, 118, 44, 0.4)) drop-shadow(0 0 12px rgba(212, 118, 44, 0.1));
+  }
+  .glow-soft svg {
+    filter: drop-shadow(0 0 3px rgba(212, 118, 44, 0.25));
+  }
+  .glow-none svg {
+    filter: none;
+  }
+
+  .glow-hot .wordmark {
+    text-shadow: 0 0 10px rgba(212, 118, 44, 0.6), 0 0 30px rgba(212, 118, 44, 0.15);
+  }
+  .glow-medium .wordmark {
+    text-shadow: 0 0 8px rgba(212, 118, 44, 0.4), 0 0 20px rgba(212, 118, 44, 0.1);
+  }
+  .glow-soft .wordmark {
+    text-shadow: 0 0 4px rgba(212, 118, 44, 0.2);
+  }
+  .glow-none .wordmark {
+    text-shadow: none;
+  }
+
+  .wordmark {
+    color: #d4762c;
+    text-transform: uppercase;
+    /* All wordmarks sized to match the SVG height via line-height */
+    line-height: 1;
+  }
+
+  .wm-jb { font-family: 'JetBrains Mono', monospace; }
+  .wm-michroma { font-family: 'Michroma', sans-serif; }
+  .wm-space { font-family: 'Space Mono', monospace; }
+  .wm-rajdhani { font-family: 'Rajdhani', sans-serif; }
+  .wm-outfit { font-family: 'Outfit', sans-serif; }
+  .wm-barlow { font-family: 'Barlow Condensed', sans-serif; }
+  .wm-oswald { font-family: 'Oswald', sans-serif; }
+  .wm-bebas { font-family: 'Bebas Neue', sans-serif; }
+  .wm-teko { font-family: 'Teko', sans-serif; }
+
+  /* App icon grid */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .icon-card {
+    background: #0c0c14;
+    border: 1px solid rgba(212, 118, 44, 0.1);
+    border-radius: 4px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .app-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-icon.bg-dark { background: #07070d; }
+  .app-icon.bg-amber { background: #d4762c; }
+  .app-icon.bg-amber-dark { background: #1a120a; }
+</style>
+</head>
+<body>
+
+<h1>Lightweight — Branding Exploration v2</h1>
+
+<!-- ─── SECTION 1: NGE Condensed Sans — The Correct Direction ─── -->
+<div class="section">
+  <div class="section-label">1 — NGE-Accurate · Condensed Proportional Sans · Cap height = Mark height</div>
+  <div class="grid">
+
+    <!-- Barlow Condensed -->
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-barlow" style="font-size: 2.75rem; font-weight: 600; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Barlow Condensed 600 · Clean technical<br>Closest to NGE system displays</div>
+    </div>
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-barlow" style="font-size: 2.75rem; font-weight: 500; letter-spacing: 0.08em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Barlow Condensed 500 · Medium weight<br>More breathing room</div>
+    </div>
+
+    <div class="card glow-hot">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-barlow" style="font-size: 2.75rem; font-weight: 700; letter-spacing: 0.04em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Barlow Condensed 700 · Bold · Hot glow<br>Maximum density, very NGE</div>
+    </div>
+
+    <!-- Oswald -->
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-oswald" style="font-size: 2.6rem; font-weight: 500; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Oswald 500 · Bolder, punchier<br>More personality than Barlow</div>
+    </div>
+
+    <div class="card glow-hot">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-oswald" style="font-size: 2.6rem; font-weight: 600; letter-spacing: 0.04em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Oswald 600 · Hot glow<br>"PSYCHOGRAPHIC DISPLAY" energy</div>
+    </div>
+
+    <!-- Bebas Neue -->
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-bebas" style="font-size: 3rem; letter-spacing: 0.08em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Bebas Neue · Ultra condensed<br>Pure display — one weight only</div>
+    </div>
+
+    <!-- Teko -->
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-teko" style="font-size: 3rem; font-weight: 500; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Teko 500 · Technical condensed<br>Angular, slightly mechanical</div>
+    </div>
+
+    <div class="card glow-hot">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-teko" style="font-size: 3rem; font-weight: 600; letter-spacing: 0.04em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Teko 600 · Hot glow<br>Heavy technical</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SECTION 2: Previous Fonts Revisited at Matched Height ─── -->
+<div class="section">
+  <div class="section-label">2 — Previous Fonts · Revisited with Cap Height = Mark Height</div>
+  <div class="grid">
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-jb" style="font-size: 2rem; font-weight: 500; letter-spacing: 0.15em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">JetBrains Mono 500 · Wide mono<br>Current branding direction</div>
+    </div>
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-michroma" style="font-size: 1.55rem; font-weight: 400; letter-spacing: 0.08em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Michroma · Animise display font<br>Geometric, wide</div>
+    </div>
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-rajdhani" style="font-size: 2.8rem; font-weight: 600; letter-spacing: 0.1em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Rajdhani 600 · Semi-condensed<br>Between mono and condensed</div>
+    </div>
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 12px;">
+        <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-space" style="font-size: 1.9rem; font-weight: 700; letter-spacing: 0.1em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">Space Mono 700 · Retro technical<br>More character than JetBrains</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SECTION 3: Hero Lockups — Top Picks ─── -->
+<div class="section">
+  <div class="section-label">3 — Hero Lockups · Splash / About / Play Store</div>
+  <div class="grid" style="grid-template-columns: 1fr;">
+
+    <div class="card glow-hot" style="padding: 3.5rem 2rem;">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-barlow" style="font-size: 3.3rem; font-weight: 600; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">A — Barlow Condensed 600 · Hot glow · The NGE pick</div>
+    </div>
+
+    <div class="card glow-medium" style="padding: 3.5rem 2rem;">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-oswald" style="font-size: 3.1rem; font-weight: 500; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">B — Oswald 500 · Medium glow · Bold personality</div>
+    </div>
+
+    <div class="card glow-medium" style="padding: 3.5rem 2rem;">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-bebas" style="font-size: 3.6rem; letter-spacing: 0.08em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">C — Bebas Neue · Medium glow · Maximum condensed density</div>
+    </div>
+
+    <div class="card glow-hot" style="padding: 3.5rem 2rem;">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-teko" style="font-size: 3.6rem; font-weight: 500; letter-spacing: 0.06em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">D — Teko 500 · Hot glow · Angular technical</div>
+    </div>
+
+    <div class="card glow-medium" style="padding: 3.5rem 2rem;">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-rajdhani" style="font-size: 3.3rem; font-weight: 600; letter-spacing: 0.08em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">E — Rajdhani 600 · Medium glow · Bridges condensed and geometric</div>
+    </div>
+
+    <!-- JetBrains for comparison -->
+    <div class="card glow-hot" style="padding: 3.5rem 2rem; border-color: rgba(106, 106, 130, 0.15);">
+      <div class="logo-row" style="gap: 14px;">
+        <svg width="52" height="52" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="wordmark wm-jb" style="font-size: 2.4rem; font-weight: 500; letter-spacing: 0.18em;">LIGHTWEIGHT</span>
+      </div>
+      <div class="card-label">F (reference) — JetBrains Mono · Current direction for comparison<br>Notice how much wider it runs vs condensed options</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SECTION 4: Mark Isolation — Stroke Weights ─── -->
+<div class="section">
+  <div class="section-label">4 — Mark Isolation · Stroke Weight &amp; Glow</div>
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+
+    <div class="card glow-hot">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2.5"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="card-label">Stroke 2.5 · Hot glow<br>Maximum brutalism</div>
+    </div>
+
+    <div class="card glow-hot">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2.0"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2.0" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="card-label">Stroke 2.0 · Hot glow</div>
+    </div>
+
+    <div class="card glow-medium">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.5"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="card-label">Stroke 1.5 · Medium glow<br>Sweet spot</div>
+    </div>
+
+    <div class="card glow-soft">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.2"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="card-label">Stroke 1.2 · Soft glow<br>Animise original</div>
+    </div>
+
+    <div class="card glow-none">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.0"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.0" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="card-label">Stroke 1.0 · No glow<br>Hairline</div>
+    </div>
+
+    <div class="card glow-medium">
+      <svg width="56" height="56" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" fill="rgba(212,118,44,0.06)"/>
+      </svg>
+      <div class="card-label">Stroke 1.8 + subtle fill<br>Triangle has presence</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SECTION 5: App Icons ─── -->
+<div class="section">
+  <div class="section-label">5 — App Icon Candidates · 72px</div>
+  <div class="icon-grid">
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06);">
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none" style="filter: drop-shadow(0 0 4px rgba(212,118,44,0.5));">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="card-label">Mark only<br>Dark bg</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-amber-dark" style="border: 1px solid rgba(212,118,44,0.15);">
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none" style="filter: drop-shadow(0 0 4px rgba(212,118,44,0.5));">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="card-label">Mark only<br>Warm dark</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-amber" style="border-radius: 16px;">
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#07070d" stroke-width="2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#07070d" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="card-label">Inverted<br>Amber bg</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06);">
+        <span class="wordmark wm-barlow" style="font-size: 1.6rem; font-weight: 600; letter-spacing: 0.08em; text-shadow: 0 0 8px rgba(212,118,44,0.5);">LW</span>
+      </div>
+      <div class="card-label">LW text<br>Barlow Condensed</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06);">
+        <span class="wordmark wm-bebas" style="font-size: 2rem; letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(212,118,44,0.5);">LW</span>
+      </div>
+      <div class="card-label">LW text<br>Bebas Neue</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06);">
+        <span class="wordmark wm-oswald" style="font-size: 1.7rem; font-weight: 500; letter-spacing: 0.08em; text-shadow: 0 0 8px rgba(212,118,44,0.5);">LW</span>
+      </div>
+      <div class="card-label">LW text<br>Oswald</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06); position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Cpath d='M18 0v18M0 18h18' stroke='rgba(212,118,44,0.08)' stroke-width='0.5'/%3E%3C/svg%3E&quot;); pointer-events: none;"></div>
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none" style="filter: drop-shadow(0 0 5px rgba(212,118,44,0.5)); position: relative; z-index: 1;">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="card-label">Mark + grid<br>Schematic</div>
+    </div>
+
+    <div class="icon-card">
+      <div class="app-icon bg-dark" style="box-shadow: inset 0 0 20px rgba(212,118,44,0.06); position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(212,118,44,0.03) 2px, rgba(212,118,44,0.03) 4px); pointer-events: none;"></div>
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none" style="filter: drop-shadow(0 0 4px rgba(212,118,44,0.5)); position: relative; z-index: 1;">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="card-label">Mark + scanlines<br>CRT</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── SECTION 6: Animise Comparison ─── -->
+<div class="section">
+  <div class="section-label">6 — Animise Original · For Comparison</div>
+  <div class="grid" style="grid-template-columns: 1fr 1fr;">
+
+    <div class="card" style="border-color: rgba(106, 106, 130, 0.15);">
+      <div class="logo-row" style="gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#6a6a82" stroke-width="1.2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#6a6a82" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span style="font-family: 'Michroma', sans-serif; font-size: 1.1rem; font-weight: 400; letter-spacing: 0.1em; color: #6a6a82;">ANIMISE</span>
+      </div>
+      <div class="card-label">Animise original<br>Michroma · Gray · No glow</div>
+    </div>
+
+    <div class="card glow-medium">
+      <div class="logo-row" style="gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+          <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.2"/>
+          <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span style="font-family: 'Michroma', sans-serif; font-size: 1.1rem; font-weight: 400; letter-spacing: 0.1em; color: #d4762c; text-shadow: 0 0 8px rgba(212,118,44,0.4);">ANIMISE</span>
+      </div>
+      <div class="card-label">Same mark, same font<br>Just amber + glow</div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
