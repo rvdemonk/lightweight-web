@@ -88,6 +88,12 @@ fun LightweightNavGraph(
                 onNavigateToTemplate = { id ->
                     navController.navigate(TemplateDetailRoute(id))
                 },
+                onNavigateToNewTemplate = {
+                    navController.navigate(NewTemplateRoute)
+                },
+                onNavigateToWorkout = {
+                    navController.navigate(WorkoutRoute)
+                },
             )
         }
 
@@ -95,6 +101,13 @@ fun LightweightNavGraph(
             val route: TemplateDetailRoute = backStackEntry.toRoute()
             TemplateDetailScreen(
                 templateId = route.id,
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<NewTemplateRoute> {
+            TemplateDetailScreen(
+                templateId = 0L,
                 onNavigateBack = { navController.popBackStack() },
             )
         }

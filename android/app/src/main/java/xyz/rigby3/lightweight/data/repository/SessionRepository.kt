@@ -7,6 +7,8 @@ import xyz.rigby3.lightweight.data.local.dao.SetDao
 import xyz.rigby3.lightweight.data.local.entity.SessionEntity
 import xyz.rigby3.lightweight.data.local.entity.SessionExerciseEntity
 import xyz.rigby3.lightweight.data.local.entity.SetEntity
+import xyz.rigby3.lightweight.data.local.entity.TemplateEntity
+import xyz.rigby3.lightweight.data.local.entity.TemplateExerciseEntity
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,4 +51,30 @@ class SessionRepository @Inject constructor(
 
     suspend fun deleteSet(id: Long) =
         setDao.delete(id)
+
+    suspend fun createFromTemplate(
+        template: TemplateEntity,
+        exercises: List<TemplateExerciseEntity>,
+    ): Long {
+        val sessionId = sessionDao.insert(
+            SessionEntity(
+                userId = userId,
+                templateId = template.id,
+                name = template.name,
+                startedAt = java.time.Instant.now().toString(),
+                status = "active",
+                templateVersion = template.version,
+            )
+        )
+        exercises.forEachIndexed { i, te ->
+            sessionDao.insertExercise(
+                SessionExerciseEntity(
+                    sessionId = sessionId,
+                    exerciseId = te.exerciseId,
+                    position = i + 1,
+                )
+            )
+        }
+        return sessionId
+    }
 }
