@@ -60,6 +60,7 @@ fun SettingsScreen(
         state = state,
         onToggleTheme = { viewModel.toggleTheme(); onThemeToggled() },
         onNavigateToInvites = onNavigateToInvites,
+        onImport = viewModel::importFromServer,
         onLogout = viewModel::logout,
     )
 }
@@ -69,6 +70,7 @@ private fun SettingsContent(
     state: SettingsState,
     onToggleTheme: () -> Unit,
     onNavigateToInvites: () -> Unit,
+    onImport: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val colors = LightweightTheme.colors
@@ -135,6 +137,39 @@ private fun SettingsContent(
 
         // --- DATA section ---
         SectionHeader(text = "DATA")
+
+        LwCard(onClick = if (state.importStatus !is ImportStatus.InProgress) onImport else null) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "SYNC FROM SERVER",
+                    style = typography.cardTitle,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = when (val status = state.importStatus) {
+                        is ImportStatus.Idle -> "Pull exercises, templates & sessions"
+                        is ImportStatus.InProgress -> if (status.total > 0) {
+                            "${status.phase} (${status.current}/${status.total})"
+                        } else {
+                            status.phase
+                        }
+                        is ImportStatus.Success -> {
+                            val r = status.result
+                            "${r.exercises} exercises, ${r.templates} templates, ${r.sessions} sessions, ${r.sets} sets"
+                        }
+                        is ImportStatus.Error -> status.message
+                    },
+                    style = typography.body,
+                    color = when (state.importStatus) {
+                        is ImportStatus.Success -> colors.accentGreen
+                        is ImportStatus.Error -> colors.accentRed
+                        is ImportStatus.InProgress -> colors.accentCyan
+                        else -> colors.textSecondary
+                    },
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
 
         LwCard {
             Column(modifier = Modifier.fillMaxWidth()) {

@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
                     LightweightNavGraph(
                         navController = navController,
                         modifier = Modifier.padding(contentPadding),
+                        isLoggedIn = tokenStore.isLoggedIn,
                         onThemeToggled = { isDark = tokenStore.isDarkTheme },
                     )
                 }

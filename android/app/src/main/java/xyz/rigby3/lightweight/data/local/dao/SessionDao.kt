@@ -2,6 +2,7 @@ package xyz.rigby3.lightweight.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -76,4 +77,13 @@ interface SessionDao {
         AND (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = :id) = 0
     """)
     suspend fun deleteIfEmpty(id: Long)
+
+    @Query("DELETE FROM sessions WHERE user_id = :userId")
+    suspend fun deleteAll(userId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(sessions: List<SessionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExercises(exercises: List<SessionExerciseEntity>)
 }

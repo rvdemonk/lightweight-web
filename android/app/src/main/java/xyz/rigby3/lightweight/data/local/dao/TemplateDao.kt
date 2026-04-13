@@ -2,6 +2,7 @@ package xyz.rigby3.lightweight.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -48,4 +49,13 @@ interface TemplateDao {
 
     @Query("UPDATE templates SET archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
+
+    @Query("DELETE FROM templates WHERE user_id = :userId")
+    suspend fun deleteAll(userId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(templates: List<TemplateEntity>): List<Long>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExercises(exercises: List<TemplateExerciseEntity>)
 }

@@ -81,39 +81,30 @@ private fun HomeContent(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.bgPrimary)
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = PagePadding),
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
+        if (!showTemplates) {
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // --- Mini Heatmap ---
-        MiniHeatmap(
-            data = state.heatmapData,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-        )
+            // --- Mini Heatmap ---
+            MiniHeatmap(
+                data = state.heatmapData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+            )
+        } else {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- Start Buttons ---
-        LwButton(
-            text = "START FROM TEMPLATE",
-            onClick = { showTemplates = !showTemplates },
-            style = LwButtonStyle.Primary,
-            fullWidth = true,
-            enabled = !state.isCreatingSession,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // --- Inline Template List ---
-        AnimatedVisibility(
-            visible = showTemplates,
-            enter = expandVertically(),
-            exit = shrinkVertically(),
-        ) {
-            Column(modifier = Modifier.padding(bottom = 4.dp).heightIn(max = 400.dp)) {
+        // --- Flexible middle: template list or empty space ---
+        if (showTemplates) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 4.dp),
+            ) {
                 if (state.templates.isEmpty()) {
                     LwCard {
                         Text(
@@ -132,7 +123,20 @@ private fun HomeContent(
                     }
                 }
             }
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
         }
+
+        // --- Start Buttons (anchored at bottom) ---
+        LwButton(
+            text = "START FROM TEMPLATE",
+            onClick = { showTemplates = !showTemplates },
+            style = LwButtonStyle.Primary,
+            fullWidth = true,
+            enabled = !state.isCreatingSession,
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         LwButton(
             text = "FREEFORM",
@@ -142,7 +146,7 @@ private fun HomeContent(
             enabled = !state.isCreatingSession,
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 

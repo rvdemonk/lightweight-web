@@ -2,6 +2,7 @@ package xyz.rigby3.lightweight.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -24,4 +25,7 @@ interface SetDao {
 
     @Query("DELETE FROM sets WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(sets: List<SetEntity>)
 }

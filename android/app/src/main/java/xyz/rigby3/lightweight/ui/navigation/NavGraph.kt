@@ -22,11 +22,12 @@ import xyz.rigby3.lightweight.ui.screens.workout.WorkoutScreen
 fun LightweightNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    isLoggedIn: Boolean = false,
     onThemeToggled: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,
-        startDestination = HomeRoute,
+        startDestination = if (isLoggedIn) HomeRoute else LoginRoute,
         modifier = modifier,
     ) {
         composable<HomeRoute> {

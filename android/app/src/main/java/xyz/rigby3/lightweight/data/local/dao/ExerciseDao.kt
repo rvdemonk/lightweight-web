@@ -28,4 +28,10 @@ interface ExerciseDao {
 
     @Query("SELECT * FROM exercises WHERE user_id = :userId AND archived = 0 AND name LIKE '%' || :query || '%' ORDER BY name")
     suspend fun search(userId: Long, query: String): List<ExerciseEntity>
+
+    @Query("DELETE FROM exercises WHERE user_id = :userId")
+    suspend fun deleteAll(userId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(exercises: List<ExerciseEntity>)
 }

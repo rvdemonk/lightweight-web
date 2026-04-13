@@ -107,13 +107,13 @@ fun LightweightBottomBar(
                                 launchSingleTop = true
                             }
                         } else {
-                            // Standard tab navigation
+                            // Standard tab navigation — no saveState/restoreState
+                            // to avoid stale screens (e.g. Settings) persisting on tabs
                             navController.navigate(tab.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                                    inclusive = false
                                 }
                                 launchSingleTop = true
-                                restoreState = true
                             }
                         }
                     },

@@ -130,6 +130,7 @@ private fun SessionCard(
     }
 
     val dateText = formatSessionDate(summary.startedAt)
+    val durationText = formatDuration(summary.startedAt, summary.endedAt)
 
     LwCard(onClick = onClick) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -151,12 +152,25 @@ private fun SessionCard(
                 )
             }
 
-            Text(
-                text = dateText,
-                style = typography.data,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(top = 4.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = dateText,
+                    style = typography.data,
+                    color = colors.textSecondary,
+                )
+                if (durationText != null) {
+                    Text(
+                        text = durationText,
+                        style = typography.data,
+                        color = colors.textSecondary,
+                    )
+                }
+            }
         }
     }
 }
@@ -190,3 +204,18 @@ private fun formatSessionDate(isoString: String): String =
     } catch (_: Exception) {
         isoString
     }
+
+private fun formatDuration(startedAt: String, endedAt: String?): String? {
+    if (endedAt == null) return null
+    return try {
+        val start = LocalDateTime.parse(startedAt.replace("Z", "").replace(" ", "T"))
+        val end = LocalDateTime.parse(endedAt.replace("Z", "").replace(" ", "T"))
+        val minutes = java.time.Duration.between(start, end).toMinutes()
+        when {
+            minutes < 60 -> "${minutes}M"
+            else -> "${minutes / 60}H ${minutes % 60}M"
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
