@@ -129,6 +129,7 @@ class SessionRepository @Inject constructor(
                 startedAt = row.startedAt,
                 endedAt = row.endedAt,
                 status = row.status,
+                pausedDuration = row.pausedDuration,
                 exerciseCount = row.exerciseCount,
                 setCount = row.setCount,
                 targetSetCount = null,

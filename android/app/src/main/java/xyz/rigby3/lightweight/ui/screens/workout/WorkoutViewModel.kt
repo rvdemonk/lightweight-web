@@ -22,6 +22,7 @@ import xyz.rigby3.lightweight.domain.model.Session
 import xyz.rigby3.lightweight.domain.model.TemplateExercise
 import xyz.rigby3.lightweight.domain.model.WorkoutSet
 import xyz.rigby3.lightweight.domain.util.ExercisePRData
+import xyz.rigby3.lightweight.domain.util.calcE1rm
 import xyz.rigby3.lightweight.domain.util.historicalBests
 import xyz.rigby3.lightweight.domain.util.getPRBadge
 import xyz.rigby3.lightweight.domain.util.PRBadge
@@ -34,8 +35,10 @@ data class WorkoutState(
     val expandedExerciseIndex: Int = 0,
     val previousSets: Map<Long, List<WorkoutSet>> = emptyMap(),
     val templateExercises: Map<Long, TemplateExercise> = emptyMap(),
+    val historicalPrData: Map<Long, ExercisePRData> = emptyMap(),
     val prData: Map<Long, ExercisePRData> = emptyMap(),
     val setPRData: Map<Long, SetPRData> = emptyMap(),
+    val weightOverrides: Map<Long, Double?> = emptyMap(),
     val exercises: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
     val isLoading: Boolean = true,
@@ -93,8 +96,11 @@ class WorkoutViewModel @Inject constructor(
                 prDataMap[exercise.exerciseId] = loadPRData(exercise.exerciseId)
             }
 
-            // Compute PR badges for currently logged sets
+            // Compute PR badges against historical data only
             val setPRDataMap = computeSetPRBadges(session, prDataMap)
+
+            // Effective PR data includes current session sets (for progression targets)
+            val effectivePR = effectivePrData(prDataMap, session)
 
             // Load exercise list for the picker
             val exercises = exerciseRepository.getAll().first().map { it.toDomain() }
@@ -106,7 +112,8 @@ class WorkoutViewModel @Inject constructor(
                     pausedAt = pausedAt,
                     previousSets = previousSets,
                     templateExercises = templateExerciseMap,
-                    prData = prDataMap,
+                    historicalPrData = prDataMap,
+                    prData = effectivePR,
                     setPRData = setPRDataMap,
                     exercises = exercises,
                     isLoading = false,
@@ -265,6 +272,10 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    fun updateWeight(sessionExerciseId: Long, weight: Double?) {
+        _state.update { it.copy(weightOverrides = it.weightOverrides + (sessionExerciseId to weight)) }
+    }
+
     fun expandExercise(index: Int) {
         _state.update { it.copy(expandedExerciseIndex = index) }
     }
@@ -293,9 +304,16 @@ class WorkoutViewModel @Inject constructor(
 
     private suspend fun reloadSession() {
         val session = sessionRepository.getActiveSession() ?: return
-        val prDataMap = _state.value.prData
-        val setPRDataMap = computeSetPRBadges(session, prDataMap)
-        _state.update { it.copy(session = session, setPRData = setPRDataMap) }
+        val historicalPR = _state.value.historicalPrData
+        val setPRDataMap = computeSetPRBadges(session, historicalPR)
+        val effectivePR = effectivePrData(historicalPR, session)
+        _state.update {
+            it.copy(
+                session = session,
+                prData = effectivePR,
+                setPRData = setPRDataMap,
+            )
+        }
     }
 
     private suspend fun loadPreviousSets(exerciseId: Long, excludeSessionId: Long): List<WorkoutSet> {
@@ -337,6 +355,29 @@ class WorkoutViewModel @Inject constructor(
             if (absoluteIds.isNotEmpty() || setIds.isNotEmpty()) {
                 result[exercise.exerciseId] = SetPRData(absoluteIds, setIds)
             }
+        }
+        return result
+    }
+
+    private fun effectivePrData(
+        historical: Map<Long, ExercisePRData>,
+        session: Session,
+    ): Map<Long, ExercisePRData> {
+        val result = historical.toMutableMap()
+        for (exercise in session.exercises) {
+            val base = result[exercise.exerciseId] ?: ExercisePRData(null, emptyMap())
+            var bestEver = base.bestE1rmEver
+            val bestByPosition = base.bestE1rmByPosition.toMutableMap()
+            for (set in exercise.sets) {
+                val w = set.weightKg ?: continue
+                val r = set.reps ?: continue
+                if (w <= 0 || r <= 0) continue
+                val e1rm = calcE1rm(w, r, set.rir)
+                if (bestEver == null || e1rm > bestEver) bestEver = e1rm
+                val posBest = bestByPosition[set.setNumber]
+                if (posBest == null || e1rm > posBest) bestByPosition[set.setNumber] = e1rm
+            }
+            result[exercise.exerciseId] = ExercisePRData(bestEver, bestByPosition)
         }
         return result
     }

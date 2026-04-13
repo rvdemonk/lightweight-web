@@ -1,5 +1,8 @@
 package xyz.rigby3.lightweight.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -29,6 +32,10 @@ fun LightweightNavGraph(
         navController = navController,
         startDestination = if (isLoggedIn) HomeRoute else LoginRoute,
         modifier = modifier,
+        enterTransition = { fadeIn(animationSpec = tween(150)) },
+        exitTransition = { fadeOut(animationSpec = tween(100)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(150)) },
+        popExitTransition = { fadeOut(animationSpec = tween(100)) },
     ) {
         composable<HomeRoute> {
             HomeScreen(

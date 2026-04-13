@@ -1,7 +1,7 @@
 package xyz.rigby3.lightweight.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import xyz.rigby3.lightweight.ui.theme.CardPadding
 import xyz.rigby3.lightweight.ui.theme.CardRadius
@@ -31,7 +32,7 @@ fun LwCard(
         .padding(bottom = 12.dp)
 
     val clickableModifier = if (onClick != null) {
-        Modifier.clickable(onClick = onClick)
+        Modifier.pointerInput(onClick) { detectTapGestures { onClick() } }
     } else {
         Modifier
     }

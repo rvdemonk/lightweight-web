@@ -7,16 +7,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.repository.ExerciseRepository
 import xyz.rigby3.lightweight.data.repository.SessionRepository
@@ -25,7 +27,6 @@ import xyz.rigby3.lightweight.ui.navigation.LightweightNavGraph
 import xyz.rigby3.lightweight.ui.navigation.LightweightTopBar
 import xyz.rigby3.lightweight.ui.navigation.WorkoutRoute
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
-import java.time.Instant
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -48,6 +49,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LightweightTheme(darkTheme = isDark) {
+                // Dynamic status bar icon color based on theme
+                val view = LocalView.current
+                if (!view.isInEditMode) {
+                    SideEffect {
+                        WindowCompat.getInsetsController(window, view).apply {
+                            isAppearanceLightStatusBars = !isDark
+                            isAppearanceLightNavigationBars = !isDark
+                        }
+                    }
+                }
                 val navController = rememberNavController()
 
                 // Re-check active workout on every nav change
@@ -89,15 +100,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        // Auto-pause active workout when app goes to background
-        lifecycleScope.launch {
-            val active = sessionRepository.getActive()
-            if (active != null && active.status == "active") {
-                sessionRepository.updateStatus(active.id, "paused")
-                tokenStore.pausedAtEpoch = Instant.now().epochSecond
-            }
-        }
-    }
 }

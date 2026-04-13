@@ -49,7 +49,9 @@ fun SetBars(
     val maxReps = templateExercise?.targetRepsMax
         ?: maxOf(12, sets.mapNotNull { it.reps }.maxOrNull() ?: 12)
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val anyHasRir = sets.any { it.rir != null }
+
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         sets.forEach { set ->
             if (deleteTargetId == set.id && onDeleteSet != null) {
                 DeleteOverlay(
@@ -63,6 +65,7 @@ fun SetBars(
                     maxReps = maxReps,
                     templateExercise = templateExercise,
                     prData = prData,
+                    reserveRirSpace = anyHasRir,
                     onLongPress = if (onDeleteSet != null) {
                         { deleteTargetId = set.id }
                     } else null,
@@ -78,6 +81,7 @@ private fun SetRow(
     maxReps: Int,
     templateExercise: TemplateExercise?,
     prData: SetPRData?,
+    reserveRirSpace: Boolean,
     onLongPress: (() -> Unit)?,
 ) {
     val colors = LightweightTheme.colors
@@ -102,10 +106,28 @@ private fun SetRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Badge column
-        Box(modifier = Modifier.width(28.dp), contentAlignment = Alignment.CenterEnd) {
+        Box(modifier = Modifier.width(32.dp), contentAlignment = Alignment.CenterEnd) {
             when {
-                isAbsolutePR -> Text("PR", style = typography.label, color = colors.accentPrimary)
-                isSetPR -> Text("SPR", style = typography.label, color = colors.accentCyan)
+                isAbsolutePR -> Text(
+                    "PR",
+                    style = typography.button.copy(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = colors.accentPrimary.copy(alpha = 0.7f),
+                            blurRadius = 12f,
+                        ),
+                    ),
+                    color = colors.accentPrimary,
+                )
+                isSetPR -> Text(
+                    "SPR",
+                    style = typography.button.copy(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = colors.accentCyan.copy(alpha = 0.7f),
+                            blurRadius = 12f,
+                        ),
+                    ),
+                    color = colors.accentCyan,
+                )
                 else -> Text(
                     "%02d".format(set.setNumber),
                     style = typography.data,
@@ -131,14 +153,16 @@ private fun SetRow(
             )
         }
 
-        // Data
+        // Data — monospace font, so fixed-width char padding guarantees alignment
         Row(verticalAlignment = Alignment.CenterVertically) {
             val weightText = if (set.weightKg != null) "${formatWeight(set.weightKg)}kg" else "BW"
             Text(weightText, style = typography.data, color = colors.textPrimary)
-            Text(" | ", style = typography.data, color = colors.textSecondary)
-            Text("${set.reps ?: 0}", style = typography.data, color = colors.textPrimary)
-            if (set.rir != null) {
-                Text(" R${set.rir}", style = typography.data, color = colors.textSecondary)
+            Text("×", style = typography.data, color = colors.textSecondary)
+            // Pad reps to 2 chars so single/double digits take same width
+            Text("%2d".format(set.reps ?: 0), style = typography.data, color = colors.textPrimary)
+            if (reserveRirSpace) {
+                val rirColor = if (set.rir != null) colors.textSecondary else Color.Transparent
+                Text(" R%d".format(set.rir ?: 0), style = typography.data, color = rirColor)
             }
         }
     }

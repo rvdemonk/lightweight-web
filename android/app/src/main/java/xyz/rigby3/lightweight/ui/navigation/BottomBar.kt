@@ -99,6 +99,8 @@ fun LightweightBottomBar(
                         indication = null,
                     ) {
                         if (isHome && hasActiveWorkout) {
+                            // Already on workout page — do nothing
+                            if ("WorkoutRoute" in currentRoute) return@clickable
                             // Go to active workout
                             navController.navigate(WorkoutRoute) {
                                 popUpTo(navController.graph.findStartDestination().id) {

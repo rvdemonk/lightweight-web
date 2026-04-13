@@ -1,7 +1,9 @@
 package xyz.rigby3.lightweight.ui.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,11 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
+import xyz.rigby3.lightweight.ui.theme.PagePadding
 
 private fun titleForRoute(route: String?): String = when {
     route == null -> ""
@@ -68,52 +73,82 @@ fun LightweightTopBar(navController: NavController) {
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .height(56.dp)
-            .padding(horizontal = 16.dp),
+            .statusBarsPadding(),
     ) {
-        // Centered title
-        Text(
-            text = title,
-            style = typography.pageTitle,
-            color = colors.textPrimary,
-            modifier = Modifier.align(Alignment.Center),
-        )
-
-        // Back button (left)
-        if (hasBack) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.textSecondary,
-                modifier = Modifier
-                    .size(28.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable { navController.popBackStack() },
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
+        ) {
+            // Centered title
+            Text(
+                text = title,
+                style = typography.pageTitle,
+                color = colors.textPrimary,
+                modifier = Modifier.align(Alignment.Center),
             )
-        }
 
-        // Settings icon (right)
-        if (showSettingsIcon(currentRoute)) {
-            IconButton(
-                onClick = {
-                    navController.navigate(SettingsRoute) {
-                        launchSingleTop = true
-                    }
-                },
-                modifier = Modifier
-                    .size(44.dp)
-                    .align(Alignment.CenterEnd),
-            ) {
+            // Back button (left)
+            if (hasBack) {
                 Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = "Settings",
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
                     tint = colors.textSecondary,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .align(Alignment.CenterStart)
+                        .clickable { navController.popBackStack() },
                 )
             }
+
+            // Settings icon (right)
+            if (showSettingsIcon(currentRoute)) {
+                IconButton(
+                    onClick = {
+                        navController.navigate(SettingsRoute) {
+                            launchSingleTop = true
+                        }
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .align(Alignment.CenterEnd),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "Settings",
+                        tint = colors.textSecondary,
+                    )
+                }
+            }
+        }
+
+        // Separator with subtle glow
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                colors.textSecondary.copy(alpha = 0.15f),
+                                Color.Transparent,
+                            )
+                        )
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .align(Alignment.Center)
+                    .background(colors.textSecondary.copy(alpha = 0.25f)),
+            )
         }
     }
 }

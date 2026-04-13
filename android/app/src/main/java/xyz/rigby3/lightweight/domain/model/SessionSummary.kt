@@ -7,6 +7,7 @@ data class SessionSummary(
     val startedAt: String,
     val endedAt: String?,
     val status: String,
+    val pausedDuration: Int,
     val exerciseCount: Int,
     val setCount: Int,
     val targetSetCount: Int?,

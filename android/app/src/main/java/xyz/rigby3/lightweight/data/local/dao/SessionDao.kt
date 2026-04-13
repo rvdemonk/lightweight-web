@@ -53,7 +53,7 @@ interface SessionDao {
     suspend fun getExercisesWithSets(sessionId: Long): List<SessionExerciseSetRow>
 
     @Query("""
-        SELECT s.id, s.template_id, s.name, s.started_at, s.ended_at, s.status,
+        SELECT s.id, s.template_id, s.name, s.started_at, s.ended_at, s.status, s.paused_duration,
                (SELECT COUNT(*) FROM session_exercises WHERE session_id = s.id) as exercise_count,
                (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count
         FROM sessions s

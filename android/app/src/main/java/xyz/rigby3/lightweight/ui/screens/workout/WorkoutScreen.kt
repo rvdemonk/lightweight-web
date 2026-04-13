@@ -1,7 +1,7 @@
 package xyz.rigby3.lightweight.ui.screens.workout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -88,6 +89,7 @@ fun WorkoutScreen(
         onTogglePause = viewModel::togglePause,
         onEndWorkout = viewModel::showEndConfirmation,
         onAddExercise = viewModel::showExercisePicker,
+        onWeightChange = viewModel::updateWeight,
     )
 }
 
@@ -101,6 +103,7 @@ private fun WorkoutContent(
     onTogglePause: () -> Unit,
     onEndWorkout: () -> Unit,
     onAddExercise: () -> Unit,
+    onWeightChange: (sessionExerciseId: Long, weight: Double?) -> Unit,
 ) {
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
@@ -222,6 +225,7 @@ private fun WorkoutContent(
             val previousSets = state.previousSets[exercise.exerciseId] ?: emptyList()
             val prData = state.prData[exercise.exerciseId]
             val setPRData = state.setPRData[exercise.exerciseId]
+            val weightOverride = state.weightOverrides[exercise.id]
 
             ExerciseCard(
                 exercise = exercise,
@@ -230,6 +234,7 @@ private fun WorkoutContent(
                 previousSets = previousSets,
                 prData = prData,
                 setPRData = setPRData,
+                weightOverride = weightOverride,
                 onClick = {
                     onExpandExercise(if (isExpanded) -1 else index)
                 },
@@ -238,6 +243,7 @@ private fun WorkoutContent(
                 },
                 onDeleteSet = onDeleteSet,
                 onUpdateNotes = { notes -> onUpdateNotes(exercise.id, notes) },
+                onWeightChange = { weight -> onWeightChange(exercise.id, weight) },
             )
         }
 
@@ -262,10 +268,12 @@ private fun ExerciseCard(
     previousSets: List<WorkoutSet>,
     prData: ExercisePRData?,
     setPRData: SetPRData?,
+    weightOverride: Double?,
     onClick: () -> Unit,
     onLogSet: (weightKg: Double?, reps: Int, rir: Int?) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onUpdateNotes: (String?) -> Unit,
+    onWeightChange: (Double?) -> Unit,
 ) {
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
@@ -278,8 +286,7 @@ private fun ExerciseCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onClick)
-                        .padding(vertical = 4.dp),
+                        .pointerInput(Unit) { detectTapGestures { onClick() } },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -309,15 +316,15 @@ private fun ExerciseCard(
                 // Previous session data
                 PreviousData(previousSets = previousSets)
 
-                // Progression targets — "SET N TO BEAT"
+                // Progression targets — uses current weight for reactive updates
                 val nextSetNum = exercise.sets.size + 1
-                val baseWeight = exercise.sets.lastOrNull()?.weightKg
-                    ?: previousSets.firstOrNull()?.weightKg
+                val resolvedWeight = resolveDefaultWeight(exercise, previousSets)
+                val currentWeight = weightOverride ?: resolvedWeight
 
                 ProgressionTargets(
                     prData = prData,
                     nextSetNumber = nextSetNum,
-                    baseWeight = baseWeight,
+                    baseWeight = currentWeight,
                     templateExercise = templateExercise,
                 )
 
@@ -332,13 +339,13 @@ private fun ExerciseCard(
                 }
 
                 // Set logger
-                val defaultWeight = resolveDefaultWeight(exercise, previousSets)
                 val defaultReps = resolveDefaultReps(exercise, previousSets)
 
                 SetLogger(
-                    defaultWeight = defaultWeight,
+                    defaultWeight = currentWeight,
                     defaultReps = defaultReps,
                     onLog = onLogSet,
+                    onWeightChange = onWeightChange,
                 )
 
                 // Note input
@@ -364,25 +371,6 @@ private fun ExerciseCard(
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Inline set summary
-                if (exercise.sets.isNotEmpty()) {
-                    Text(
-                        text = exercise.sets.joinToString(", ") { set ->
-                            val w = set.weightKg?.let { formatWeight(it) } ?: "BW"
-                            "$w|${set.reps ?: 0}"
-                        },
-                        style = typography.data.copy(fontSize = 11.sp),
-                        color = colors.textSecondary,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .padding(horizontal = 4.dp),
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
 
                 // Set counter
                 val targetCount = templateExercise?.targetSets

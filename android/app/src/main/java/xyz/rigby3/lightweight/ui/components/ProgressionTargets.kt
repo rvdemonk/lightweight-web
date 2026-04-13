@@ -1,6 +1,7 @@
 package xyz.rigby3.lightweight.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.ui.unit.sp
 import xyz.rigby3.lightweight.domain.model.TemplateExercise
 import xyz.rigby3.lightweight.domain.util.ExercisePRData
 import xyz.rigby3.lightweight.domain.util.ProgressionTarget
+import xyz.rigby3.lightweight.domain.util.progressionTargets
 import xyz.rigby3.lightweight.domain.util.setProgressionTargets
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 
@@ -26,69 +28,79 @@ fun ProgressionTargets(
 ) {
     if (prData == null || baseWeight == null || baseWeight <= 0) return
 
-    val targets = setProgressionTargets(
+    val repMin = templateExercise?.targetRepsMin
+    val repMax = templateExercise?.targetRepsMax
+    val colors = LightweightTheme.colors
+    val typography = LightweightTheme.typography
+
+    // Set position target: reps needed at current weight to beat this set position's best
+    val setTargets = setProgressionTargets(
         prData = prData,
         setNumber = nextSetNumber,
         currentWeight = baseWeight,
         stepsBelow = 1,
         stepsAbove = 20,
     )
-    if (targets.isEmpty()) return
+    val setAtWeight = setTargets.find { it.isCurrentWeight }
 
-    val repMin = templateExercise?.targetRepsMin
-    val repMax = templateExercise?.targetRepsMax
-
-    // In-range target: first weight where repsNeeded falls within template rep range
-    val inRange = if (repMin != null && repMax != null) {
-        targets.find { it.repsNeeded in repMin..repMax }
+    // Exercise PR target: reps needed at current weight to beat all-time best
+    val prAtWeight = if (prData.bestE1rmEver != null) {
+        progressionTargets(
+            targetE1rm = prData.bestE1rmEver,
+            currentWeight = baseWeight,
+            stepsBelow = 0,
+            stepsAbove = 0,
+        ).firstOrNull()
     } else null
 
-    // At-weight target: target at the base weight
-    val atWeight = targets.find { it.isCurrentWeight }
+    // Only show exercise PR line if it differs from set target
+    val showExercisePR = prAtWeight != null &&
+        (setAtWeight == null || prAtWeight.repsNeeded != setAtWeight.repsNeeded)
 
-    if (inRange == null && atWeight == null) return
+    if (setAtWeight == null && prAtWeight == null) return
 
-    // Don't show both if same weight
-    val showBoth = atWeight != null && inRange != null && atWeight.weight != inRange.weight
-
-    val colors = LightweightTheme.colors
-    val typography = LightweightTheme.typography
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "SET $nextSetNumber TO BEAT",
-            style = typography.data.copy(fontSize = 12.sp),
-            color = colors.accentPrimary,
-        )
-
-        if (inRange != null) {
-            Text(
-                text = "${inRange.repsNeeded}R × ${formatWeight(inRange.weight)}KG",
-                style = typography.data.copy(fontSize = 12.sp),
-                color = targetColor(inRange, repMin, repMax, colors),
-            )
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Set position target
+        if (setAtWeight != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "SET $nextSetNumber",
+                    style = typography.data.copy(fontSize = 12.sp),
+                    color = colors.accentCyan,
+                )
+                Text(
+                    text = "${setAtWeight.repsNeeded}R × ${formatWeight(baseWeight)}KG",
+                    style = typography.data.copy(fontSize = 12.sp),
+                    color = targetColor(setAtWeight, repMin, repMax, colors),
+                )
+            }
         }
 
-        @Suppress("KotlinConstantConditions")
-        if (showBoth && atWeight != null) {
-            Text(
-                text = "${atWeight.repsNeeded}R × ${formatWeight(atWeight.weight)}KG",
-                style = typography.data.copy(fontSize = 12.sp),
-                color = targetColor(atWeight, repMin, repMax, colors),
-            )
-        }
-
-        if (inRange == null && atWeight != null) {
-            Text(
-                text = "${atWeight.repsNeeded}R × ${formatWeight(atWeight.weight)}KG",
-                style = typography.data.copy(fontSize = 12.sp),
-                color = targetColor(atWeight, repMin, repMax, colors),
-            )
+        // Exercise PR target (when different from set target, or no set target exists)
+        val showPR = (showExercisePR || setAtWeight == null) && prAtWeight != null
+        if (showPR) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "PR",
+                    style = typography.data.copy(fontSize = 12.sp),
+                    color = colors.accentPrimary,
+                )
+                Text(
+                    text = "${prAtWeight!!.repsNeeded}R × ${formatWeight(baseWeight)}KG",
+                    style = typography.data.copy(fontSize = 12.sp),
+                    color = targetColor(prAtWeight, repMin, repMax, colors),
+                )
+            }
         }
     }
 }

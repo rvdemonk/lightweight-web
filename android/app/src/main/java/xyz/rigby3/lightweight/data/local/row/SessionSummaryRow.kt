@@ -9,6 +9,7 @@ data class SessionSummaryRow(
     @ColumnInfo(name = "started_at") val startedAt: String,
     @ColumnInfo(name = "ended_at") val endedAt: String?,
     @ColumnInfo(name = "status") val status: String,
+    @ColumnInfo(name = "paused_duration") val pausedDuration: Int,
     @ColumnInfo(name = "exercise_count") val exerciseCount: Int,
     @ColumnInfo(name = "set_count") val setCount: Int,
 )
