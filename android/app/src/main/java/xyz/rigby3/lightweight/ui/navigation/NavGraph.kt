@@ -41,6 +41,7 @@ fun LightweightNavGraph(
         composable<HistoryRoute> {
             HistoryScreen(
                 onNavigateToSession = { id -> navController.navigate(SessionRoute(id)) },
+                onNavigateToWorkout = { navController.navigate(WorkoutRoute) },
             )
         }
 
