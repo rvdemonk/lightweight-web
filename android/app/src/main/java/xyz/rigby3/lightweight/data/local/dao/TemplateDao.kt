@@ -20,6 +20,16 @@ interface TemplateDao {
     @Query("SELECT * FROM template_exercises WHERE template_id = :templateId ORDER BY position")
     suspend fun getExercises(templateId: Long): List<TemplateExerciseEntity>
 
+    @Query("""
+        SELECT te.id, te.exercise_id, e.name as exercise_name, te.position,
+               te.target_sets, te.target_reps_min, te.target_reps_max, te.rest_seconds, te.notes
+        FROM template_exercises te
+        JOIN exercises e ON e.id = te.exercise_id
+        WHERE te.template_id = :templateId
+        ORDER BY te.position
+    """)
+    suspend fun getExercisesWithNames(templateId: Long): List<xyz.rigby3.lightweight.data.local.row.TemplateExerciseRow>
+
     @Insert
     suspend fun insert(template: TemplateEntity): Long
 

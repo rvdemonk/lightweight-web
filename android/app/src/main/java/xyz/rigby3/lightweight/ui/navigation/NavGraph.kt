@@ -59,7 +59,14 @@ fun LightweightNavGraph(
         }
 
         composable<SettingsRoute> {
-            SettingsScreen()
+            SettingsScreen(
+                onLogout = {
+                    navController.navigate(LoginRoute) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToInvites = { /* TODO: wire invite management */ },
+            )
         }
 
         composable<WorkoutRoute> {

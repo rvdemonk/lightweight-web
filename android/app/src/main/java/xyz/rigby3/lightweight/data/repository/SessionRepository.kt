@@ -1,6 +1,7 @@
 package xyz.rigby3.lightweight.data.repository
 
 import kotlinx.coroutines.flow.Flow
+import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.local.dao.SessionDao
 import xyz.rigby3.lightweight.data.local.dao.SetDao
 import xyz.rigby3.lightweight.data.local.entity.SessionEntity
@@ -14,10 +15,12 @@ class SessionRepository @Inject constructor(
     private val sessionDao: SessionDao,
     private val setDao: SetDao
 ) {
-    fun getAll(userId: Long): Flow<List<SessionEntity>> =
+    private val userId = TokenStore.LOCAL_USER_ID
+
+    fun getAll(): Flow<List<SessionEntity>> =
         sessionDao.getAll(userId)
 
-    suspend fun getActive(userId: Long): SessionEntity? =
+    suspend fun getActive(): SessionEntity? =
         sessionDao.getActive(userId)
 
     suspend fun getById(id: Long): SessionEntity? =

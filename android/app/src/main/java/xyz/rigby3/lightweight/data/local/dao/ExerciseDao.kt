@@ -25,4 +25,7 @@ interface ExerciseDao {
 
     @Query("UPDATE exercises SET archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
+
+    @Query("SELECT * FROM exercises WHERE user_id = :userId AND archived = 0 AND name LIKE '%' || :query || '%' ORDER BY name")
+    suspend fun search(userId: Long, query: String): List<ExerciseEntity>
 }

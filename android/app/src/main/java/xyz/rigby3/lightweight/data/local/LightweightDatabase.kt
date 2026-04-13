@@ -2,6 +2,7 @@ package xyz.rigby3.lightweight.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import xyz.rigby3.lightweight.data.local.dao.AnalyticsDao
 import xyz.rigby3.lightweight.data.local.dao.ExerciseDao
 import xyz.rigby3.lightweight.data.local.dao.SessionDao
 import xyz.rigby3.lightweight.data.local.dao.SetDao
@@ -34,4 +35,5 @@ abstract class LightweightDatabase : RoomDatabase() {
     abstract fun templateDao(): TemplateDao
     abstract fun sessionDao(): SessionDao
     abstract fun setDao(): SetDao
+    abstract fun analyticsDao(): AnalyticsDao
 }

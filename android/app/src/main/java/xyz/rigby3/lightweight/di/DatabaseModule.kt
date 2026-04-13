@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import xyz.rigby3.lightweight.data.local.LightweightDatabase
+import xyz.rigby3.lightweight.data.local.dao.AnalyticsDao
 import xyz.rigby3.lightweight.data.local.dao.ExerciseDao
 import xyz.rigby3.lightweight.data.local.dao.SessionDao
 import xyz.rigby3.lightweight.data.local.dao.SetDao
@@ -43,4 +44,8 @@ object DatabaseModule {
     @Provides
     fun provideSetDao(database: LightweightDatabase): SetDao =
         database.setDao()
+
+    @Provides
+    fun provideAnalyticsDao(database: LightweightDatabase): AnalyticsDao =
+        database.analyticsDao()
 }
