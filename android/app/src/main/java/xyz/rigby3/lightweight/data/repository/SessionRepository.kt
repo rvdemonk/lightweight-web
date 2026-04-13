@@ -12,6 +12,7 @@ import xyz.rigby3.lightweight.data.local.entity.TemplateExerciseEntity
 import xyz.rigby3.lightweight.data.local.row.SessionExerciseSetRow
 import xyz.rigby3.lightweight.domain.model.Session
 import xyz.rigby3.lightweight.domain.model.SessionExercise
+import xyz.rigby3.lightweight.domain.model.SessionSummary
 import xyz.rigby3.lightweight.domain.model.WorkoutSet
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -107,6 +108,21 @@ class SessionRepository @Inject constructor(
         return loadFullSession(entity)
     }
 
+    suspend fun getSummaries(limit: Int = 50, offset: Int = 0): List<SessionSummary> =
+        sessionDao.getSummaries(userId, limit, offset).map { row ->
+            SessionSummary(
+                id = row.id,
+                templateName = if (row.templateId != null) row.name else null,
+                name = row.name,
+                startedAt = row.startedAt,
+                endedAt = row.endedAt,
+                status = row.status,
+                exerciseCount = row.exerciseCount,
+                setCount = row.setCount,
+                targetSetCount = null,
+            )
+        }
+
     private fun mapToSession(entity: SessionEntity, rows: List<SessionExerciseSetRow>): Session {
         val exercises = rows.groupBy { it.seId }.map { (seId, group) ->
             val first = group.first()
@@ -133,7 +149,7 @@ class SessionRepository @Inject constructor(
         return Session(
             id = entity.id,
             templateId = entity.templateId,
-            templateName = entity.name,
+            templateName = if (entity.templateId != null) entity.name else null,
             name = entity.name,
             startedAt = entity.startedAt,
             endedAt = entity.endedAt,
