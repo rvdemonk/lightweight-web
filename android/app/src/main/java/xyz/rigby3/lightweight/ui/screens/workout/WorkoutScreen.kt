@@ -1,6 +1,7 @@
 package xyz.rigby3.lightweight.ui.screens.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -153,7 +154,7 @@ private fun WorkoutContent(
             ) {
                 Text(
                     text = (session.name.ifBlank { "FREEFORM" }).uppercase(),
-                    style = typography.cardTitle,
+                    style = typography.heroTitle,
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
@@ -166,32 +167,21 @@ private fun WorkoutContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Row 2: progress bar + set count (only if template)
+            // Row 2: progress bar (only if template)
             if (targetSets > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                val fraction = (completedSets.toFloat() / targetSets).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(colors.bgElevated),
                 ) {
-                    val fraction = (completedSets.toFloat() / targetSets).coerceIn(0f, 1f)
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(colors.bgElevated),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(fraction)
-                                .height(6.dp)
-                                .background(colors.accentGreen),
-                        )
-                    }
-                    Text(
-                        text = "$completedSets/$targetSets",
-                        style = typography.data,
-                        color = colors.textSecondary,
+                            .fillMaxWidth(fraction)
+                            .height(10.dp)
+                            .background(colors.accentGreen),
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -272,13 +262,17 @@ private fun ExerciseCard(
     val typography = LightweightTheme.typography
 
     if (isExpanded) {
-        // Expanded card
-        LwCard(expanded = true, onClick = onClick) {
+        // Expanded card — only title is clickable to collapse
+        LwCard(expanded = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = exercise.exerciseName.uppercase(),
-                    style = typography.cardTitle,
+                    style = typography.exerciseName,
                     color = colors.textPrimary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onClick)
+                        .padding(vertical = 4.dp),
                 )
 
                 // Previous data + template targets
@@ -327,7 +321,7 @@ private fun ExerciseCard(
                 // Exercise name
                 Text(
                     text = exercise.exerciseName.uppercase(),
-                    style = typography.cardTitle,
+                    style = typography.exerciseName,
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f, fill = false),
                 )
@@ -379,10 +373,11 @@ private fun EndWorkoutDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = colors.bgElevated,
+        shape = RoundedCornerShape(4.dp),
         title = {
             Text(
                 text = "END WORKOUT",
-                style = typography.cardTitle,
+                style = typography.pageTitle,
                 color = colors.textPrimary,
             )
         },

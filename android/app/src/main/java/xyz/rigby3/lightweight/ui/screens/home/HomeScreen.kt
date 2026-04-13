@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +51,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Reload heatmap and templates when screen becomes visible
+    LaunchedEffect(Unit) { viewModel.reload() }
 
     HomeContent(
         state = state,
@@ -108,7 +113,7 @@ private fun HomeContent(
             enter = expandVertically(),
             exit = shrinkVertically(),
         ) {
-            Column(modifier = Modifier.padding(bottom = 4.dp)) {
+            Column(modifier = Modifier.padding(bottom = 4.dp).heightIn(max = 400.dp)) {
                 if (state.templates.isEmpty()) {
                     LwCard {
                         Text(
@@ -162,8 +167,9 @@ private fun TemplateSelectionCard(
                     style = typography.cardTitle,
                     color = colors.textPrimary,
                 )
+                val totalSets = template.exercises.sumOf { it.targetSets ?: 0 }
                 Text(
-                    text = "${template.exercises.size} exercise${if (template.exercises.size != 1) "s" else ""}",
+                    text = "${template.exercises.size} EXERCISES · ${totalSets} SETS",
                     style = typography.data,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp),

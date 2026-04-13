@@ -224,6 +224,16 @@ class WorkoutViewModel @Inject constructor(
                 sessionRepository.deleteIfEmpty(session.id)
             }
 
+            // Verify session is no longer active before navigating
+            val stillActive = sessionRepository.getActive()
+            if (stillActive?.id == session.id) {
+                // Fallback: force delete if status update didn't stick
+                sessionRepository.delete(session.id)
+            }
+
+            // Clear local state so ViewModel doesn't hold stale data
+            _state.update { it.copy(session = null, isLoading = false) }
+
             onEnd()
         }
     }

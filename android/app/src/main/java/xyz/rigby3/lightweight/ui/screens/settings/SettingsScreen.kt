@@ -43,6 +43,7 @@ import xyz.rigby3.lightweight.ui.theme.PagePadding
 fun SettingsScreen(
     onLogout: () -> Unit = {},
     onNavigateToInvites: () -> Unit = {},
+    onThemeToggled: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -57,7 +58,7 @@ fun SettingsScreen(
 
     SettingsContent(
         state = state,
-        onToggleTheme = viewModel::toggleTheme,
+        onToggleTheme = { viewModel.toggleTheme(); onThemeToggled() },
         onNavigateToInvites = onNavigateToInvites,
         onLogout = viewModel::logout,
     )
@@ -80,14 +81,6 @@ private fun SettingsContent(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = PagePadding),
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "SETTINGS",
-            style = typography.pageTitle,
-            color = colors.textPrimary,
-        )
-
         // --- APPEARANCE section ---
         SectionHeader(text = "APPEARANCE")
 

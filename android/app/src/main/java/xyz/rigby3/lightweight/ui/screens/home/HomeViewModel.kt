@@ -37,6 +37,10 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
     init {
+        reload()
+    }
+
+    fun reload() {
         loadHeatmap()
         loadTemplates()
     }
@@ -54,7 +58,7 @@ class HomeViewModel @Inject constructor(
 
     private fun loadTemplates() {
         viewModelScope.launch {
-            val entities = templateRepository.getAll(TokenStore.LOCAL_USER_ID).first()
+            val entities = templateRepository.getAll().first()
             val templates = entities.map { entity ->
                 val exerciseRows = templateDao.getExercisesWithNames(entity.id)
                 Template(

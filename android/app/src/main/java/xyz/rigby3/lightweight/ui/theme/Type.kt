@@ -30,7 +30,9 @@ data class LightweightTypography(
     val dataFamily: FontFamily,
     val label: TextStyle,
     val cardTitle: TextStyle,
+    val exerciseName: TextStyle,
     val pageTitle: TextStyle,
+    val heroTitle: TextStyle,
     val button: TextStyle,
     val body: TextStyle,
     val data: TextStyle,
@@ -50,21 +52,34 @@ fun lightweightTypography(
     // Weights: 500 standard, 600 emphasis. Letter-spacing 0.04–0.08em.
     label = TextStyle(
         fontFamily = display,
-        fontSize = 11.sp,
+        fontSize = 13.sp,
         fontWeight = FontWeight.W500,
         letterSpacing = 0.5.sp,
     ),
     cardTitle = TextStyle(
         fontFamily = display,
-        fontSize = 13.sp,
+        fontSize = 16.sp,
         fontWeight = FontWeight.W600,
         letterSpacing = 0.6.sp,
+    ),
+    // Body sans (Barlow) for exercise names — wider, more readable than condensed
+    exerciseName = TextStyle(
+        fontFamily = body,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.W600,
+        letterSpacing = 0.3.sp,
     ),
     pageTitle = TextStyle(
         fontFamily = display,
         fontSize = 18.sp,
         fontWeight = FontWeight.W600,
         letterSpacing = 1.sp,
+    ),
+    heroTitle = TextStyle(
+        fontFamily = display,
+        fontSize = 22.sp,
+        fontWeight = FontWeight.W600,
+        letterSpacing = 1.2.sp,
     ),
 
     // Body: regular-width sans — exercise names, labels, body text, buttons, inputs

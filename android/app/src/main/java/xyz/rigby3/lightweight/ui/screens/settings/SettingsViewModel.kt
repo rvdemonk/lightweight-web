@@ -33,6 +33,7 @@ class SettingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         SettingsState(
             username = tokenStore.username,
+            isDarkTheme = tokenStore.isDarkTheme,
         )
     )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -41,7 +42,9 @@ class SettingsViewModel @Inject constructor(
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
     fun toggleTheme() {
-        _state.update { it.copy(isDarkTheme = !it.isDarkTheme) }
+        val newValue = !_state.value.isDarkTheme
+        tokenStore.isDarkTheme = newValue
+        _state.update { it.copy(isDarkTheme = newValue) }
     }
 
     fun logout() {

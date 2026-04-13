@@ -3,6 +3,7 @@ package xyz.rigby3.lightweight.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
@@ -21,6 +22,7 @@ import xyz.rigby3.lightweight.ui.screens.workout.WorkoutScreen
 fun LightweightNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
+    onThemeToggled: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -67,12 +69,20 @@ fun LightweightNavGraph(
                     }
                 },
                 onNavigateToInvites = { /* TODO: wire invite management */ },
+                onThemeToggled = onThemeToggled,
             )
         }
 
         composable<WorkoutRoute> {
             WorkoutScreen(
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = {
+                    navController.navigate(HistoryRoute) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 

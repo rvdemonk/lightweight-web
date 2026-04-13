@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +39,9 @@ fun HistoryScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Reload when screen becomes visible (e.g. after ending a workout)
+    LaunchedEffect(Unit) { viewModel.loadSessions() }
+
     HistoryContent(
         state = state,
         onNavigateToSession = onNavigateToSession,
@@ -59,16 +63,7 @@ private fun HistoryContent(
             .fillMaxSize()
             .background(colors.bgPrimary),
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "HISTORY",
-            style = typography.pageTitle,
-            color = colors.textPrimary,
-            modifier = Modifier.padding(horizontal = PagePadding),
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (state.isLoading) {
             Box(
@@ -130,7 +125,7 @@ private fun SessionCard(
         badgeText = summary.status.uppercase()
         badgeColor = colors.accentPrimary
     } else {
-        badgeText = "${summary.exerciseCount}E \u00B7 ${summary.setCount}S"
+        badgeText = "${summary.exerciseCount} EX \u00B7 ${summary.setCount} SETS"
         badgeColor = statsColor(summary, colors)
     }
 
@@ -158,7 +153,7 @@ private fun SessionCard(
 
             Text(
                 text = dateText,
-                style = typography.label,
+                style = typography.data,
                 color = colors.textSecondary,
                 modifier = Modifier.padding(top = 4.dp),
             )

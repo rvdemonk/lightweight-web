@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -69,6 +71,7 @@ private fun SessionContent(
         AlertDialog(
             onDismissRequest = onDismissDelete,
             containerColor = colors.bgElevated,
+            shape = RoundedCornerShape(4.dp),
             titleContentColor = colors.textPrimary,
             textContentColor = colors.textSecondary,
             title = {
@@ -152,34 +155,38 @@ private fun SessionDetail(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = PagePadding),
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Session name
-        Text(
-            text = title,
-            style = typography.pageTitle,
-            color = colors.textPrimary,
-        )
+        // Row 1: Session name + duration (mirrors workout header)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = typography.heroTitle,
+                color = colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            if (durationText != null) {
+                Text(
+                    text = durationText,
+                    style = typography.dataLarge,
+                    color = colors.accentCyan,
+                )
+            }
+        }
 
         // Date
         Text(
             text = dateText,
-            style = typography.label,
+            style = typography.data,
             color = colors.textSecondary,
             modifier = Modifier.padding(top = 4.dp),
         )
 
-        // Duration
-        if (durationText != null) {
-            Text(
-                text = durationText,
-                style = typography.data,
-                color = colors.accentCyan,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Exercise cards — all expanded
         session.exercises.forEach { exercise ->
@@ -220,7 +227,7 @@ private fun ExerciseCard(exercise: SessionExercise) {
         ) {
             Text(
                 text = exercise.exerciseName.uppercase(),
-                style = typography.cardTitle,
+                style = typography.exerciseName,
                 color = colors.textPrimary,
             )
 

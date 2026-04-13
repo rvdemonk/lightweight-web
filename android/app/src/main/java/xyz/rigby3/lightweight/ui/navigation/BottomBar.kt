@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ViewList
@@ -50,11 +51,13 @@ private val tabs = listOf(
 )
 
 @Composable
-fun LightweightBottomBar(navController: NavController) {
+fun LightweightBottomBar(
+    navController: NavController,
+    hasActiveWorkout: Boolean = false,
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = navBackStackEntry?.destination?.route ?: ""
     val colors = LightweightTheme.colors
-    val indicatorShape = RoundedCornerShape(CardRadius)
 
     Row(
         modifier = Modifier
@@ -66,29 +69,60 @@ fun LightweightBottomBar(navController: NavController) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         tabs.forEach { tab ->
-            val selected = currentDestination?.route == tab.route::class.qualifiedName
+            val tabRouteName = tab.route::class.simpleName ?: ""
+            val selected = tabRouteName in currentRoute
+            val isHome = tab.route == HomeRoute
+
+            val icon = when {
+                isHome && hasActiveWorkout -> Icons.Filled.FitnessCenter
+                selected -> tab.iconActive
+                else -> tab.iconInactive
+            }
+            val tint = when {
+                isHome && hasActiveWorkout -> colors.bgPrimary
+                selected -> colors.accentPrimary
+                else -> colors.textSecondary
+            }
 
             Box(
                 modifier = Modifier
                     .size(44.dp)
+                    .then(
+                        if (isHome && hasActiveWorkout) {
+                            Modifier
+                                .clip(RoundedCornerShape(CardRadius))
+                                .background(colors.accentPrimary)
+                        } else Modifier
+                    )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {
-                        navController.navigate(tab.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        if (isHome && hasActiveWorkout) {
+                            // Go to active workout
+                            navController.navigate(WorkoutRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                        } else {
+                            // Standard tab navigation
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = if (selected) tab.iconActive else tab.iconInactive,
-                    contentDescription = tab.label,
-                    tint = if (selected) colors.accentPrimary else colors.textSecondary,
+                    imageVector = icon,
+                    contentDescription = if (isHome && hasActiveWorkout) "ACTIVE WORKOUT" else tab.label,
+                    tint = tint,
                     modifier = Modifier.size(28.dp),
                 )
             }

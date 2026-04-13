@@ -21,6 +21,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 import xyz.rigby3.lightweight.ui.theme.PagePadding
 
@@ -34,12 +36,17 @@ fun NoteInput(
     var isOpen by remember { mutableStateOf(false) }
 
     if (isOpen) {
-        NoteModal(
-            initialNote = note.orEmpty(),
-            exerciseName = exerciseName,
-            onSave = { text -> onSave(text.ifBlank { null }); isOpen = false },
-            onCancel = { isOpen = false },
-        )
+        Dialog(
+            onDismissRequest = { isOpen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            NoteModal(
+                initialNote = note.orEmpty(),
+                exerciseName = exerciseName,
+                onSave = { text -> onSave(text.ifBlank { null }); isOpen = false },
+                onCancel = { isOpen = false },
+            )
+        }
     }
 
     LwButton(
@@ -74,9 +81,9 @@ private fun NoteModal(
     ) {
         Text(
             text = exerciseName.uppercase(),
-            style = typography.label,
+            style = typography.pageTitle,
             color = colors.accentPrimary.copy(alpha = 0.7f),
-            modifier = Modifier.padding(bottom = 16.dp),
+            modifier = Modifier.padding(top = 48.dp, bottom = 16.dp),
         )
 
         BasicTextField(

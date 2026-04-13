@@ -16,8 +16,11 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE user_id = :userId ORDER BY started_at DESC")
     fun getAll(userId: Long): Flow<List<SessionEntity>>
 
-    @Query("SELECT * FROM sessions WHERE user_id = :userId AND status IN ('active', 'paused')")
+    @Query("SELECT * FROM sessions WHERE user_id = :userId AND status IN ('active', 'paused') ORDER BY started_at DESC LIMIT 1")
     suspend fun getActive(userId: Long): SessionEntity?
+
+    @Query("UPDATE sessions SET status = 'abandoned' WHERE user_id = :userId AND status IN ('active', 'paused')")
+    suspend fun abandonAll(userId: Long)
 
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getById(id: Long): SessionEntity?

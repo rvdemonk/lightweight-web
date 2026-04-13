@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import xyz.rigby3.lightweight.ui.theme.ButtonRadius
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 import xyz.rigby3.lightweight.ui.theme.MinTouchTarget
+
+private val VALUE_WIDTH = 80.dp
 
 @Composable
 fun IncrementButton(
@@ -83,33 +85,38 @@ fun IncrementButton(
                 Text("−", style = typography.dataLarge, color = colors.textPrimary)
             }
 
-            // Value display / edit
-            if (isEditing) {
-                EditField(
-                    value = value,
-                    decimal = decimal,
-                    min = min,
-                    onCommit = { newValue ->
-                        onValueChange(newValue)
-                        isEditing = false
-                    },
-                    onCancel = { isEditing = false },
-                )
-            } else {
-                val displayText = when {
-                    value == null -> "—"
-                    decimal -> "%.1f".format(value)
-                    else -> value.toInt().toString()
+            // Value display / edit — fixed width to prevent layout shift
+            Box(
+                modifier = Modifier.width(VALUE_WIDTH),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isEditing) {
+                    EditField(
+                        value = value,
+                        decimal = decimal,
+                        min = min,
+                        onCommit = { newValue ->
+                            onValueChange(newValue)
+                            isEditing = false
+                        },
+                        onCancel = { isEditing = false },
+                    )
+                } else {
+                    val displayText = when {
+                        value == null -> "—"
+                        decimal -> "%.1f".format(value)
+                        else -> value.toInt().toString()
+                    }
+                    Text(
+                        text = displayText,
+                        style = typography.dataLarge,
+                        color = if (muted) colors.textSecondary else colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { if (value != null || !nullable) isEditing = true },
+                    )
                 }
-                Text(
-                    text = displayText,
-                    style = typography.dataLarge,
-                    color = if (muted) colors.textSecondary else colors.textPrimary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .widthIn(min = 80.dp)
-                        .clickable { if (value != null || !nullable) isEditing = true },
-                )
             }
 
             // Increment
@@ -155,7 +162,7 @@ private fun EditField(
         value = textFieldValue,
         onValueChange = { textFieldValue = it },
         modifier = Modifier
-            .widthIn(min = 80.dp)
+            .width(VALUE_WIDTH)
             .focusRequester(focusRequester),
         textStyle = typography.dataLarge.copy(
             color = colors.textPrimary,

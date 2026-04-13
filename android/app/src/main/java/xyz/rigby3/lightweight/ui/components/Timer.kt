@@ -54,7 +54,7 @@ fun Timer(
     }
 
     Text(
-        text = if (isPaused) "PAUSE" else formatted,
+        text = if (isPaused) "PAUSED" else formatted,
         style = typography.dataLarge,
         color = if (isPaused) colors.accentPrimary else colors.textPrimary,
         modifier = modifier,

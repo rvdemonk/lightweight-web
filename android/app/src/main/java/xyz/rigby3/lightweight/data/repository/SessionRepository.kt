@@ -1,6 +1,10 @@
 package xyz.rigby3.lightweight.data.repository
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import xyz.rigby3.lightweight.data.local.LightweightDatabase
 import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.local.dao.SessionDao
 import xyz.rigby3.lightweight.data.local.dao.SetDao
@@ -19,10 +23,12 @@ import javax.inject.Singleton
 
 @Singleton
 class SessionRepository @Inject constructor(
+    private val db: LightweightDatabase,
     private val sessionDao: SessionDao,
     private val setDao: SetDao
 ) {
     private val userId = TokenStore.LOCAL_USER_ID
+    private val createMutex = Mutex()
 
     fun getAll(): Flow<List<SessionEntity>> =
         sessionDao.getAll(userId)
@@ -57,43 +63,49 @@ class SessionRepository @Inject constructor(
     suspend fun deleteSet(id: Long) =
         setDao.delete(id)
 
-    // --- Session creation ---
+    // --- Session creation (mutex + transaction) ---
 
     suspend fun createFromTemplate(
         template: TemplateEntity,
         exercises: List<TemplateExerciseEntity>,
-    ): Long {
-        val sessionId = sessionDao.insert(
-            SessionEntity(
-                userId = userId,
-                templateId = template.id,
-                name = template.name,
-                startedAt = java.time.Instant.now().toString(),
-                status = "active",
-                templateVersion = template.version,
+    ): Long = createMutex.withLock {
+        db.withTransaction {
+            sessionDao.abandonAll(userId)
+            val sessionId = sessionDao.insert(
+                SessionEntity(
+                    userId = userId,
+                    templateId = template.id,
+                    name = template.name,
+                    startedAt = java.time.Instant.now().toString(),
+                    status = "active",
+                    templateVersion = template.version,
+                )
             )
-        )
-        exercises.forEachIndexed { index, te ->
-            sessionDao.insertExercise(
-                SessionExerciseEntity(
-                    sessionId = sessionId,
-                    exerciseId = te.exerciseId,
-                    position = index + 1,
+            exercises.forEachIndexed { index, te ->
+                sessionDao.insertExercise(
+                    SessionExerciseEntity(
+                        sessionId = sessionId,
+                        exerciseId = te.exerciseId,
+                        position = index + 1,
+                    )
+                )
+            }
+            sessionId
+        }
+    }
+
+    suspend fun createFreeform(): Long = createMutex.withLock {
+        db.withTransaction {
+            sessionDao.abandonAll(userId)
+            sessionDao.insert(
+                SessionEntity(
+                    userId = userId,
+                    name = "Freeform",
+                    startedAt = java.time.Instant.now().toString(),
+                    status = "active",
                 )
             )
         }
-        return sessionId
-    }
-
-    suspend fun createFreeform(): Long {
-        return sessionDao.insert(
-            SessionEntity(
-                userId = userId,
-                name = "Freeform",
-                startedAt = java.time.Instant.now().toString(),
-                status = "active",
-            )
-        )
     }
 
     // --- Full session loading (domain model) ---

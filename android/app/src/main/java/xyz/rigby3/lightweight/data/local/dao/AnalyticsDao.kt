@@ -25,11 +25,16 @@ interface AnalyticsDao {
         SELECT st.weight_kg, st.reps, st.rir, st.set_number
         FROM sets st
         JOIN session_exercises se ON se.id = st.session_exercise_id
-        JOIN sessions s ON s.id = se.session_id
-        WHERE se.exercise_id = :exerciseId AND s.user_id = :userId
-          AND s.status = 'completed' AND s.id != :excludeSessionId
-        ORDER BY s.started_at DESC, st.set_number
-        LIMIT 20
+        WHERE se.session_id = (
+            SELECT s.id FROM sessions s
+            JOIN session_exercises se2 ON se2.session_id = s.id
+            WHERE se2.exercise_id = :exerciseId AND s.user_id = :userId
+              AND s.status = 'completed' AND s.id != :excludeSessionId
+            ORDER BY s.started_at DESC
+            LIMIT 1
+        )
+        AND se.exercise_id = :exerciseId
+        ORDER BY st.set_number
     """)
     suspend fun getPreviousSets(userId: Long, exerciseId: Long, excludeSessionId: Long): List<PreviousSetRow>
 

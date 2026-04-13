@@ -12,14 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -109,68 +112,56 @@ private fun TemplateDetailContent(
             titleContentColor = colors.textPrimary,
             textContentColor = colors.textSecondary,
             title = {
-                Text(
-                    text = "ARCHIVE TEMPLATE",
-                    style = typography.cardTitle,
-                )
+                Text("ARCHIVE TEMPLATE", style = typography.cardTitle)
             },
             text = {
                 Text(
-                    text = "This template will be hidden from the list. Existing workout sessions using it will not be affected.",
+                    "This template will be hidden. Existing sessions using it are not affected.",
                     style = typography.body,
                 )
             },
             confirmButton = {
                 TextButton(onClick = onConfirmArchive) {
-                    Text(
-                        text = "ARCHIVE",
-                        style = typography.button,
-                        color = colors.accentRed,
-                    )
+                    Text("ARCHIVE", style = typography.button, color = colors.accentRed)
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismissArchive) {
-                    Text(
-                        text = "CANCEL",
-                        style = typography.button,
-                        color = colors.textSecondary,
-                    )
+                    Text("CANCEL", style = typography.button, color = colors.textSecondary)
                 }
             },
         )
     }
 
-    Column(
+    // Track which exercise card is expanded (-1 = none)
+    var expandedIndex by remember { mutableIntStateOf(-1) }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.bgPrimary)
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = PagePadding),
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = if (state.isNew) "NEW TEMPLATE" else "EDIT TEMPLATE",
-            style = typography.pageTitle,
-            color = colors.textPrimary,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         // Template name input
-        LwTextField(
-            value = state.name,
-            onValueChange = onNameChange,
-            placeholder = "Template name",
-        )
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            LwTextField(
+                value = state.name,
+                onValueChange = onNameChange,
+                placeholder = "Template name",
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Exercise cards
-        state.exercises.forEachIndexed { index, exercise ->
+        // Exercise cards — collapsible
+        itemsIndexed(state.exercises) { index, exercise ->
+            val isExpanded = expandedIndex == index
             ExerciseEditCard(
                 exercise = exercise,
+                expanded = isExpanded,
+                onToggle = {
+                    expandedIndex = if (isExpanded) -1 else index
+                },
                 onUpdateSets = { sets -> onUpdateSets(index, sets) },
                 onUpdateRepsMin = { reps -> onUpdateRepsMin(index, reps) },
                 onUpdateRepsMax = { reps -> onUpdateRepsMax(index, reps) },
@@ -179,42 +170,46 @@ private fun TemplateDetailContent(
         }
 
         // Add exercise button
-        LwButton(
-            text = "+ ADD EXERCISE",
-            onClick = onAddExercise,
-            style = LwButtonStyle.Secondary,
-            fullWidth = true,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Save button
-        LwButton(
-            text = "SAVE TEMPLATE",
-            onClick = onSave,
-            style = LwButtonStyle.Primary,
-            fullWidth = true,
-            enabled = state.name.isNotBlank() && !state.isSaving,
-        )
-
-        // Archive button (only for existing templates)
-        if (!state.isNew) {
-            Spacer(modifier = Modifier.height(8.dp))
+        item {
             LwButton(
-                text = "ARCHIVE",
-                onClick = onArchive,
-                style = LwButtonStyle.Danger,
+                text = "+ ADD EXERCISE",
+                onClick = onAddExercise,
+                style = LwButtonStyle.Secondary,
                 fullWidth = true,
             )
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        // Save button
+        item {
+            LwButton(
+                text = "SAVE TEMPLATE",
+                onClick = onSave,
+                style = LwButtonStyle.Primary,
+                fullWidth = true,
+                enabled = state.name.isNotBlank() && !state.isSaving,
+            )
+
+            if (!state.isNew) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LwButton(
+                    text = "ARCHIVE",
+                    onClick = onArchive,
+                    style = LwButtonStyle.Danger,
+                    fullWidth = true,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
     }
 }
 
 @Composable
 private fun ExerciseEditCard(
     exercise: EditableTemplateExercise,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     onUpdateSets: (Int) -> Unit,
     onUpdateRepsMin: (Int) -> Unit,
     onUpdateRepsMax: (Int) -> Unit,
@@ -223,7 +218,7 @@ private fun ExerciseEditCard(
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
 
-    LwCard {
+    LwCard(expanded = expanded, onClick = onToggle) {
         Column {
             // Header row: exercise name + remove button
             Row(
@@ -233,54 +228,64 @@ private fun ExerciseEditCard(
             ) {
                 Text(
                     text = exercise.exerciseName.uppercase(),
-                    style = typography.cardTitle,
+                    style = typography.exerciseName,
                     color = colors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                Box(
-                    modifier = Modifier
-                        .size(MinTouchTarget)
-                        .clickable(onClick = onRemove),
-                    contentAlignment = Alignment.Center,
-                ) {
+                if (expanded) {
+                    Box(
+                        modifier = Modifier
+                            .size(MinTouchTarget)
+                            .clickable(onClick = onRemove),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "\u00D7",
+                            style = typography.dataLarge,
+                            color = colors.accentRed,
+                        )
+                    }
+                } else {
+                    // Collapsed summary
                     Text(
-                        text = "\u00D7",
-                        style = typography.dataLarge,
-                        color = colors.accentRed,
+                        text = "${exercise.targetSets}s ${exercise.targetRepsMin}-${exercise.targetRepsMax}r",
+                        style = typography.data,
+                        color = colors.textSecondary,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            // Increment buttons for sets, min reps, max reps
-            IncrementButton(
-                value = exercise.targetSets.toDouble(),
-                onValueChange = { it?.toInt()?.let(onUpdateSets) },
-                step = 1.0,
-                min = 1.0,
-                label = "SETS",
-            )
+                IncrementButton(
+                    value = exercise.targetSets.toDouble(),
+                    onValueChange = { it?.toInt()?.let(onUpdateSets) },
+                    step = 1.0,
+                    min = 1.0,
+                    label = "SETS",
+                )
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            IncrementButton(
-                value = exercise.targetRepsMin.toDouble(),
-                onValueChange = { it?.toInt()?.let(onUpdateRepsMin) },
-                step = 1.0,
-                min = 1.0,
-                label = "MIN REPS",
-            )
+                IncrementButton(
+                    value = exercise.targetRepsMin.toDouble(),
+                    onValueChange = { it?.toInt()?.let(onUpdateRepsMin) },
+                    step = 1.0,
+                    min = 1.0,
+                    label = "MIN REPS",
+                )
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            IncrementButton(
-                value = exercise.targetRepsMax.toDouble(),
-                onValueChange = { it?.toInt()?.let(onUpdateRepsMax) },
-                step = 1.0,
-                min = 1.0,
-                label = "MAX REPS",
-            )
+                IncrementButton(
+                    value = exercise.targetRepsMax.toDouble(),
+                    onValueChange = { it?.toInt()?.let(onUpdateRepsMax) },
+                    step = 1.0,
+                    min = 1.0,
+                    label = "MAX REPS",
+                )
+            }
         }
     }
 }

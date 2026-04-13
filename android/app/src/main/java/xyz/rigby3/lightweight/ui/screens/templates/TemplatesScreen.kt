@@ -72,12 +72,6 @@ private fun TemplatesContent(
             .padding(horizontal = PagePadding),
     ) {
         item {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "TEMPLATES",
-                style = typography.pageTitle,
-                color = colors.textPrimary,
-            )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -106,8 +100,9 @@ private fun TemplatesContent(
                         style = typography.cardTitle,
                         color = colors.textPrimary,
                     )
+                    val totalSets = template.exercises.sumOf { it.targetSets ?: 0 }
                     Text(
-                        text = "${template.exercises.size} EXERCISES",
+                        text = "${template.exercises.size} EXERCISES · ${totalSets} SETS",
                         style = typography.data,
                         color = colors.textSecondary,
                         modifier = Modifier.padding(top = 4.dp),
