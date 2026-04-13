@@ -1,6 +1,6 @@
 # Lightweight
 
-Multi-user workout tracker. Frictionless mobile logging, progressive overload tracking. Rust/Axum + React/TS + SQLite, single binary.
+Multi-user workout tracker. Frictionless mobile logging, progressive overload tracking. Rust/Axum backend + SQLite, Android native client (Kotlin/Compose), React/TS web dashboard.
 
 ## Product Essence
 
@@ -26,6 +26,9 @@ Multi-user workout tracker. Frictionless mobile logging, progressive overload tr
 - Don't use military jargon in UI copy (callsign, access code, operator, authenticate) — the aesthetic is MAGI/NERV scientific program, not modern military. Think Manhattan Project researchers at a classified terminal, not Pentagon. Labels should be clinical and functional: "USERNAME", "PASSWORD", "Login". Computer science and research lab language, not combat ops.
 - Don't modify production DB sessions belonging to other users — Lewis is user_id 1. We accidentally closed another user's active session when fixing Lewis's. Always filter by `user_id = 1` (or confirm the user) before UPDATE/DELETE on sessions.
 - Don't deploy without backing up the production DB first — `deploy.sh` does this automatically (stops server, SCPs the DB, then deploys). For manual backups: `./backup.sh [label]`. Always check for active workout sessions before stopping the server (`SELECT ... FROM sessions WHERE status IN ('active', 'paused')`). Backups live in `backups/YYYY-MM-DD/`.
+- Don't use `saveState`/`restoreState` in Compose bottom bar tab navigation — causes stale screens (e.g. Settings pushed on a tab) to persist when switching away and back. Use `popUpTo(startDest) { inclusive = false }` with `launchSingleTop` only.
+- Don't auto-focus text fields inside Compose `Dialog` — the keyboard fights the user on dismiss. Focus stays bound and keyboard re-opens immediately. Let the user tap to focus instead.
+- Don't use `/api/auth/` paths in the Android Retrofit client — all server routes are nested under `/api/v1/` (see `app.rs`). The auth routes are `/api/v1/auth/login`, not `/api/auth/login`. Silently returns 404.
 
 ## Design Tokens
 
@@ -33,6 +36,7 @@ Multi-user workout tracker. Frictionless mobile logging, progressive overload tr
 --bg-primary: #0a0a0f    --bg-surface: #12121a    --bg-elevated: #1a1a25
 --accent-amber: #e8a832 (primary actions)    --accent-cyan: #32c8e8 (data)
 --accent-green: #32e868 (success)            --accent-red: #e83232 (danger)
+--font-display: Barlow Condensed (headings, wordmark)
 --font-body: Inter    --font-data: JetBrains Mono
 ```
 
@@ -40,7 +44,7 @@ Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Da
 
 ## Product Direction
 
-Web app is a prototype — mid-term goal is Android native. The Rust/Axum API server stays as the backend, serving a read-only web interface for desktop viewing of lift metrics, progressions, and account data. Keep the server simple accordingly.
+Android native is the primary client, actively dogfooded. The web app becomes a read-only desktop dashboard for viewing lift metrics, progressions, and account data. The Rust/Axum API server is the backend and source of truth — the Android app currently syncs data down from the server but doesn't yet write back (next priority). Until write-back sync exists, workout data logged on-device is at risk if the app is uninstalled (debug → release signing key change forces uninstall).
 
 ## Dev
 
@@ -55,3 +59,6 @@ Web app is a prototype — mid-term goal is Android native. The Rust/Axum API se
 - Production: `https://lightweight.3rigby.xyz` (DO droplet 170.64.189.221, systemd + nginx + Let's Encrypt)
 - Env vars in prod systemd: `LW_DB_PATH`, `LW_PORT`, `LW_INVITE_CODE` (admin backdoor), `LW_CORS_ORIGIN` (locked to production URL)
 - Server binds 127.0.0.1 by default (behind nginx). Set `LW_HOST=0.0.0.0` for direct access in dev.
+- Android: `cd android && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`
+- Install on device: `~/Library/Android/sdk/platform-tools/adb install -r android/app/build/outputs/apk/debug/app-debug.apk`
+- Lewis's phone is paired for wireless debugging (device 9fcef44a)

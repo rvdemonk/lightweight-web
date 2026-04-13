@@ -26,6 +26,13 @@ class TokenStore @Inject constructor(
     val isLoggedIn: Boolean
         get() = token != null
 
+    /** Epoch seconds when the workout was auto-paused (survives process death). */
+    var pausedAtEpoch: Long
+        get() = prefs.getLong("paused_at_epoch", 0L)
+        set(value) = prefs.edit().putLong("paused_at_epoch", value).apply()
+
+    fun clearPausedAt() = prefs.edit().remove("paused_at_epoch").apply()
+
     fun clear() {
         prefs.edit().clear().apply()
     }

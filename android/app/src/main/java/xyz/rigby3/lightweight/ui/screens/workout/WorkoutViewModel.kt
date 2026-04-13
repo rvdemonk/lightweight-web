@@ -43,6 +43,7 @@ class WorkoutViewModel @Inject constructor(
     private val exerciseRepository: ExerciseRepository,
     private val templateRepository: TemplateRepository,
     private val analyticsDao: AnalyticsDao,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
 
     private val userId = TokenStore.LOCAL_USER_ID
@@ -66,6 +67,12 @@ class WorkoutViewModel @Inject constructor(
 
             val isPaused = session.status == "paused"
 
+            // Restore pausedAt from persisted storage (survives process death)
+            val pausedAt = if (isPaused) {
+                val stored = tokenStore.pausedAtEpoch
+                if (stored > 0) stored else Instant.now().epochSecond
+            } else null
+
             // Load template exercises if session is from a template
             val templateExerciseMap = loadTemplateExercises(session.templateId)
 
@@ -84,7 +91,7 @@ class WorkoutViewModel @Inject constructor(
                 it.copy(
                     session = session,
                     isPaused = isPaused,
-                    pausedAt = if (isPaused) Instant.now().epochSecond else null,
+                    pausedAt = pausedAt,
                     previousSets = previousSets,
                     templateExercises = templateExerciseMap,
                     exercises = exercises,
@@ -193,11 +200,14 @@ class WorkoutViewModel @Inject constructor(
                     sessionRepository.updatePausedDuration(session.id, newDuration)
                 }
                 sessionRepository.updateStatus(session.id, "active")
+                tokenStore.clearPausedAt()
                 _state.update { it.copy(isPaused = false, pausedAt = null) }
             } else {
                 // Pause
+                val now = Instant.now().epochSecond
                 sessionRepository.updateStatus(session.id, "paused")
-                _state.update { it.copy(isPaused = true, pausedAt = Instant.now().epochSecond) }
+                tokenStore.pausedAtEpoch = now
+                _state.update { it.copy(isPaused = true, pausedAt = now) }
             }
 
             reloadSession()
@@ -232,6 +242,7 @@ class WorkoutViewModel @Inject constructor(
             }
 
             // Clear local state so ViewModel doesn't hold stale data
+            tokenStore.clearPausedAt()
             _state.update { it.copy(session = null, isLoading = false) }
 
             onEnd()
