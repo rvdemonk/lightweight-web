@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import xyz.rigby3.lightweight.data.local.dao.TemplateDao
 import xyz.rigby3.lightweight.data.local.entity.TemplateEntity
 import xyz.rigby3.lightweight.data.local.entity.TemplateExerciseEntity
+import xyz.rigby3.lightweight.data.local.row.TemplateExerciseRow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +20,9 @@ class TemplateRepository @Inject constructor(
 
     suspend fun getExercises(templateId: Long): List<TemplateExerciseEntity> =
         templateDao.getExercises(templateId)
+
+    suspend fun getExercisesWithNames(templateId: Long): List<TemplateExerciseRow> =
+        templateDao.getExercisesWithNames(templateId)
 
     suspend fun save(template: TemplateEntity): Long =
         templateDao.insert(template)
