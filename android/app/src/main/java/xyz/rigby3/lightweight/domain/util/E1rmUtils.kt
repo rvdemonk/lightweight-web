@@ -1,6 +1,7 @@
 package xyz.rigby3.lightweight.domain.util
 
 import xyz.rigby3.lightweight.data.local.row.ExerciseSetHistoryRow
+import xyz.rigby3.lightweight.domain.calc.e1rm
 import kotlin.math.ceil
 import kotlin.math.max
 
@@ -8,10 +9,8 @@ import kotlin.math.max
  * Epley formula: weight × (1 + effectiveReps / 30)
  * RIR adds to effective reps for a more accurate estimate.
  */
-fun calcE1rm(weightKg: Double, reps: Int, rir: Int? = null): Double {
-    val effectiveReps = reps + (rir ?: 0)
-    return weightKg * (1.0 + effectiveReps / 30.0)
-}
+fun calcE1rm(weightKg: Double, reps: Int, rir: Int? = null): Double =
+    e1rm(weightKg, reps, rir)
 
 /**
  * Historical bests for an exercise, computed from all completed sets.

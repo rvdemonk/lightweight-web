@@ -2,9 +2,13 @@ package xyz.rigby3.lightweight.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Query
+import xyz.rigby3.lightweight.data.local.row.AllExerciseSetRow
 import xyz.rigby3.lightweight.data.local.row.DayActivityRow
 import xyz.rigby3.lightweight.data.local.row.ExerciseSetHistoryRow
+import xyz.rigby3.lightweight.data.local.row.ExerciseWithSessionCountRow
 import xyz.rigby3.lightweight.data.local.row.PreviousSetRow
+import xyz.rigby3.lightweight.data.local.row.WeeklyFrequencyRow
+import xyz.rigby3.lightweight.data.local.row.WeeklyVolumeRow
 
 @Dao
 interface AnalyticsDao {
@@ -49,4 +53,62 @@ interface AnalyticsDao {
         ORDER BY s.started_at, st.set_number
     """)
     suspend fun getAllSetsForExercise(userId: Long, exerciseId: Long): List<ExerciseSetHistoryRow>
+
+    @Query("""
+        SELECT date(s.started_at, '+1 day', 'weekday 1', '-7 days') AS week,
+               COALESCE(e.muscle_group, 'Other') AS muscle_group,
+               COUNT(*) AS set_count
+        FROM sets st
+        JOIN session_exercises se ON se.id = st.session_exercise_id
+        JOIN sessions s ON s.id = se.session_id
+        JOIN exercises e ON e.id = se.exercise_id
+        WHERE s.user_id = :userId AND s.status = 'completed'
+          AND st.set_type = 'working'
+          AND s.started_at >= date('now', '-' || :days || ' days')
+        GROUP BY week, muscle_group
+        ORDER BY week, muscle_group
+    """)
+    suspend fun getWeeklyVolume(userId: Long, days: Int): List<WeeklyVolumeRow>
+
+    @Query("""
+        SELECT date(s.started_at, '+1 day', 'weekday 1', '-7 days') AS week,
+               COUNT(*) AS session_count
+        FROM sessions s
+        WHERE s.user_id = :userId AND s.status = 'completed'
+          AND s.started_at >= date('now', '-' || :days || ' days')
+        GROUP BY week
+        ORDER BY week
+    """)
+    suspend fun getWeeklyFrequency(userId: Long, days: Int): List<WeeklyFrequencyRow>
+
+    @Query("""
+        SELECT e.id, e.name, e.muscle_group,
+               COUNT(DISTINCT s.id) AS session_count
+        FROM exercises e
+        JOIN session_exercises se ON se.exercise_id = e.id
+        JOIN sessions s ON s.id = se.session_id
+        JOIN sets st ON st.session_exercise_id = se.id
+        WHERE s.user_id = :userId AND s.status = 'completed'
+          AND st.set_type = 'working'
+          AND st.weight_kg > 0 AND st.reps > 0
+        GROUP BY e.id
+        ORDER BY session_count DESC
+    """)
+    suspend fun getExercisesWithSessionCount(userId: Long): List<ExerciseWithSessionCountRow>
+
+    @Query("""
+        SELECT se.exercise_id, e.name AS exercise_name,
+               e.muscle_group,
+               st.set_number, st.weight_kg, st.reps, st.rir,
+               date(s.started_at) AS date
+        FROM sets st
+        JOIN session_exercises se ON se.id = st.session_exercise_id
+        JOIN sessions s ON s.id = se.session_id
+        JOIN exercises e ON e.id = se.exercise_id
+        WHERE s.user_id = :userId AND s.status = 'completed'
+          AND st.set_type = 'working'
+          AND st.weight_kg > 0 AND st.reps > 0
+        ORDER BY s.started_at, st.set_number
+    """)
+    suspend fun getAllWorkingSets(userId: Long): List<AllExerciseSetRow>
 }
