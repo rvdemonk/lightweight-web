@@ -30,6 +30,7 @@ interface AnalyticsDao {
             JOIN session_exercises se2 ON se2.session_id = s.id
             WHERE se2.exercise_id = :exerciseId AND s.user_id = :userId
               AND s.status = 'completed' AND s.id != :excludeSessionId
+              AND EXISTS (SELECT 1 FROM sets st2 WHERE st2.session_exercise_id = se2.id)
             ORDER BY s.started_at DESC
             LIMIT 1
         )

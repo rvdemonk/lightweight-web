@@ -21,6 +21,11 @@ import xyz.rigby3.lightweight.domain.model.Exercise
 import xyz.rigby3.lightweight.domain.model.Session
 import xyz.rigby3.lightweight.domain.model.TemplateExercise
 import xyz.rigby3.lightweight.domain.model.WorkoutSet
+import xyz.rigby3.lightweight.domain.util.ExercisePRData
+import xyz.rigby3.lightweight.domain.util.historicalBests
+import xyz.rigby3.lightweight.domain.util.getPRBadge
+import xyz.rigby3.lightweight.domain.util.PRBadge
+import xyz.rigby3.lightweight.ui.components.SetPRData
 import java.time.Instant
 import javax.inject.Inject
 
@@ -29,6 +34,8 @@ data class WorkoutState(
     val expandedExerciseIndex: Int = 0,
     val previousSets: Map<Long, List<WorkoutSet>> = emptyMap(),
     val templateExercises: Map<Long, TemplateExercise> = emptyMap(),
+    val prData: Map<Long, ExercisePRData> = emptyMap(),
+    val setPRData: Map<Long, SetPRData> = emptyMap(),
     val exercises: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
     val isLoading: Boolean = true,
@@ -76,13 +83,18 @@ class WorkoutViewModel @Inject constructor(
             // Load template exercises if session is from a template
             val templateExerciseMap = loadTemplateExercises(session.templateId)
 
-            // Load previous sets for each exercise
+            // Load previous sets and PR data for each exercise
             val previousSets = mutableMapOf<Long, List<WorkoutSet>>()
+            val prDataMap = mutableMapOf<Long, ExercisePRData>()
             for (exercise in session.exercises) {
                 previousSets[exercise.exerciseId] = loadPreviousSets(
                     exercise.exerciseId, session.id
                 )
+                prDataMap[exercise.exerciseId] = loadPRData(exercise.exerciseId)
             }
+
+            // Compute PR badges for currently logged sets
+            val setPRDataMap = computeSetPRBadges(session, prDataMap)
 
             // Load exercise list for the picker
             val exercises = exerciseRepository.getAll().first().map { it.toDomain() }
@@ -94,6 +106,8 @@ class WorkoutViewModel @Inject constructor(
                     pausedAt = pausedAt,
                     previousSets = previousSets,
                     templateExercises = templateExerciseMap,
+                    prData = prDataMap,
+                    setPRData = setPRDataMap,
                     exercises = exercises,
                     isLoading = false,
                 )
@@ -149,11 +163,13 @@ class WorkoutViewModel @Inject constructor(
                 )
             )
 
-            // Load previous sets for the new exercise
+            // Load previous sets and PR data for the new exercise
             val prevSets = loadPreviousSets(exerciseId, session.id)
+            val exercisePR = loadPRData(exerciseId)
             _state.update {
                 it.copy(
                     previousSets = it.previousSets + (exerciseId to prevSets),
+                    prData = it.prData + (exerciseId to exercisePR),
                     showExercisePicker = false,
                 )
             }
@@ -277,7 +293,9 @@ class WorkoutViewModel @Inject constructor(
 
     private suspend fun reloadSession() {
         val session = sessionRepository.getActiveSession() ?: return
-        _state.update { it.copy(session = session) }
+        val prDataMap = _state.value.prData
+        val setPRDataMap = computeSetPRBadges(session, prDataMap)
+        _state.update { it.copy(session = session, setPRData = setPRDataMap) }
     }
 
     private suspend fun loadPreviousSets(exerciseId: Long, excludeSessionId: Long): List<WorkoutSet> {
@@ -293,6 +311,34 @@ class WorkoutViewModel @Inject constructor(
                 completedAt = null,
             )
         }
+    }
+
+    private suspend fun loadPRData(exerciseId: Long): ExercisePRData {
+        val history = analyticsDao.getAllSetsForExercise(userId, exerciseId)
+        return historicalBests(history)
+    }
+
+    private fun computeSetPRBadges(
+        session: Session,
+        prDataMap: Map<Long, ExercisePRData>,
+    ): Map<Long, SetPRData> {
+        val result = mutableMapOf<Long, SetPRData>()
+        for (exercise in session.exercises) {
+            val pr = prDataMap[exercise.exerciseId] ?: continue
+            val absoluteIds = mutableSetOf<Long>()
+            val setIds = mutableSetOf<Long>()
+            for (set in exercise.sets) {
+                when (getPRBadge(set.weightKg, set.reps, set.rir, set.setNumber, pr)) {
+                    PRBadge.ABSOLUTE -> absoluteIds.add(set.id)
+                    PRBadge.SET -> setIds.add(set.id)
+                    null -> {}
+                }
+            }
+            if (absoluteIds.isNotEmpty() || setIds.isNotEmpty()) {
+                result[exercise.exerciseId] = SetPRData(absoluteIds, setIds)
+            }
+        }
+        return result
     }
 
     private suspend fun loadTemplateExercises(templateId: Long?): Map<Long, TemplateExercise> {

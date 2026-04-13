@@ -36,10 +36,13 @@ import xyz.rigby3.lightweight.ui.components.LwButtonStyle
 import xyz.rigby3.lightweight.ui.components.LwCard
 import xyz.rigby3.lightweight.ui.components.NoteInput
 import xyz.rigby3.lightweight.ui.components.PreviousData
+import xyz.rigby3.lightweight.ui.components.ProgressionTargets
 import xyz.rigby3.lightweight.ui.components.SetBars
 import xyz.rigby3.lightweight.ui.components.SetLogger
+import xyz.rigby3.lightweight.ui.components.SetPRData
 import xyz.rigby3.lightweight.ui.components.Timer
 import xyz.rigby3.lightweight.ui.components.formatWeight
+import xyz.rigby3.lightweight.domain.util.ExercisePRData
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 import xyz.rigby3.lightweight.ui.theme.PagePadding
 
@@ -217,12 +220,16 @@ private fun WorkoutContent(
             val isExpanded = index == state.expandedExerciseIndex
             val templateExercise = state.templateExercises[exercise.exerciseId]
             val previousSets = state.previousSets[exercise.exerciseId] ?: emptyList()
+            val prData = state.prData[exercise.exerciseId]
+            val setPRData = state.setPRData[exercise.exerciseId]
 
             ExerciseCard(
                 exercise = exercise,
                 isExpanded = isExpanded,
                 templateExercise = templateExercise,
                 previousSets = previousSets,
+                prData = prData,
+                setPRData = setPRData,
                 onClick = {
                     onExpandExercise(if (isExpanded) -1 else index)
                 },
@@ -253,6 +260,8 @@ private fun ExerciseCard(
     isExpanded: Boolean,
     templateExercise: TemplateExercise?,
     previousSets: List<WorkoutSet>,
+    prData: ExercisePRData?,
+    setPRData: SetPRData?,
     onClick: () -> Unit,
     onLogSet: (weightKg: Double?, reps: Int, rir: Int?) -> Unit,
     onDeleteSet: (Long) -> Unit,
@@ -265,19 +274,50 @@ private fun ExerciseCard(
         // Expanded card — only title is clickable to collapse
         LwCard(expanded = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = exercise.exerciseName.uppercase(),
-                    style = typography.exerciseName,
-                    color = colors.textPrimary,
+                // Exercise name + target spec
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(onClick = onClick)
                         .padding(vertical = 4.dp),
-                )
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = exercise.exerciseName.uppercase(),
+                        style = typography.exerciseName,
+                        color = colors.textPrimary,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (templateExercise?.targetSets != null) {
+                        val sets = templateExercise.targetSets
+                        val min = templateExercise.targetRepsMin
+                        val max = templateExercise.targetRepsMax
+                        val repsRange = when {
+                            min != null && max != null && min != max -> "${min}–${max}R"
+                            min != null -> "${min}R"
+                            else -> ""
+                        }
+                        Text(
+                            text = "${sets}S $repsRange",
+                            style = typography.data,
+                            color = colors.textSecondary,
+                        )
+                    }
+                }
 
-                // Previous data + template targets
-                PreviousData(
-                    previousSets = previousSets,
+                // Previous session data
+                PreviousData(previousSets = previousSets)
+
+                // Progression targets — "SET N TO BEAT"
+                val nextSetNum = exercise.sets.size + 1
+                val baseWeight = exercise.sets.lastOrNull()?.weightKg
+                    ?: previousSets.firstOrNull()?.weightKg
+
+                ProgressionTargets(
+                    prData = prData,
+                    nextSetNumber = nextSetNum,
+                    baseWeight = baseWeight,
                     templateExercise = templateExercise,
                 )
 
@@ -286,6 +326,7 @@ private fun ExerciseCard(
                     SetBars(
                         sets = exercise.sets,
                         templateExercise = templateExercise,
+                        prData = setPRData,
                         onDeleteSet = onDeleteSet,
                     )
                 }
@@ -306,8 +347,6 @@ private fun ExerciseCard(
                     exerciseName = exercise.exerciseName,
                     onSave = onUpdateNotes,
                 )
-
-                // TODO: P3 Phase 2 — Progression Targets slot
             }
         }
     } else {
