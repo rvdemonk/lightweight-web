@@ -7,6 +7,7 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import xyz.rigby3.lightweight.data.local.entity.TemplateEntity
 import xyz.rigby3.lightweight.data.local.entity.TemplateExerciseEntity
+import xyz.rigby3.lightweight.data.local.entity.TemplateSnapshotEntity
 
 @Dao
 interface TemplateDao {
@@ -41,4 +42,10 @@ interface TemplateDao {
 
     @Query("DELETE FROM template_exercises WHERE template_id = :templateId")
     suspend fun deleteExercises(templateId: Long)
+
+    @Insert
+    suspend fun insertSnapshot(snapshot: TemplateSnapshotEntity): Long
+
+    @Query("UPDATE templates SET archived = 1 WHERE id = :id")
+    suspend fun archive(id: Long)
 }

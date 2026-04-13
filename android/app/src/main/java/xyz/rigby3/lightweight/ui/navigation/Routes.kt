@@ -15,4 +15,5 @@ import kotlinx.serialization.Serializable
 @Serializable data class SessionRoute(val id: Long)
 @Serializable object TemplatesRoute
 @Serializable data class TemplateDetailRoute(val id: Long)
+@Serializable object NewTemplateRoute
 @Serializable data class JoinRoute(val code: String)
