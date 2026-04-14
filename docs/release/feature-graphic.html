@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lightweight — Feature Graphic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07070d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  .frame {
+    width: 1024px;
+    height: 500px;
+    background: #07070d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Lockup ──
+     Font properties set here so both SVG (via 1cap) and wordmark
+     share the same font-metric context.
+  */
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 5.2rem;
+  }
+
+  /* ── Mark: sized to 1cap (= font's cap-height) ──
+     Supported: Firefox 97+, Chrome 118+, Safari 17.2+ (~91% global)
+  */
+  .lockup svg {
+    flex-shrink: 0;
+    width: 1cap;
+    height: 1cap;
+    filter: drop-shadow(0 0 6px rgba(212, 118, 44, 0.6)) drop-shadow(0 0 18px rgba(212, 118, 44, 0.2));
+  }
+
+  /* ── Wordmark ──
+     Capsize technique: pseudo-elements with negative margins trim
+     the line box to cap-height. Works in ALL browsers.
+
+     Barlow Condensed 600 metrics (per 1000 UPM):
+       ascent: 1000, descent: 200, capHeight: 700
+     With line-height: 1:
+       half-leading = (1em - 1.2em) / 2 = -0.1em
+       space above cap = (ascent/UPM - halfLeading_abs) ... simplifies to:
+       trim-top  = (ascent - capHeight) / UPM - abs(halfLeading)/fontSize
+                 = 0.3 - 0.1 = 0.2em
+       trim-bottom = descent/UPM - abs(halfLeading)/fontSize
+                   = 0.2 - 0.1 = 0.1em
+  */
+  .wordmark {
+    font-family: inherit;
+    font-weight: inherit;
+    font-size: inherit;
+    letter-spacing: 0.06em;
+    color: #d4762c;
+    text-transform: uppercase;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(212, 118, 44, 0.6), 0 0 30px rgba(212, 118, 44, 0.15);
+  }
+  /* Capsize trim — works everywhere */
+  .wordmark::before {
+    content: "";
+    display: table;
+    margin-bottom: -0.2em;
+  }
+  .wordmark::after {
+    content: "";
+    display: table;
+    margin-top: -0.1em;
+  }
+
+  /* Native text-box-trim — override Capsize where supported */
+  @supports (text-box: trim-both cap alphabetic) {
+    .wordmark {
+      text-box: trim-both cap alphabetic;
+    }
+    .wordmark::before,
+    .wordmark::after {
+      content: none;
+    }
+  }
+
+  .tagline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 500;
+    font-size: 1.15rem;
+    letter-spacing: 0.08em;
+    color: #6a6a82;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  /* ── Debug panel ── */
+  .debug {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    background: rgba(10, 10, 15, 0.96);
+    border: 1px solid #2a2a3a;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #888;
+    min-width: 300px;
+    z-index: 100;
+    user-select: none;
+  }
+  .debug h3 {
+    color: #e8a832;
+    font-size: 10px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+  }
+  .debug-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5px 0;
+  }
+  .debug-row .l { color: #6a6a82; }
+  .debug-row .v { color: #32c8e8; }
+  .debug-row .ok { color: #32e868; }
+  .debug-row .bad { color: #e83232; }
+  .debug-hr { border-top: 1px solid #222; margin: 6px 0; }
+  .debug-hint {
+    margin-top: 10px;
+    font-size: 9.5px;
+    color: #444;
+    line-height: 1.5;
+  }
+
+  /* ── Alignment guides (toggled by G key) ── */
+  .show-guides .lockup::after {
+    content: '';
+    position: absolute;
+    left: -20px;
+    right: -20px;
+    top: 50%;
+    height: 1px;
+    background: rgba(50, 200, 232, 0.35);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .show-guides #mark {
+    outline: 1px dashed rgba(232, 168, 50, 0.25);
+  }
+  .show-guides .wordmark {
+    outline: 1px dashed rgba(232, 168, 50, 0.25);
+  }
+</style>
+</head>
+<body>
+  <div class="frame" id="frame">
+    <div class="lockup" id="lockup">
+      <svg id="mark" viewBox="0 0 28 28" fill="none">
+        <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="2"/>
+        <polygon points="1.5,1.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="2" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <span class="wordmark" id="wordmark">LIGHTWEIGHT</span>
+    </div>
+    <div class="tagline">SIMPLE STRENGTH TRACKING</div>
+  </div>
+
+  <div class="debug" id="debug">
+    <h3>Alignment Metrics</h3>
+    <div id="metrics">Waiting for font…</div>
+  </div>
+
+  <script>
+    // Debug panel: verification only — CSS handles the actual alignment.
+    let showGuides = false;
+
+    document.fonts.ready.then(() => {
+      requestAnimationFrame(() => requestAnimationFrame(verify));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'g' || e.key === 'G') {
+        showGuides = !showGuides;
+        document.body.classList.toggle('show-guides', showGuides);
+      }
+    });
+
+    function verify() {
+      const wordmark = document.getElementById('wordmark');
+      const mark = document.getElementById('mark');
+      const computed = getComputedStyle(wordmark);
+      const fontSize = parseFloat(computed.fontSize);
+
+      // Canvas ink measurement
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.font = `600 ${fontSize}px 'Barlow Condensed'`;
+      const tm = ctx.measureText('LIGHTWEIGHT');
+      const canvasCapH = tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent;
+
+      // DOM rects
+      const wRect = wordmark.getBoundingClientRect();
+      const mRect = mark.getBoundingClientRect();
+
+      // Alignment deltas
+      const hDelta = mRect.height - wRect.height;
+      const wCenter = wRect.top + wRect.height / 2;
+      const mCenter = mRect.top + mRect.height / 2;
+      const yDelta = mCenter - wCenter;
+
+      // Detect which technique is active
+      const nativeTrim = CSS.supports('text-box', 'trim-both cap alphabetic');
+      const technique = nativeTrim ? 'text-box-trim (native)' : 'capsize (pseudo-elements)';
+
+      const q = (v, thresh = 1) => Math.abs(v) <= thresh ? 'ok' : 'bad';
+      document.getElementById('metrics').innerHTML = `
+        <div class="debug-row"><span class="l">technique</span><span class="v">${technique}</span></div>
+        <div class="debug-row"><span class="l">font-size</span><span class="v">${fontSize.toFixed(1)}px</span></div>
+        <div class="debug-hr"></div>
+        <div class="debug-row"><span class="l">canvas cap-H</span><span class="v">${canvasCapH.toFixed(2)}px</span></div>
+        <div class="debug-row"><span class="l">1cap target</span><span class="v">${(fontSize * 0.7).toFixed(2)}px</span></div>
+        <div class="debug-hr"></div>
+        <div class="debug-row"><span class="l">SVG height</span><span class="v">${mRect.height.toFixed(2)}px</span></div>
+        <div class="debug-row"><span class="l">wordmark height</span><span class="v">${wRect.height.toFixed(2)}px</span></div>
+        <div class="debug-row"><span class="l">height Δ</span><span class="${q(hDelta)}">${hDelta >= 0 ? '+' : ''}${hDelta.toFixed(2)}px</span></div>
+        <div class="debug-row"><span class="l">center Y Δ</span><span class="${q(yDelta)}">${yDelta >= 0 ? '+' : ''}${yDelta.toFixed(2)}px</span></div>
+        <div class="debug-hint">
+          G toggle guides
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

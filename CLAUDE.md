@@ -46,6 +46,10 @@ Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Da
 
 Android native is the primary client, actively dogfooded. The web app becomes a read-only desktop dashboard for viewing lift metrics, progressions, and account data. The Rust/Axum API server is the backend and source of truth — the Android app currently syncs data down from the server but doesn't yet write back (next priority). Until write-back sync exists, workout data logged on-device is at risk if the app is uninstalled (debug → release signing key change forces uninstall).
 
+## Tools
+
+- Brand lockup renderer: `docs/release/lockup.js` — JS module that creates pixel-perfect SVG mark + wordmark lockups via canvas ink measurement. `createLockup(container, { variant: 'full'|'short', tagline, glow })`. Asset tool at `docs/release/feature-graphic-svg.html` (serve via HTTP for ES module imports).
+
 ## Dev
 
 - Backend: `cargo run -p lightweight-server` (port 3000, env: LW_DB_PATH, LW_PORT)

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lightweight — Brand Assets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07070d;
+    font-family: 'JetBrains Mono', monospace;
+    color: #888;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  nav {
+    display: flex;
+    gap: 2px;
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+  nav button {
+    background: #12121a;
+    border: 1px solid #2a2a3a;
+    color: #6a6a82;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  nav button:first-child { border-radius: 3px 0 0 3px; }
+  nav button:last-child { border-radius: 0 3px 3px 0; }
+  nav button.active { background: #1a1a25; color: #e8a832; border-color: #e8a832; }
+  nav button:hover:not(.active) { color: #aaa; }
+  .page { display: none; }
+  .page.active { display: flex; flex-direction: column; align-items: center; }
+  .frame {
+    width: 1024px;
+    height: 500px;
+    background: #07070d;
+    border: none;
+    outline: 1px dashed rgba(50,200,232,0.5);
+    outline-offset: 1px;
+    flex-shrink: 0;
+  }
+  .frame-label {
+    font-size: 10px;
+    color: #6a6a82;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 12px;
+    margin-bottom: 32px;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    align-items: center;
+  }
+  .controls button {
+    background: #1a1a25;
+    border: 1px solid #2a2a3a;
+    color: #6a6a82;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .controls button:hover { color: #e8a832; border-color: #e8a832; }
+  .controls span { font-size: 10px; color: #444; }
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="active" data-page="full">Full Wordmark</button>
+  <button data-page="short">LW Short</button>
+  <button data-page="anim">Animation</button>
+</nav>
+
+<div class="page active" id="page-full">
+  <div class="frame" id="frame-full"></div>
+  <div class="frame-label">1024 × 500 — Play Store feature graphic</div>
+</div>
+
+<div class="page" id="page-short">
+  <div class="frame" id="frame-short"></div>
+  <div class="frame-label">1024 × 500 — Short lockup</div>
+</div>
+
+<div class="page" id="page-anim">
+  <div class="frame" id="frame-anim"></div>
+  <div class="controls">
+    <button id="btn-play">Play</button>
+    <button id="btn-reset">Reset</button>
+    <span>LIGHTWEIGHT → LW</span>
+  </div>
+</div>
+
+<script type="module">
+  import { createLockup, measureInk, BRAND } from './lockup.js';
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const { fontFamily, variants, gap, markViewbox, markStroke, color: ACCENT } = BRAND;
+  const FULL = variants.full;
+
+  // ── Tab nav ──
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-' + btn.dataset.page).classList.add('active');
+      btn.classList.add('active');
+    });
+  });
+
+  // ── Static pages ──
+  await createLockup(document.getElementById('frame-full'), {
+    variant: 'full',
+    tagline: null,
+    strokeWidth: 4,
+  });
+
+  await createLockup(document.getElementById('frame-short'), {
+    variant: 'short',
+  });
+
+  // ── Animation ──
+
+  let animCharEls = [];
+  let animCharXs = [];
+  let animLayout = {};
+  let animMarkGroup = null;
+  let animRunning = false;
+
+  document.getElementById('btn-play').addEventListener('click', runAnimation);
+  document.getElementById('btn-reset').addEventListener('click', resetAnimation);
+
+  resetAnimation();
+
+  async function resetAnimation() {
+    animRunning = false;
+    const container = document.getElementById('frame-anim');
+    container.innerHTML = '';
+
+    await document.fonts.ready;
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    // Measure per-character positions
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${FULL.weight} ${FULL.fontSize}px ${fontFamily}`;
+    ctx.letterSpacing = FULL.ls;
+    const positions = [];
+    for (let i = 0; i < FULL.text.length; i++) {
+      positions.push(ctx.measureText(FULL.text.slice(0, i)).width);
+    }
+    const fullWidth = ctx.measureText(FULL.text).width;
+
+    const wmInk = measureInk(FULL.text, {
+      fontSize: FULL.fontSize,
+      fontWeight: FULL.weight,
+      letterSpacing: FULL.ls,
+    });
+
+    const markSize = wmInk.height;
+    const lockupWidth = markSize + gap + fullWidth;
+    const ox = (1024 - lockupWidth) / 2;
+    const oy = (500 - wmInk.height) / 2;
+    const wmX = ox + markSize + gap;
+    const wmY = oy + wmInk.ascent;
+
+    // Build SVG
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('xmlns', NS);
+    svg.setAttribute('width', 1024);
+    svg.setAttribute('height', 500);
+    svg.setAttribute('viewBox', '0 0 1024 500');
+
+    // Glow filter
+    const defs = document.createElementNS(NS, 'defs');
+    const filter = document.createElementNS(NS, 'filter');
+    filter.setAttribute('id', 'glow-anim');
+    filter.setAttribute('x', '-20%');
+    filter.setAttribute('y', '-20%');
+    filter.setAttribute('width', '140%');
+    filter.setAttribute('height', '140%');
+    filter.innerHTML = `
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="soft"/>
+      <feColorMatrix in="soft" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0" result="d"/>
+      <feMerge><feMergeNode in="d"/><feMergeNode in="SourceGraphic"/></feMerge>`;
+    defs.appendChild(filter);
+    svg.appendChild(defs);
+
+    const glowGroup = document.createElementNS(NS, 'g');
+    glowGroup.setAttribute('filter', 'url(#glow-anim)');
+    svg.appendChild(glowGroup);
+
+    // Mark
+    const mg = document.createElementNS(NS, 'g');
+    const s = markSize / markViewbox;
+    const sw = markStroke / s;
+    const inset = sw / 2;
+    mg.setAttribute('transform', `translate(${ox},${oy}) scale(${s})`);
+    mg.innerHTML = `
+      <rect x="${inset}" y="${inset}" width="${markViewbox - sw}" height="${markViewbox - sw}"
+            rx="1" stroke="${ACCENT}" stroke-width="${sw}" fill="none"/>
+      <polygon points="${inset},${inset} ${markViewbox - inset},${markViewbox * 8.2 / 28} ${markViewbox * 8.2 / 28},${markViewbox - inset}"
+               stroke="${ACCENT}" stroke-width="${sw}" stroke-linejoin="round" fill="none"/>`;
+    glowGroup.appendChild(mg);
+    animMarkGroup = mg;
+
+    // Per-character text elements
+    const charsGroup = document.createElementNS(NS, 'g');
+    glowGroup.appendChild(charsGroup);
+    animCharEls = [];
+    animCharXs = [];
+
+    for (let i = 0; i < FULL.text.length; i++) {
+      const el = document.createElementNS(NS, 'text');
+      el.setAttribute('font-family', fontFamily);
+      el.setAttribute('font-weight', FULL.weight);
+      el.setAttribute('font-size', FULL.fontSize);
+      el.setAttribute('fill', ACCENT);
+      el.setAttribute('x', wmX + positions[i]);
+      el.setAttribute('y', wmY);
+      el.textContent = FULL.text[i];
+      charsGroup.appendChild(el);
+      animCharEls.push(el);
+      animCharXs.push(wmX + positions[i]);
+    }
+
+    container.appendChild(svg);
+    animLayout = { ox, oy, wmX, wmY, wmInk, markSize, fullWidth };
+  }
+
+  function runAnimation() {
+    if (animRunning) return;
+    resetAnimation().then(() => {
+      animRunning = true;
+
+      const removeOrder = [4, 3, 2, 1, 10, 9, 8, 7, 6];
+      let step = 0;
+      const FADE_MS = 50;
+      const STEP_MS = 60;
+      const SLIDE_MS = 400;
+
+      setTimeout(() => {
+        const interval = setInterval(() => {
+          if (step >= removeOrder.length) {
+            clearInterval(interval);
+            setTimeout(slideToClose, 80);
+            return;
+          }
+          fadeOut(animCharEls[removeOrder[step]], FADE_MS);
+          step++;
+        }, STEP_MS);
+      }, 800);
+
+      function fadeOut(el, duration) {
+        const start = performance.now();
+        (function tick(now) {
+          const t = Math.min((now - start) / duration, 1);
+          el.setAttribute('opacity', (1 - t).toFixed(3));
+          if (t < 1) requestAnimationFrame(tick);
+        })(performance.now());
+      }
+
+      function slideToClose() {
+        const { ox, oy, wmInk, markSize, fullWidth } = animLayout;
+
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = `${FULL.weight} ${FULL.fontSize}px ${fontFamily}`;
+        const lwWidth = ctx.measureText('LW').width;
+        const lWidth = ctx.measureText('L').width;
+
+        const targetLockupW = markSize + gap + lwWidth;
+        const targetOx = (1024 - targetLockupW) / 2;
+        const targetLx = targetOx + markSize + gap;
+        const targetWx = targetLx + lWidth;
+
+        const startMarkOx = ox;
+        const startLx = animCharXs[0];
+        const startWx = animCharXs[5];
+        const s = markSize / markViewbox;
+
+        const start = performance.now();
+        (function tick(now) {
+          const raw = Math.min((now - start) / SLIDE_MS, 1);
+          const t = 1 - Math.pow(1 - raw, 3);
+
+          const curOx = startMarkOx + (targetOx - startMarkOx) * t;
+          animMarkGroup.setAttribute('transform', `translate(${curOx},${oy}) scale(${s})`);
+          animCharEls[0].setAttribute('x', startLx + (targetLx - startLx) * t);
+          animCharEls[5].setAttribute('x', startWx + (targetWx - startWx) * t);
+
+          if (raw < 1) requestAnimationFrame(tick);
+          else animRunning = false;
+        })(performance.now());
+      }
+    });
+  }
+</script>
+</body>
+</html>
