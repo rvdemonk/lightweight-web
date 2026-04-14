@@ -54,6 +54,9 @@ class SessionRepository @Inject constructor(
     suspend fun addExercise(exercise: SessionExerciseEntity): Long =
         sessionDao.insertExercise(exercise)
 
+    suspend fun nextSetNumber(sessionExerciseId: Long): Int =
+        setDao.maxSetNumber(sessionExerciseId) + 1
+
     suspend fun addSet(set: SetEntity): Long =
         setDao.insert(set)
 
@@ -119,6 +122,22 @@ class SessionRepository @Inject constructor(
         val entity = sessionDao.getById(id) ?: return null
         return loadFullSession(entity)
     }
+
+    suspend fun getRecentCompleted(): List<SessionSummary> =
+        sessionDao.getRecentCompleted(userId).map { row ->
+            SessionSummary(
+                id = row.id,
+                templateName = if (row.templateId != null) row.name else null,
+                name = row.name,
+                startedAt = row.startedAt,
+                endedAt = row.endedAt,
+                status = row.status,
+                pausedDuration = row.pausedDuration,
+                exerciseCount = row.exerciseCount,
+                setCount = row.setCount,
+                targetSetCount = null,
+            )
+        }
 
     suspend fun getSummaries(limit: Int = 50, offset: Int = 0): List<SessionSummary> =
         sessionDao.getSummaries(userId, limit, offset).map { row ->

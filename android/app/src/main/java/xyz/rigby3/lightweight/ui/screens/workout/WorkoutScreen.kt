@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -23,7 +25,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -176,20 +187,7 @@ private fun WorkoutContent(
             // Row 2: progress bar (only if template)
             if (targetSets > 0) {
                 val fraction = (completedSets.toFloat() / targetSets).coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(colors.bgElevated),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction)
-                            .height(10.dp)
-                            .background(colors.accentGreen),
-                    )
-                }
+                WorkoutProgressBar(fraction = fraction)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -456,4 +454,95 @@ private fun resolveDefaultReps(
     exercise.sets.lastOrNull()?.reps?.let { return it }
     previousSets.firstOrNull()?.reps?.let { return it }
     return 8
+}
+
+// S-curve ribbon shape matching the web app's angular progress bar.
+// Ribbon runs along bottom-left, angles up in the middle, continues along top-right.
+private val SCurveShape = object : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(0f, h * 0.55f)
+            lineTo(w * 0.30f, h * 0.55f)
+            lineTo(w * 0.40f, 0f)
+            lineTo(w - with(density) { 6.dp.toPx() }, 0f)
+            lineTo(w, h * 0.45f)
+            lineTo(w * 0.40f, h * 0.45f)
+            lineTo(w * 0.30f, h)
+            lineTo(0f, h)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+// Skewed leading edge for the fill portion.
+private val SkewedFillShape = object : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val w = size.width
+        val h = size.height
+        val inset = with(density) { 6.dp.toPx() }
+        val path = Path().apply {
+            moveTo(0f, 0f)
+            lineTo(w, 0f)
+            lineTo(w - inset, h)
+            lineTo(0f, h)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+private val progressGradient = Brush.horizontalGradient(
+    0.0f to Color(0xFFB03030),
+    0.3f to Color(0xFFD4762C),
+    0.5f to Color(0xFFD4A832),
+    0.75f to Color(0xFF88C840),
+    1.0f to Color(0xFF32E868),
+)
+
+@Composable
+private fun WorkoutProgressBar(fraction: Float) {
+    val colors = LightweightTheme.colors
+    val density = LocalDensity.current
+    // Draw with Canvas for precise control over gradient positioning
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(20.dp)
+            .clip(SCurveShape)
+            .background(colors.bgElevated),
+    ) {
+        val fullWidthPx = with(density) { maxWidth.toPx() }
+        val skewPx = with(density) { 6.dp.toPx() }
+        val fillWidthPx = fullWidthPx * fraction
+
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (fraction <= 0f) return@Canvas
+            // Skewed fill path — full height, skewed right edge
+            val fillPath = Path().apply {
+                moveTo(0f, 0f)
+                lineTo(fillWidthPx, 0f)
+                lineTo(fillWidthPx - skewPx, size.height)
+                lineTo(0f, size.height)
+                close()
+            }
+            // Gradient spans full bar width, clipped to fill path
+            drawPath(
+                path = fillPath,
+                brush = Brush.horizontalGradient(
+                    0.0f to Color(0xFFB03030),
+                    0.3f to Color(0xFFD4762C),
+                    0.5f to Color(0xFFD4A832),
+                    0.75f to Color(0xFF88C840),
+                    1.0f to Color(0xFF32E868),
+                    startX = 0f,
+                    endX = fullWidthPx,
+                ),
+            )
+        }
+    }
 }

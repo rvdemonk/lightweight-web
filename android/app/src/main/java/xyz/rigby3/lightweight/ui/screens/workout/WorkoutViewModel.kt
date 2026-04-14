@@ -124,9 +124,7 @@ class WorkoutViewModel @Inject constructor(
 
     fun logSet(sessionExerciseId: Long, weightKg: Double?, reps: Int, rir: Int?) {
         viewModelScope.launch {
-            val session = _state.value.session ?: return@launch
-            val exercise = session.exercises.find { it.id == sessionExerciseId } ?: return@launch
-            val setNumber = exercise.sets.size + 1
+            val setNumber = sessionRepository.nextSetNumber(sessionExerciseId)
 
             sessionRepository.addSet(
                 SetEntity(

@@ -17,6 +17,9 @@ interface SetDao {
     @Query("SELECT * FROM sets WHERE session_exercise_id = :sessionExerciseId ORDER BY set_number")
     suspend fun getBySessionExerciseOnce(sessionExerciseId: Long): List<SetEntity>
 
+    @Query("SELECT COALESCE(MAX(set_number), 0) FROM sets WHERE session_exercise_id = :sessionExerciseId")
+    suspend fun maxSetNumber(sessionExerciseId: Long): Int
+
     @Insert
     suspend fun insert(set: SetEntity): Long
 
