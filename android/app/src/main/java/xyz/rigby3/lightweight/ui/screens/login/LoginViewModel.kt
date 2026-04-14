@@ -20,6 +20,7 @@ data class LoginState(
     val username: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
+    val isSyncing: Boolean = false,
     val error: String? = null,
 )
 
@@ -59,10 +60,14 @@ class LoginViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 authRepository.login(s.username.trim(), s.password)
+                _state.update { it.copy(isLoading = false, isSyncing = true) }
+                authRepository.syncIfNeeded()
+                _state.update { it.copy(isSyncing = false) }
                 _events.emit(LoginEvent.Success)
             } catch (e: Exception) {
                 _state.update { it.copy(
                     isLoading = false,
+                    isSyncing = false,
                     error = "Login failed",
                 ) }
             }
@@ -77,10 +82,14 @@ class LoginViewModel @Inject constructor(
             try {
                 val credential = googleSignInHelper.getGoogleCredential(activityContext)
                 authRepository.googleSignIn(credential.idToken, credential.displayName, credential.email)
+                _state.update { it.copy(isLoading = false, isSyncing = true) }
+                authRepository.syncIfNeeded()
+                _state.update { it.copy(isSyncing = false) }
                 _events.emit(LoginEvent.Success)
             } catch (e: Exception) {
                 _state.update { it.copy(
                     isLoading = false,
+                    isSyncing = false,
                     error = "Google sign-in failed",
                 ) }
             }

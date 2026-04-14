@@ -62,14 +62,18 @@ fun LoginScreen(
         }
     }
 
-    LoginContent(
-        state = state,
-        onUsernameChange = viewModel::updateUsername,
-        onPasswordChange = viewModel::updatePassword,
-        onLogin = viewModel::login,
-        onGoogleSignIn = { viewModel.googleSignIn(context) },
-        onNavigateToRegister = onNavigateToRegister,
-    )
+    if (state.isSyncing) {
+        SyncScreen()
+    } else {
+        LoginContent(
+            state = state,
+            onUsernameChange = viewModel::updateUsername,
+            onPasswordChange = viewModel::updatePassword,
+            onLogin = viewModel::login,
+            onGoogleSignIn = { viewModel.googleSignIn(context) },
+            onNavigateToRegister = onNavigateToRegister,
+        )
+    }
 }
 
 @Composable

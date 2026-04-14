@@ -29,7 +29,6 @@ class AuthRepository @Inject constructor(
         tokenStore.username = username
         migrateLocalDataIfNeeded(response.userId)
         exerciseRepository.seedIfEmpty()
-        autoImportIfEmpty(response.userId)
     }
 
     suspend fun register(username: String, password: String) {
@@ -46,7 +45,6 @@ class AuthRepository @Inject constructor(
         tokenStore.userId = response.userId
         tokenStore.username = username
         exerciseRepository.seedIfEmpty()
-        autoImportIfEmpty(response.userId)
     }
 
     suspend fun googleSignIn(idToken: String, displayName: String?, email: String?) {
@@ -58,7 +56,6 @@ class AuthRepository @Inject constructor(
         tokenStore.email = email
         migrateLocalDataIfNeeded(response.userId)
         exerciseRepository.seedIfEmpty()
-        autoImportIfEmpty(response.userId)
     }
 
     suspend fun logout() {
@@ -70,9 +67,10 @@ class AuthRepository @Inject constructor(
 
     /**
      * If the local DB has no sessions for this user, pull from server.
-     * Handles: Olly (existing server data, fresh install), Lewis on second device, etc.
+     * Called separately from auth so the UI can show a sync animation.
      */
-    private suspend fun autoImportIfEmpty(userId: Long) {
+    suspend fun syncIfNeeded() {
+        val userId = tokenStore.userId
         try {
             val count = db.sessionDao().countForUser(userId)
             if (count == 0) {
