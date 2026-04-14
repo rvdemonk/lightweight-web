@@ -27,3 +27,4 @@ archive/
 # Local
 .claude/
 backups/
+docs/release/node_modules/
