@@ -152,6 +152,7 @@ pub struct CreateSession {
     pub ended_at: Option<String>,
     pub status: Option<String>,
     pub notes: Option<String>,
+    pub paused_duration: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]

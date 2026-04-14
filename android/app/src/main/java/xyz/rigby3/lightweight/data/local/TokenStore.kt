@@ -28,7 +28,13 @@ class TokenStore @Inject constructor(
         set(value) = prefs.edit().putString("email", value).apply()
 
     var userId: Long
-        get() = prefs.getLong("user_id", 0L)
+        get() {
+            val stored = prefs.getLong("user_id", 0L)
+            // Upgrade path: existing installs had hardcoded user_id=1.
+            // If logged in but userId was never set, default to 1.
+            if (stored == 0L && token != null) return 1L
+            return stored
+        }
         set(value) = prefs.edit().putLong("user_id", value).apply()
 
     var autoSyncEnabled: Boolean

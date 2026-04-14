@@ -17,6 +17,7 @@ class AuthRepository @Inject constructor(
     private val tokenStore: TokenStore,
     private val exerciseRepository: ExerciseRepository,
     private val db: LightweightDatabase,
+    private val dataImportRepository: DataImportRepository,
 ) {
     val isLoggedIn: Boolean
         get() = tokenStore.isLoggedIn
@@ -28,6 +29,7 @@ class AuthRepository @Inject constructor(
         tokenStore.username = username
         migrateLocalDataIfNeeded(response.userId)
         exerciseRepository.seedIfEmpty()
+        autoImportIfEmpty(response.userId)
     }
 
     suspend fun register(username: String, password: String) {
@@ -44,6 +46,7 @@ class AuthRepository @Inject constructor(
         tokenStore.userId = response.userId
         tokenStore.username = username
         exerciseRepository.seedIfEmpty()
+        autoImportIfEmpty(response.userId)
     }
 
     suspend fun googleSignIn(idToken: String, displayName: String?, email: String?) {
@@ -55,6 +58,7 @@ class AuthRepository @Inject constructor(
         tokenStore.email = email
         migrateLocalDataIfNeeded(response.userId)
         exerciseRepository.seedIfEmpty()
+        autoImportIfEmpty(response.userId)
     }
 
     suspend fun logout() {
@@ -62,6 +66,22 @@ class AuthRepository @Inject constructor(
             try { api.logout("Bearer $it") } catch (_: Exception) { }
         }
         tokenStore.clear()
+    }
+
+    /**
+     * If the local DB has no sessions for this user, pull from server.
+     * Handles: Olly (existing server data, fresh install), Lewis on second device, etc.
+     */
+    private suspend fun autoImportIfEmpty(userId: Long) {
+        try {
+            val count = db.sessionDao().countForUser(userId)
+            if (count == 0) {
+                Log.i("Auth", "No local sessions for user $userId, auto-importing from server")
+                dataImportRepository.importFromServer()
+            }
+        } catch (e: Exception) {
+            Log.w("Auth", "Auto-import failed: ${e.message}")
+        }
     }
 
     /**

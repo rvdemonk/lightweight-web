@@ -1,5 +1,6 @@
 package xyz.rigby3.lightweight.ui.screens.workout
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import xyz.rigby3.lightweight.data.local.entity.SessionExerciseEntity
 import xyz.rigby3.lightweight.data.local.entity.SetEntity
 import xyz.rigby3.lightweight.data.repository.ExerciseRepository
 import xyz.rigby3.lightweight.data.repository.SessionRepository
+import xyz.rigby3.lightweight.data.repository.SyncRepository
 import xyz.rigby3.lightweight.data.repository.TemplateRepository
 import xyz.rigby3.lightweight.domain.model.Exercise
 import xyz.rigby3.lightweight.domain.model.Session
@@ -54,6 +56,7 @@ class WorkoutViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val analyticsDao: AnalyticsDao,
     private val tokenStore: TokenStore,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
 
     private val userId get() = tokenStore.userId
@@ -265,6 +268,14 @@ class WorkoutViewModel @Inject constructor(
             // Clear local state so ViewModel doesn't hold stale data
             tokenStore.clearPausedAt()
             _state.update { it.copy(session = null, isLoading = false) }
+
+            // Auto-sync if enabled (fire-and-forget)
+            if (tokenStore.autoSyncEnabled) {
+                viewModelScope.launch {
+                    try { syncRepository.pushUnsyncedSessions() }
+                    catch (e: Exception) { Log.w("Workout", "Auto-sync failed: ${e.message}") }
+                }
+            }
 
             onEnd()
         }

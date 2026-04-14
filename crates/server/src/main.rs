@@ -16,7 +16,7 @@ async fn main() {
     let addr = format!("{}:{}", host, port);
 
     let db = lightweight_core::db::init_db(&db_path).expect("Failed to initialize database");
-    let app = app::create_app(db);
+    let app = app::create_app(db.clone());
 
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
@@ -24,5 +24,43 @@ async fn main() {
 
     tracing::info!("Lightweight server running on {}", addr);
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+
+    // Server has stopped accepting connections — checkpoint the WAL
+    tracing::info!("Shutting down: checkpointing WAL...");
+    {
+        let conn = db.lock().unwrap();
+        match conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);") {
+            Ok(_) => tracing::info!("WAL checkpoint complete"),
+            Err(e) => tracing::error!("WAL checkpoint failed: {}", e),
+        }
+    }
+    tracing::info!("Shutdown complete");
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { tracing::info!("Received SIGINT"); },
+        _ = terminate => { tracing::info!("Received SIGTERM"); },
+    }
 }

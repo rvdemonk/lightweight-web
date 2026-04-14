@@ -221,20 +221,21 @@ pub fn create(db: &DbPool, user_id: i64, input: &CreateSession) -> Result<Sessio
         None
     };
 
+    let paused_duration = input.paused_duration.unwrap_or(0);
     if input.started_at.is_some() || input.ended_at.is_some() {
         conn.execute(
-            "INSERT INTO sessions (user_id, template_id, name, started_at, ended_at, status, notes, template_version)
-             VALUES (?1, ?2, ?3, COALESCE(?4, datetime('now')), ?5, ?6, ?7, ?8)",
+            "INSERT INTO sessions (user_id, template_id, name, started_at, ended_at, status, notes, template_version, paused_duration)
+             VALUES (?1, ?2, ?3, COALESCE(?4, datetime('now')), ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![
                 user_id, input.template_id, input.name,
                 input.started_at, input.ended_at,
-                status, input.notes, template_version
+                status, input.notes, template_version, paused_duration
             ],
         )?;
     } else {
         conn.execute(
-            "INSERT INTO sessions (user_id, template_id, name, status, notes, template_version) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            rusqlite::params![user_id, input.template_id, input.name, status, input.notes, template_version],
+            "INSERT INTO sessions (user_id, template_id, name, status, notes, template_version, paused_duration) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![user_id, input.template_id, input.name, status, input.notes, template_version, paused_duration],
         )?;
     }
 

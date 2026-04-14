@@ -90,3 +90,31 @@ data class SetDto(
     val rir: Int? = null,
     @SerialName("completed_at") val completedAt: String? = null,
 )
+
+// -- Sync (push to server) --
+
+@Serializable
+data class CreateSessionDto(
+    @SerialName("template_id") val templateId: Long? = null,
+    val name: String? = null,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("ended_at") val endedAt: String? = null,
+    val status: String? = null,
+    val notes: String? = null,
+    @SerialName("paused_duration") val pausedDuration: Long? = null,
+)
+
+@Serializable
+data class AddSessionExerciseDto(
+    @SerialName("exercise_id") val exerciseId: Long,
+    val position: Int? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class CreateSetDto(
+    @SerialName("weight_kg") val weightKg: Double? = null,
+    val reps: Int,
+    @SerialName("set_type") val setType: String? = null,
+    val rir: Int? = null,
+)

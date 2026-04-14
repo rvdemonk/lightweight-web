@@ -16,9 +16,21 @@ echo "Backing up production database..."
 BACKUP_DIR="backups/$(date +%Y-%m-%d)"
 mkdir -p "$BACKUP_DIR"
 BACKUP_FILE="$BACKUP_DIR/lightweight.db.pre-deploy-$(date +%H%M%S)"
+
+# Checkpoint WAL before stopping (captures all in-flight data)
+ssh $REMOTE "sqlite3 /var/www/lightweight/data/lightweight.db 'PRAGMA wal_checkpoint(TRUNCATE);'"
 ssh $REMOTE "systemctl stop lightweight"
 scp "$REMOTE:/var/www/lightweight/data/lightweight.db" "$BACKUP_FILE"
-echo "Backup saved: $BACKUP_FILE"
+
+# Verify backup before proceeding with deploy
+INTEGRITY=$(sqlite3 "$BACKUP_FILE" "PRAGMA integrity_check;" 2>&1)
+if [ "$INTEGRITY" != "ok" ]; then
+  echo "BACKUP INTEGRITY CHECK FAILED — aborting deploy"
+  ssh $REMOTE "systemctl start lightweight"
+  exit 1
+fi
+SESSIONS=$(sqlite3 "$BACKUP_FILE" "SELECT COUNT(*) FROM sessions;")
+echo "Backup saved: $BACKUP_FILE (integrity: ok, $SESSIONS sessions)"
 
 echo "Deploying to droplet..."
 scp target/$TARGET/release/lightweight-server target/$TARGET/release/lw-admin $REMOTE:/var/www/lightweight/

@@ -60,7 +60,8 @@ fun SettingsScreen(
         state = state,
         onToggleTheme = { viewModel.toggleTheme(); onThemeToggled() },
         onNavigateToInvites = onNavigateToInvites,
-        onImport = viewModel::importFromServer,
+        onSync = viewModel::sync,
+        onToggleAutoSync = viewModel::toggleAutoSync,
         onLogout = viewModel::logout,
     )
 }
@@ -70,7 +71,8 @@ private fun SettingsContent(
     state: SettingsState,
     onToggleTheme: () -> Unit,
     onNavigateToInvites: () -> Unit,
-    onImport: () -> Unit,
+    onSync: () -> Unit,
+    onToggleAutoSync: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val colors = LightweightTheme.colors
@@ -138,25 +140,22 @@ private fun SettingsContent(
         // --- DATA section ---
         SectionHeader(text = "DATA")
 
-        LwCard(onClick = if (state.importStatus !is ImportStatus.InProgress) onImport else null) {
+        LwCard(onClick = if (state.importStatus !is ImportStatus.InProgress) onSync else null) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "SYNC FROM SERVER",
+                    text = "SYNC",
                     style = typography.cardTitle,
                     color = colors.textPrimary,
                 )
                 Text(
                     text = when (val status = state.importStatus) {
-                        is ImportStatus.Idle -> "Pull exercises, templates & sessions"
+                        is ImportStatus.Idle -> "Push local workouts, pull from server"
                         is ImportStatus.InProgress -> if (status.total > 0) {
                             "${status.phase} (${status.current}/${status.total})"
                         } else {
                             status.phase
                         }
-                        is ImportStatus.Success -> {
-                            val r = status.result
-                            "${r.exercises} exercises, ${r.templates} templates, ${r.sessions} sessions, ${r.sets} sets"
-                        }
+                        is ImportStatus.Success -> status.message
                         is ImportStatus.Error -> status.message
                     },
                     style = typography.body,
@@ -167,6 +166,32 @@ private fun SettingsContent(
                         else -> colors.textSecondary
                     },
                     modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+
+        LwCard {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AUTO-SYNC",
+                        style = typography.cardTitle,
+                        color = colors.textPrimary,
+                    )
+                    Text(
+                        text = "Sync after each workout",
+                        style = typography.body,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                NightModeToggle(
+                    enabled = state.autoSyncEnabled,
+                    onToggle = onToggleAutoSync,
                 )
             }
         }

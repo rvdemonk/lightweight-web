@@ -161,6 +161,9 @@ class DataImportRepository @Inject constructor(
             }
         }
 
+        // Mark all imported sessions as synced (they came from the server)
+        db.sessionDao().markAllSynced(userId)
+
         return ImportResult(
             exercises = exercises.size,
             templates = templates.size,

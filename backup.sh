@@ -5,8 +5,9 @@ set -e
 # Usage: ./backup.sh [label]
 # Example: ./backup.sh pre-auth-migration
 #
-# Stops the server to force WAL checkpoint, copies the DB,
-# restarts the server. Backups stored in backups/YYYY-MM-DD/
+# Checkpoints the WAL on the remote server, stops the server,
+# copies the DB, verifies integrity, restarts. Backups stored
+# in backups/YYYY-MM-DD/
 
 REMOTE=root@170.64.189.221
 REMOTE_DB=/var/www/lightweight/data/lightweight.db
@@ -22,7 +23,12 @@ if [ -f "$BACKUP_DIR/$FILENAME" ]; then
   exit 1
 fi
 
-echo "Stopping server (forces WAL checkpoint)..."
+# Checkpoint WAL while server is still running (safe — SQLite allows concurrent readers)
+echo "Checkpointing WAL on remote..."
+ssh $REMOTE "sqlite3 '$REMOTE_DB' 'PRAGMA wal_checkpoint(TRUNCATE);'"
+
+# Stop server for a consistent snapshot
+echo "Stopping server..."
 ssh $REMOTE "systemctl stop lightweight"
 
 echo "Copying database..."
@@ -31,9 +37,21 @@ scp "$REMOTE:$REMOTE_DB" "$BACKUP_DIR/$FILENAME"
 echo "Restarting server..."
 ssh $REMOTE "systemctl start lightweight"
 
-# Show backup info
+# Verify backup integrity
+echo "Verifying backup..."
+INTEGRITY=$(sqlite3 "$BACKUP_DIR/$FILENAME" "PRAGMA integrity_check;" 2>&1)
+if [ "$INTEGRITY" != "ok" ]; then
+  echo "INTEGRITY CHECK FAILED: $INTEGRITY"
+  exit 1
+fi
+
+USERS=$(sqlite3 "$BACKUP_DIR/$FILENAME" "SELECT COUNT(*) FROM users;")
+SESSIONS=$(sqlite3 "$BACKUP_DIR/$FILENAME" "SELECT COUNT(*) FROM sessions;")
+SETS=$(sqlite3 "$BACKUP_DIR/$FILENAME" "SELECT COUNT(*) FROM sets;")
+
 SIZE=$(ls -lh "$BACKUP_DIR/$FILENAME" | awk '{print $5}')
 echo ""
 echo "Backup complete: $BACKUP_DIR/$FILENAME ($SIZE)"
+echo "Verified: integrity ok | $USERS users | $SESSIONS sessions | $SETS sets"
 echo "All backups:"
 find backups -name "*.db*" -exec ls -lh {} \; | awk '{print "  " $NF " (" $5 ")"}'

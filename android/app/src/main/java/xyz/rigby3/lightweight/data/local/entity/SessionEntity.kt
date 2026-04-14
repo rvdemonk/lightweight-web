@@ -35,5 +35,8 @@ data class SessionEntity(
     val status: String = "active",
 
     @ColumnInfo(name = "template_version")
-    val templateVersion: Int? = null
+    val templateVersion: Int? = null,
+
+    @ColumnInfo(name = "synced")
+    val synced: Boolean = false
 )

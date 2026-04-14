@@ -13,6 +13,7 @@ import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.local.dao.AnalyticsDao
 import xyz.rigby3.lightweight.data.local.dao.TemplateDao
 import xyz.rigby3.lightweight.data.repository.SessionRepository
+import xyz.rigby3.lightweight.data.repository.SyncRepository
 import xyz.rigby3.lightweight.data.repository.TemplateRepository
 import xyz.rigby3.lightweight.domain.model.DayActivity
 import xyz.rigby3.lightweight.domain.model.SessionSummary
@@ -50,6 +51,7 @@ class HomeViewModel @Inject constructor(
     private val analyticsDao: AnalyticsDao,
     private val templateDao: TemplateDao,
     private val tokenStore: TokenStore,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -57,6 +59,15 @@ class HomeViewModel @Inject constructor(
 
     init {
         reload()
+        retryUnsynced()
+    }
+
+    private fun retryUnsynced() {
+        if (!tokenStore.autoSyncEnabled) return
+        viewModelScope.launch {
+            try { syncRepository.pushUnsyncedSessions() }
+            catch (_: Exception) { }
+        }
     }
 
     fun reload() {
