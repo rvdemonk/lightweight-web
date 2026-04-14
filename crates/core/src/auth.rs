@@ -129,7 +129,7 @@ pub fn register(
 pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse, AppError> {
     let conn = db.lock().unwrap();
 
-    let result: Result<(i64, String), _> = conn.query_row(
+    let result: Result<(i64, Option<String>), _> = conn.query_row(
         "SELECT id, password_hash FROM users WHERE username = ?1",
         rusqlite::params![username],
         |row| Ok((row.get(0)?, row.get(1)?)),
@@ -137,9 +137,54 @@ pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse
 
     let (user_id, hash) = result.map_err(|_| AppError::Unauthorized)?;
 
+    // Google-only users have no password_hash
+    let hash = hash.ok_or(AppError::Unauthorized)?;
+
     if !verify_password(password, &hash)? {
         return Err(AppError::Unauthorized);
     }
+
+    let token = create_auth_session(&conn, user_id)?;
+    Ok(AuthResponse { token })
+}
+
+/// Find or create a user from a verified Google identity.
+pub fn google_auth(
+    db: &DbPool,
+    google_id: &str,
+    email: Option<&str>,
+) -> Result<AuthResponse, AppError> {
+    let conn = db.lock().unwrap();
+
+    // Try to find existing user by google_id
+    let existing: Result<i64, _> = conn.query_row(
+        "SELECT id FROM users WHERE google_id = ?1",
+        rusqlite::params![google_id],
+        |row| row.get(0),
+    );
+
+    let user_id = match existing {
+        Ok(id) => {
+            // Update email if changed
+            if let Some(email) = email {
+                conn.execute(
+                    "UPDATE users SET email = ?1 WHERE id = ?2",
+                    rusqlite::params![email, id],
+                )?;
+            }
+            id
+        }
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            conn.execute(
+                "INSERT INTO users (google_id, email) VALUES (?1, ?2)",
+                rusqlite::params![google_id, email],
+            )?;
+            let user_id = conn.last_insert_rowid();
+            seed_exercises(&conn, user_id)?;
+            user_id
+        }
+        Err(e) => return Err(AppError::Database(e)),
+    };
 
     let token = create_auth_session(&conn, user_id)?;
     Ok(AuthResponse { token })

@@ -19,6 +19,14 @@ class TokenStore @Inject constructor(
         get() = prefs.getString("username", null)
         set(value) = prefs.edit().putString("username", value).apply()
 
+    var displayName: String?
+        get() = prefs.getString("display_name", null)
+        set(value) = prefs.edit().putString("display_name", value).apply()
+
+    var email: String?
+        get() = prefs.getString("email", null)
+        set(value) = prefs.edit().putString("email", value).apply()
+
     var isDarkTheme: Boolean
         get() = prefs.getBoolean("dark_theme", true)
         set(value) = prefs.edit().putBoolean("dark_theme", value).apply()

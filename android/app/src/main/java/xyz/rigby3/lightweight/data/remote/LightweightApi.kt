@@ -7,6 +7,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import xyz.rigby3.lightweight.data.remote.dto.AuthResponse
+import xyz.rigby3.lightweight.data.remote.dto.GoogleAuthRequest
 import xyz.rigby3.lightweight.data.remote.dto.ExerciseDto
 import xyz.rigby3.lightweight.data.remote.dto.JoinRequest
 import xyz.rigby3.lightweight.data.remote.dto.LoginRequest
@@ -24,8 +25,11 @@ interface LightweightApi {
     @POST("/api/v1/auth/register")
     suspend fun register(@Body request: RegisterRequest): AuthResponse
 
-    @POST("/api/v1/auth/join")
-    suspend fun join(@Body request: JoinRequest): AuthResponse
+    @POST("/api/v1/auth/join/{code}")
+    suspend fun join(@Path("code") code: String, @Body request: JoinRequest): AuthResponse
+
+    @POST("/api/v1/auth/google")
+    suspend fun googleAuth(@Body request: GoogleAuthRequest): AuthResponse
 
     @POST("/api/v1/auth/logout")
     suspend fun logout(@Header("Authorization") token: String)

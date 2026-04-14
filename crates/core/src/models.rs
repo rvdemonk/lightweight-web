@@ -238,6 +238,11 @@ pub struct RegisterRequest {
     pub invite_code: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GoogleAuthRequest {
+    pub id_token: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
     pub token: String,

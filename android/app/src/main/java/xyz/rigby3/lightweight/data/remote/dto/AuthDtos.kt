@@ -19,8 +19,12 @@ data class RegisterRequest(
 data class JoinRequest(
     val username: String,
     val password: String,
-    @SerialName("invite_code")
-    val inviteCode: String
+)
+
+@Serializable
+data class GoogleAuthRequest(
+    @SerialName("id_token")
+    val idToken: String,
 )
 
 @Serializable

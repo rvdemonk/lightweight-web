@@ -16,6 +16,7 @@ pub fn public_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/login", post(auth_login))
         .route("/auth/register", post(auth_register))
+        .route("/auth/google", post(auth_google))
         .merge(invites::public_routes())
 }
 
@@ -37,7 +38,7 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
 
 use axum::{extract::State, http::StatusCode, Extension, Json};
 use crate::auth::AuthToken;
-use lightweight_core::models::{AuthResponse, LoginRequest, RegisterRequest};
+use lightweight_core::models::{AuthResponse, GoogleAuthRequest, LoginRequest, RegisterRequest};
 
 async fn auth_register(
     State(state): State<Arc<AppState>>,
@@ -59,6 +60,26 @@ async fn auth_register(
         lightweight_core::error::AppError::WeakPassword => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     })
+}
+
+async fn auth_google(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<GoogleAuthRequest>,
+) -> Result<(StatusCode, Json<AuthResponse>), StatusCode> {
+    let google_client_id = std::env::var("LW_GOOGLE_CLIENT_ID")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let claims = crate::google::verify_google_id_token(
+        &state.http_client,
+        &body.id_token,
+        &google_client_id,
+    )
+    .await
+    .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    lightweight_core::auth::google_auth(&state.db, &claims.sub, claims.email.as_deref())
+        .map(|r| (StatusCode::CREATED, Json(r)))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 async fn auth_login(

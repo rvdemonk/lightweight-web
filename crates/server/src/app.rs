@@ -15,12 +15,14 @@ pub type RateLimitStore = Mutex<HashMap<String, (u32, Instant)>>;
 pub struct AppState {
     pub db: DbPool,
     pub rate_limits: Arc<RateLimitStore>,
+    pub http_client: reqwest::Client,
 }
 
 pub fn create_app(db: DbPool) -> Router {
     let state = Arc::new(AppState {
         db,
         rate_limits: Arc::new(Mutex::new(HashMap::new())),
+        http_client: reqwest::Client::new(),
     });
 
     let cors = if std::env::var("LW_CORS_ORIGIN").is_ok() {

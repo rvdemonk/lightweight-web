@@ -2,12 +2,15 @@ package xyz.rigby3.lightweight.ui.screens.login
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import xyz.rigby3.lightweight.ui.components.LwButton
+import xyz.rigby3.lightweight.ui.components.LwButtonStyle
 import xyz.rigby3.lightweight.ui.components.LwTextField
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 import xyz.rigby3.lightweight.ui.theme.PagePadding
@@ -43,9 +48,11 @@ import xyz.rigby3.lightweight.ui.theme.PagePadding
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {},
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -60,6 +67,8 @@ fun LoginScreen(
         onUsernameChange = viewModel::updateUsername,
         onPasswordChange = viewModel::updatePassword,
         onLogin = viewModel::login,
+        onGoogleSignIn = { viewModel.googleSignIn(context) },
+        onNavigateToRegister = onNavigateToRegister,
     )
 }
 
@@ -69,6 +78,8 @@ private fun LoginContent(
     onUsernameChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
+    onGoogleSignIn: () -> Unit,
+    onNavigateToRegister: () -> Unit,
 ) {
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
@@ -148,6 +159,54 @@ private fun LoginContent(
                 onClick = onLogin,
                 enabled = !state.isLoading,
                 fullWidth = true,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(colors.borderSubtle),
+                )
+                Text(
+                    text = "OR",
+                    style = typography.label,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+                Spacer(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(colors.borderSubtle),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LwButton(
+                text = "SIGN IN WITH GOOGLE",
+                onClick = onGoogleSignIn,
+                enabled = !state.isLoading,
+                fullWidth = true,
+                style = LwButtonStyle.Secondary,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "CREATE ACCOUNT",
+                style = typography.label,
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable(onClick = onNavigateToRegister),
             )
         }
     }

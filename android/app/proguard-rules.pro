@@ -6,3 +6,7 @@
 -keep,includedescriptorclasses class xyz.rigby3.lightweight.**$$serializer { *; }
 -keepclassmembers class xyz.rigby3.lightweight.** { *** Companion; }
 -keepclasseswithmembers class xyz.rigby3.lightweight.** { kotlinx.serialization.KSerializer serializer(...); }
+
+# Google Credential Manager / Identity
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+-keep class androidx.credentials.** { *; }

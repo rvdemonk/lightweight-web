@@ -15,6 +15,7 @@ import xyz.rigby3.lightweight.ui.screens.exercises.ExercisesScreen
 import xyz.rigby3.lightweight.ui.screens.history.HistoryScreen
 import xyz.rigby3.lightweight.ui.screens.home.HomeScreen
 import xyz.rigby3.lightweight.ui.screens.login.LoginScreen
+import xyz.rigby3.lightweight.ui.screens.register.RegisterScreen
 import xyz.rigby3.lightweight.ui.screens.session.SessionScreen
 import xyz.rigby3.lightweight.ui.screens.settings.SettingsScreen
 import xyz.rigby3.lightweight.ui.screens.templates.TemplateDetailScreen
@@ -65,6 +66,22 @@ fun LightweightNavGraph(
                     navController.navigate(HomeRoute) {
                         popUpTo(LoginRoute) { inclusive = true }
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(RegisterRoute)
+                },
+            )
+        }
+
+        composable<RegisterRoute> {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(HomeRoute) {
+                        popUpTo(LoginRoute) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack()
                 },
             )
         }

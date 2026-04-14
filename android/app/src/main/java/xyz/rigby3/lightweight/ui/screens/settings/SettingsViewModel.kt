@@ -19,6 +19,8 @@ import javax.inject.Inject
 
 data class SettingsState(
     val username: String? = null,
+    val displayName: String? = null,
+    val email: String? = null,
     val isDarkTheme: Boolean = true,
     val importStatus: ImportStatus = ImportStatus.Idle,
 )
@@ -44,6 +46,8 @@ class SettingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(
         SettingsState(
             username = tokenStore.username,
+            displayName = tokenStore.displayName,
+            email = tokenStore.email,
             isDarkTheme = tokenStore.isDarkTheme,
         )
     )

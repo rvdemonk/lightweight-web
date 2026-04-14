@@ -191,16 +191,24 @@ private fun SettingsContent(
         SectionHeader(text = "ACCOUNT")
 
         LwCard {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column {
+                val accountName = state.username
+                    ?: state.displayName
+                    ?: state.email
+                    ?: "UNKNOWN"
                 Text(
-                    text = (state.username ?: "UNKNOWN").uppercase(),
+                    text = accountName.uppercase(),
                     style = typography.cardTitle,
                     color = colors.accentPrimary,
-                    textAlign = TextAlign.Center,
                 )
+                if (state.username == null && state.email != null) {
+                    Text(
+                        text = "GOOGLE ACCOUNT",
+                        style = typography.label,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
         }
 

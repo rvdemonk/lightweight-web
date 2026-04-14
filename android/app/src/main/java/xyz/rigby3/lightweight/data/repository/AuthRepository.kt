@@ -2,6 +2,7 @@ package xyz.rigby3.lightweight.data.repository
 
 import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.remote.LightweightApi
+import xyz.rigby3.lightweight.data.remote.dto.GoogleAuthRequest
 import xyz.rigby3.lightweight.data.remote.dto.JoinRequest
 import xyz.rigby3.lightweight.data.remote.dto.LoginRequest
 import xyz.rigby3.lightweight.data.remote.dto.RegisterRequest
@@ -32,9 +33,18 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun join(username: String, password: String, inviteCode: String) {
-        val response = api.join(JoinRequest(username, password, inviteCode))
+        val response = api.join(inviteCode, JoinRequest(username, password))
         tokenStore.token = response.token
         tokenStore.username = username
+        exerciseRepository.seedIfEmpty()
+    }
+
+    suspend fun googleSignIn(idToken: String, displayName: String?, email: String?) {
+        val response = api.googleAuth(GoogleAuthRequest(idToken))
+        tokenStore.token = response.token
+        tokenStore.username = null
+        tokenStore.displayName = displayName
+        tokenStore.email = email
         exerciseRepository.seedIfEmpty()
     }
 

@@ -1,5 +1,6 @@
 package xyz.rigby3.lightweight.ui.screens.login
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import xyz.rigby3.lightweight.data.auth.GoogleSignInHelper
 import xyz.rigby3.lightweight.data.repository.AuthRepository
 import javax.inject.Inject
 
@@ -28,6 +30,7 @@ sealed interface LoginEvent {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val googleSignInHelper: GoogleSignInHelper,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -61,6 +64,24 @@ class LoginViewModel @Inject constructor(
                 _state.update { it.copy(
                     isLoading = false,
                     error = "Login failed",
+                ) }
+            }
+        }
+    }
+
+    fun googleSignIn(activityContext: Context) {
+        if (_state.value.isLoading) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                val credential = googleSignInHelper.getGoogleCredential(activityContext)
+                authRepository.googleSignIn(credential.idToken, credential.displayName, credential.email)
+                _events.emit(LoginEvent.Success)
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    isLoading = false,
+                    error = "Google sign-in failed",
                 ) }
             }
         }

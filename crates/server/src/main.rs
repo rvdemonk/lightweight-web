@@ -1,5 +1,6 @@
 mod app;
 mod auth;
+mod google;
 mod routes;
 mod static_files;
 

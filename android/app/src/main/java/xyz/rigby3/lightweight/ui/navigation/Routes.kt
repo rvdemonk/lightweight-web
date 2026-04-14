@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 
 // Other destinations
 @Serializable object LoginRoute
+@Serializable object RegisterRoute
 @Serializable object SettingsRoute
 @Serializable object WorkoutRoute
 @Serializable data class SessionRoute(val id: Long)
