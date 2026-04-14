@@ -41,6 +41,7 @@ sealed interface TemplateDetailEvent {
 class TemplateDetailViewModel @Inject constructor(
     private val templateRepository: TemplateRepository,
     private val exerciseRepository: ExerciseRepository,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TemplateEditState())
@@ -117,7 +118,7 @@ class TemplateDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val id = exerciseRepository.save(
                 ExerciseEntity(
-                    userId = TokenStore.LOCAL_USER_ID,
+                    userId = tokenStore.userId,
                     name = name,
                     muscleGroup = muscleGroup,
                     equipment = equipment,

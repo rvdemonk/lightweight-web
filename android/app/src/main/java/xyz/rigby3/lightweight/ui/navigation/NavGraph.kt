@@ -42,6 +42,7 @@ fun LightweightNavGraph(
             HomeScreen(
                 onNavigateToWorkout = { navController.navigate(WorkoutRoute) },
                 onNavigateToTemplates = { navController.navigate(TemplatesRoute) },
+                onNavigateToSession = { id -> navController.navigate(SessionRoute(id)) },
             )
         }
 

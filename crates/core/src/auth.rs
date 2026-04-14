@@ -123,7 +123,7 @@ pub fn register(
     seed_exercises(&conn, user_id)?;
 
     let token = create_auth_session(&conn, user_id)?;
-    Ok(AuthResponse { token })
+    Ok(AuthResponse { token, user_id })
 }
 
 pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse, AppError> {
@@ -145,7 +145,7 @@ pub fn login(db: &DbPool, username: &str, password: &str) -> Result<AuthResponse
     }
 
     let token = create_auth_session(&conn, user_id)?;
-    Ok(AuthResponse { token })
+    Ok(AuthResponse { token, user_id })
 }
 
 /// Find or create a user from a verified Google identity.
@@ -187,7 +187,7 @@ pub fn google_auth(
     };
 
     let token = create_auth_session(&conn, user_id)?;
-    Ok(AuthResponse { token })
+    Ok(AuthResponse { token, user_id })
 }
 
 pub fn logout(db: &DbPool, token: &str) -> Result<(), AppError> {

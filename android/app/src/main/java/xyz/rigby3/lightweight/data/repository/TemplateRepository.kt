@@ -14,9 +14,10 @@ import javax.inject.Singleton
 
 @Singleton
 class TemplateRepository @Inject constructor(
-    private val templateDao: TemplateDao
+    private val templateDao: TemplateDao,
+    private val tokenStore: TokenStore,
 ) {
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
 
     fun getAll(): Flow<List<TemplateEntity>> =
         templateDao.getAll(userId)

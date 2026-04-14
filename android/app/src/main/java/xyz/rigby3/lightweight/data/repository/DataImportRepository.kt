@@ -34,7 +34,7 @@ class DataImportRepository @Inject constructor(
     private val db: LightweightDatabase,
     private val tokenStore: TokenStore,
 ) {
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
 
     suspend fun importFromServer(
         onProgress: (ImportProgress) -> Unit = {},

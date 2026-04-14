@@ -29,5 +29,7 @@ data class GoogleAuthRequest(
 
 @Serializable
 data class AuthResponse(
-    val token: String
+    val token: String,
+    @SerialName("user_id")
+    val userId: Long,
 )

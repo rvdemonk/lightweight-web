@@ -101,12 +101,13 @@ data class AnalyticsState(
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val analyticsDao: AnalyticsDao,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AnalyticsState())
     val state: StateFlow<AnalyticsState> = _state.asStateFlow()
 
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
 
     init {
         loadProgression()

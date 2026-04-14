@@ -7,6 +7,7 @@ import xyz.rigby3.lightweight.data.local.row.DayActivityRow
 import xyz.rigby3.lightweight.data.local.row.ExerciseSetHistoryRow
 import xyz.rigby3.lightweight.data.local.row.ExerciseWithSessionCountRow
 import xyz.rigby3.lightweight.data.local.row.PreviousSetRow
+import xyz.rigby3.lightweight.data.local.row.StrengthTrendRow
 import xyz.rigby3.lightweight.data.local.row.WeeklyFrequencyRow
 import xyz.rigby3.lightweight.data.local.row.WeeklyVolumeRow
 
@@ -111,4 +112,42 @@ interface AnalyticsDao {
         ORDER BY s.started_at, st.set_number
     """)
     suspend fun getAllWorkingSets(userId: Long): List<AllExerciseSetRow>
+
+    @Query("""
+        WITH top_exercises AS (
+            SELECT e.id, e.name, e.short_name, COALESCE(e.muscle_group, 'Other') AS muscle_group,
+                   COUNT(DISTINCT s.id) AS session_count
+            FROM exercises e
+            JOIN session_exercises se ON se.exercise_id = e.id
+            JOIN sessions s ON s.id = se.session_id
+            JOIN sets st ON st.session_exercise_id = se.id
+            WHERE s.user_id = :userId AND s.status = 'completed'
+              AND st.set_type = 'working' AND st.weight_kg > 0 AND st.reps > 0
+            GROUP BY e.id
+            ORDER BY session_count DESC
+            LIMIT 15
+        ),
+        best_e1rm AS (
+            SELECT te.id AS exercise_id, te.name AS exercise_name,
+                   te.short_name, te.muscle_group, te.session_count,
+                   CASE
+                       WHEN date(s.started_at) >= date('now', '-28 days') THEN 'recent'
+                       WHEN date(s.started_at) >= date('now', '-56 days') THEN 'previous'
+                   END AS period,
+                   MAX(st.weight_kg * (1.0 + CAST(st.reps AS REAL) / 30.0)) AS best_e1rm
+            FROM top_exercises te
+            JOIN session_exercises se ON se.exercise_id = te.id
+            JOIN sessions s ON s.id = se.session_id
+            JOIN sets st ON st.session_exercise_id = se.id
+            WHERE s.user_id = :userId AND s.status = 'completed'
+              AND st.set_type = 'working' AND st.weight_kg > 0 AND st.reps > 0
+              AND date(s.started_at) >= date('now', '-56 days')
+            GROUP BY te.id, period
+        )
+        SELECT exercise_id, exercise_name, short_name, muscle_group, session_count, period, best_e1rm
+        FROM best_e1rm
+        WHERE period IS NOT NULL
+        ORDER BY session_count DESC, exercise_id, period
+    """)
+    suspend fun getStrengthTrend(userId: Long): List<StrengthTrendRow>
 }

@@ -34,4 +34,10 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(exercises: List<ExerciseEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(exercise: ExerciseEntity): Long
+
+    @Query("UPDATE exercises SET short_name = :shortName WHERE user_id = :userId AND name = :name COLLATE NOCASE AND short_name IS NULL")
+    suspend fun backfillShortName(userId: Long, name: String, shortName: String)
 }

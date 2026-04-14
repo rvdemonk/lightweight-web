@@ -11,9 +11,10 @@ import javax.inject.Singleton
 
 @Singleton
 class ExerciseRepository @Inject constructor(
-    private val exerciseDao: ExerciseDao
+    private val exerciseDao: ExerciseDao,
+    private val tokenStore: TokenStore,
 ) {
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
 
     fun getAll(): Flow<List<ExerciseEntity>> =
         exerciseDao.getAll(userId)
@@ -27,11 +28,21 @@ class ExerciseRepository @Inject constructor(
     suspend fun archive(id: Long) =
         exerciseDao.archive(id)
 
-    /** Seed default exercises if the local DB is empty. Called on first login. */
+    /**
+     * Ensure the full exercise library exists.
+     * - New users: inserts all 92 exercises.
+     * - Existing users: inserts missing exercises (IGNORE conflicts),
+     *   then backfills short_name on any exercise that matches by name.
+     */
     suspend fun seedIfEmpty() {
-        val existing = exerciseDao.getAll(userId).first()
-        if (existing.isEmpty()) {
-            SeedData.exercises(userId).forEach { exerciseDao.insert(it) }
+        val seedExercises = SeedData.exercises(userId)
+
+        // Insert all seed exercises — IGNORE conflicts on (user_id, name)
+        seedExercises.forEach { exerciseDao.insertIgnore(it) }
+
+        // Backfill short_name for exercises that already existed
+        SeedData.shortNameMap.forEach { (name, shortName) ->
+            exerciseDao.backfillShortName(userId, name, shortName)
         }
     }
 }

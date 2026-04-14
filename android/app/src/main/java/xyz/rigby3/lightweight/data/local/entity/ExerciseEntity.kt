@@ -26,6 +26,9 @@ data class ExerciseEntity(
     @ColumnInfo(name = "equipment")
     val equipment: String? = null,
 
+    @ColumnInfo(name = "short_name")
+    val shortName: String? = null,
+
     @ColumnInfo(name = "notes")
     val notes: String? = null,
 

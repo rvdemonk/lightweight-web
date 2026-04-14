@@ -246,6 +246,7 @@ pub struct GoogleAuthRequest {
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
     pub token: String,
+    pub user_id: i64,
 }
 
 // ── Invites ──

@@ -78,6 +78,17 @@ interface SessionDao {
     """)
     suspend fun deleteIfEmpty(id: Long)
 
+    @Query("""
+        SELECT s.id, s.template_id, s.name, s.started_at, s.ended_at, s.status, s.paused_duration,
+               (SELECT COUNT(*) FROM session_exercises WHERE session_id = s.id) as exercise_count,
+               (SELECT COUNT(*) FROM sets st JOIN session_exercises se ON se.id = st.session_exercise_id WHERE se.session_id = s.id) as set_count
+        FROM sessions s
+        WHERE s.user_id = :userId AND s.status = 'completed'
+        ORDER BY s.started_at DESC
+        LIMIT 3
+    """)
+    suspend fun getRecentCompleted(userId: Long): List<SessionSummaryRow>
+
     @Query("DELETE FROM sessions WHERE user_id = :userId")
     suspend fun deleteAll(userId: Long)
 
@@ -86,4 +97,18 @@ interface SessionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<SessionExerciseEntity>)
+
+    // -- Sync --
+
+    @Query("SELECT * FROM sessions WHERE user_id = :userId AND synced = 0 AND status = 'completed'")
+    suspend fun getUnsyncedCompleted(userId: Long): List<SessionEntity>
+
+    @Query("UPDATE sessions SET synced = 1 WHERE id = :sessionId")
+    suspend fun markSynced(sessionId: Long)
+
+    @Query("UPDATE sessions SET synced = 1 WHERE user_id = :userId")
+    suspend fun markAllSynced(userId: Long)
+
+    @Query("SELECT COUNT(*) FROM sessions WHERE user_id = :userId")
+    suspend fun countForUser(userId: Long): Int
 }

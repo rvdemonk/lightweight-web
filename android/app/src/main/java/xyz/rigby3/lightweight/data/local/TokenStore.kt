@@ -27,6 +27,14 @@ class TokenStore @Inject constructor(
         get() = prefs.getString("email", null)
         set(value) = prefs.edit().putString("email", value).apply()
 
+    var userId: Long
+        get() = prefs.getLong("user_id", 0L)
+        set(value) = prefs.edit().putLong("user_id", value).apply()
+
+    var autoSyncEnabled: Boolean
+        get() = prefs.getBoolean("auto_sync_enabled", false)
+        set(value) = prefs.edit().putBoolean("auto_sync_enabled", value).apply()
+
     var isDarkTheme: Boolean
         get() = prefs.getBoolean("dark_theme", true)
         set(value) = prefs.edit().putBoolean("dark_theme", value).apply()
@@ -43,10 +51,5 @@ class TokenStore @Inject constructor(
 
     fun clear() {
         prefs.edit().clear().apply()
-    }
-
-    companion object {
-        /** Single user on device — all Room entities use this user_id. */
-        const val LOCAL_USER_ID = 1L
     }
 }

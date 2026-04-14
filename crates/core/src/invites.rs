@@ -172,7 +172,7 @@ pub fn register_with_invite(
 
         seed_exercises(&conn, user_id)?;
         let token = create_auth_session(&conn, user_id)?;
-        Ok(AuthResponse { token })
+        Ok(AuthResponse { token, user_id })
     })();
 
     match &result {

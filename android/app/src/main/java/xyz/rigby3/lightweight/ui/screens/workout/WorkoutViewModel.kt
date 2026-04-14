@@ -56,7 +56,7 @@ class WorkoutViewModel @Inject constructor(
     private val tokenStore: TokenStore,
 ) : ViewModel() {
 
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
 
     private val _state = MutableStateFlow(WorkoutState())
     val state: StateFlow<WorkoutState> = _state.asStateFlow()

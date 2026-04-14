@@ -25,9 +25,10 @@ import javax.inject.Singleton
 class SessionRepository @Inject constructor(
     private val db: LightweightDatabase,
     private val sessionDao: SessionDao,
-    private val setDao: SetDao
+    private val setDao: SetDao,
+    private val tokenStore: TokenStore,
 ) {
-    private val userId = TokenStore.LOCAL_USER_ID
+    private val userId get() = tokenStore.userId
     private val createMutex = Mutex()
 
     fun getAll(): Flow<List<SessionEntity>> =

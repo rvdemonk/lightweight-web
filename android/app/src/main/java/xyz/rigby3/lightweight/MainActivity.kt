@@ -25,6 +25,8 @@ import xyz.rigby3.lightweight.data.repository.SessionRepository
 import xyz.rigby3.lightweight.ui.navigation.LightweightBottomBar
 import xyz.rigby3.lightweight.ui.navigation.LightweightNavGraph
 import xyz.rigby3.lightweight.ui.navigation.LightweightTopBar
+import xyz.rigby3.lightweight.ui.navigation.LoginRoute
+import xyz.rigby3.lightweight.ui.navigation.RegisterRoute
 import xyz.rigby3.lightweight.ui.navigation.WorkoutRoute
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
 import javax.inject.Inject
@@ -79,14 +81,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val currentRoute = navEntry?.destination?.route ?: ""
+                val isAuthScreen = "LoginRoute" in currentRoute
+                        || "RegisterRoute" in currentRoute
+                        || "JoinRoute" in currentRoute
+
                 Scaffold(
                     containerColor = LightweightTheme.colors.bgPrimary,
-                    topBar = { LightweightTopBar(navController = navController) },
+                    topBar = {
+                        if (!isAuthScreen) LightweightTopBar(navController = navController)
+                    },
                     bottomBar = {
-                        LightweightBottomBar(
-                            navController = navController,
-                            hasActiveWorkout = hasActiveWorkout,
-                        )
+                        if (!isAuthScreen) {
+                            LightweightBottomBar(
+                                navController = navController,
+                                hasActiveWorkout = hasActiveWorkout,
+                            )
+                        }
                     },
                 ) { contentPadding ->
                     LightweightNavGraph(

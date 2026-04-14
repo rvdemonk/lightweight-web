@@ -26,7 +26,9 @@ object DatabaseModule {
             context.applicationContext,
             LightweightDatabase::class.java,
             "lightweight.db"
-        ).build()
+        )
+            .addMigrations(LightweightDatabase.MIGRATION_1_2, LightweightDatabase.MIGRATION_2_3)
+            .build()
     }
 
     @Provides
