@@ -15,6 +15,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/sessions", get(list_sessions).post(create_session))
         .route("/sessions/active", get(get_active_session))
         .route("/sessions/import", post(import_sessions))
+        .route("/sessions/sync", post(sync_sessions))
         .route("/sessions/:id", get(get_session).put(update_session).delete(delete_session))
         .route("/sessions/:sid/exercises", post(add_exercise))
         .route("/sessions/:sid/exercises/:seid", put(update_exercise).delete(remove_exercise))
@@ -168,6 +169,22 @@ async fn delete_set(
         Err(lightweight_core::error::AppError::NotFound) => StatusCode::NOT_FOUND,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
+}
+
+async fn sync_sessions(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Json(body): Json<Vec<SyncSession>>,
+) -> Result<Json<SyncResult>, (StatusCode, Json<serde_json::Value>)> {
+    lightweight_core::sessions::sync_sessions(&state.db, user_id, body)
+        .map(Json)
+        .map_err(|e| {
+            let (status, msg) = match &e {
+                lightweight_core::error::AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            };
+            (status, Json(serde_json::json!({ "error": msg })))
+        })
 }
 
 async fn import_sessions(

@@ -752,6 +752,163 @@ fn resolve_exercise(conn: &rusqlite::Connection, user_id: i64, name: &str, warni
     }
 }
 
+pub fn sync_sessions(db: &DbPool, user_id: i64, input: Vec<SyncSession>) -> Result<SyncResult, AppError> {
+    let conn = db.lock().unwrap();
+    let mut warnings: Vec<String> = Vec::new();
+
+    // Build set of existing started_at timestamps for dedup
+    let mut existing_timestamps: std::collections::HashSet<String> = std::collections::HashSet::new();
+    {
+        let mut stmt = conn.prepare(
+            "SELECT started_at FROM sessions WHERE user_id = ?1"
+        )?;
+        let rows = stmt.query_map([user_id], |row| row.get::<_, String>(0))?;
+        for row in rows {
+            if let Ok(ts) = row {
+                existing_timestamps.insert(ts);
+            }
+        }
+    }
+
+    // Partition into new vs already-exists
+    let mut to_insert: Vec<&SyncSession> = Vec::new();
+    let mut skipped: i64 = 0;
+    for session in &input {
+        if existing_timestamps.contains(&session.started_at) {
+            skipped += 1;
+        } else {
+            to_insert.push(session);
+        }
+    }
+
+    if to_insert.is_empty() {
+        return Ok(SyncResult { pushed: Vec::new(), skipped, exercises_created: Vec::new() });
+    }
+
+    // Resolve all exercise names upfront
+    let mut exercise_cache: HashMap<String, Option<(i64, String)>> = HashMap::new();
+    let mut exercises_to_create: Vec<String> = Vec::new();
+
+    for session in &to_insert {
+        for exercise in &session.exercises {
+            let key = exercise.name.to_lowercase();
+            if exercise_cache.contains_key(&key) {
+                continue;
+            }
+            let resolved = resolve_exercise(&conn, user_id, &exercise.name, &mut warnings)?;
+            if resolved.is_none() {
+                exercises_to_create.push(exercise.name.clone());
+            }
+            exercise_cache.insert(key, resolved);
+        }
+    }
+
+    // ── Single transaction ──
+    conn.execute_batch("BEGIN")?;
+
+    // Auto-create missing exercises
+    let mut exercises_created: Vec<String> = Vec::new();
+    for name in &exercises_to_create {
+        let key = name.to_lowercase();
+        let upper_name = name.to_uppercase();
+        conn.execute(
+            "INSERT INTO exercises (user_id, name) VALUES (?1, ?2)",
+            rusqlite::params![user_id, upper_name],
+        )?;
+        let id = conn.last_insert_rowid();
+        exercise_cache.insert(key, Some((id, upper_name.clone())));
+        exercises_created.push(upper_name);
+    }
+
+    let mut session_ids: Vec<i64> = Vec::new();
+
+    for session in &to_insert {
+        let status = session.status.as_deref().unwrap_or("completed");
+        let paused_duration = session.paused_duration.unwrap_or(0);
+
+        conn.execute(
+            "INSERT INTO sessions (user_id, name, started_at, ended_at, status, notes, paused_duration)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![
+                user_id, session.name, session.started_at, session.ended_at,
+                status, session.notes, paused_duration
+            ],
+        )?;
+        let session_id = conn.last_insert_rowid();
+        session_ids.push(session_id);
+
+        for exercise in &session.exercises {
+            let key = exercise.name.to_lowercase();
+            let (exercise_id, _) = exercise_cache.get(&key)
+                .and_then(|v| v.clone())
+                .ok_or_else(|| AppError::BadRequest(format!("Exercise resolution failed: '{}'", exercise.name)))?;
+
+            conn.execute(
+                "INSERT INTO session_exercises (session_id, exercise_id, position, notes)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![session_id, exercise_id, exercise.position, exercise.notes],
+            )?;
+            let se_id = conn.last_insert_rowid();
+
+            for (set_idx, set) in exercise.sets.iter().enumerate() {
+                let set_type = set.set_type.as_deref().unwrap_or("working");
+                let completed_at = set.completed_at.as_deref().unwrap_or(&session.started_at);
+                conn.execute(
+                    "INSERT INTO sets (session_exercise_id, set_number, weight_kg, reps, set_type, rir, completed_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![
+                        se_id, (set_idx + 1) as i32, set.weight_kg, set.reps,
+                        set_type, set.rir, completed_at
+                    ],
+                )?;
+            }
+        }
+    }
+
+    conn.execute_batch("COMMIT")?;
+
+    // Fetch full session objects for response
+    let mut pushed: Vec<Session> = Vec::new();
+    for id in session_ids {
+        let exercises = get_session_exercises(&conn, id)?;
+        let (template_id, template_name, name, started_at, ended_at, paused_duration, notes, status) = conn
+            .query_row(
+                "SELECT s.template_id, t.name, s.name, s.started_at, s.ended_at, s.paused_duration, s.notes, s.status
+                 FROM sessions s LEFT JOIN templates t ON t.id = s.template_id
+                 WHERE s.id = ?1",
+                [id],
+                |row| {
+                    Ok((
+                        row.get::<_, Option<i64>>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, Option<String>>(4)?,
+                        row.get::<_, i64>(5)?,
+                        row.get::<_, Option<String>>(6)?,
+                        row.get::<_, String>(7)?,
+                    ))
+                },
+            )?;
+
+        pushed.push(Session {
+            id,
+            template_id,
+            template_name,
+            name,
+            started_at,
+            ended_at,
+            paused_duration,
+            notes,
+            status,
+            template_version: None,
+            exercises,
+        });
+    }
+
+    Ok(SyncResult { pushed, skipped, exercises_created })
+}
+
 pub fn import_sessions(db: &DbPool, user_id: i64, input: Vec<ImportSession>) -> Result<ImportResult, AppError> {
     let conn = db.lock().unwrap();
     let mut warnings: Vec<String> = Vec::new();

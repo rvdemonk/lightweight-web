@@ -193,6 +193,45 @@ pub struct UpdateSet {
     pub rir: Option<i32>,
 }
 
+// ── Sync ──
+
+#[derive(Debug, Deserialize)]
+pub struct SyncSession {
+    pub name: Option<String>,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub paused_duration: Option<i64>,
+    pub status: Option<String>,
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub exercises: Vec<SyncExercise>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SyncExercise {
+    pub name: String,
+    pub position: i32,
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub sets: Vec<SyncSet>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SyncSet {
+    pub weight_kg: Option<f64>,
+    pub reps: i32,
+    pub set_type: Option<String>,
+    pub rir: Option<i32>,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SyncResult {
+    pub pushed: Vec<Session>,
+    pub skipped: i64,
+    pub exercises_created: Vec<String>,
+}
+
 // ── Import ──
 
 #[derive(Debug, Deserialize)]

@@ -94,27 +94,36 @@ data class SetDto(
 // -- Sync (push to server) --
 
 @Serializable
-data class CreateSessionDto(
-    @SerialName("template_id") val templateId: Long? = null,
+data class SyncSessionDto(
     val name: String? = null,
-    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("started_at") val startedAt: String,
     @SerialName("ended_at") val endedAt: String? = null,
+    @SerialName("paused_duration") val pausedDuration: Long? = null,
     val status: String? = null,
     val notes: String? = null,
-    @SerialName("paused_duration") val pausedDuration: Long? = null,
+    val exercises: List<SyncExerciseDto> = emptyList(),
 )
 
 @Serializable
-data class AddSessionExerciseDto(
-    @SerialName("exercise_id") val exerciseId: Long,
-    val position: Int? = null,
+data class SyncExerciseDto(
+    val name: String,
+    val position: Int,
     val notes: String? = null,
+    val sets: List<SyncSetDto> = emptyList(),
 )
 
 @Serializable
-data class CreateSetDto(
+data class SyncSetDto(
     @SerialName("weight_kg") val weightKg: Double? = null,
     val reps: Int,
     @SerialName("set_type") val setType: String? = null,
     val rir: Int? = null,
+    @SerialName("completed_at") val completedAt: String? = null,
+)
+
+@Serializable
+data class SyncResultDto(
+    val pushed: List<SessionDto> = emptyList(),
+    val skipped: Long = 0,
+    @SerialName("exercises_created") val exercisesCreated: List<String> = emptyList(),
 )

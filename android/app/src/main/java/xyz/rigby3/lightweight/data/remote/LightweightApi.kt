@@ -6,19 +6,16 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import xyz.rigby3.lightweight.data.remote.dto.AddSessionExerciseDto
 import xyz.rigby3.lightweight.data.remote.dto.AuthResponse
-import xyz.rigby3.lightweight.data.remote.dto.CreateSessionDto
-import xyz.rigby3.lightweight.data.remote.dto.CreateSetDto
 import xyz.rigby3.lightweight.data.remote.dto.GoogleAuthRequest
 import xyz.rigby3.lightweight.data.remote.dto.ExerciseDto
 import xyz.rigby3.lightweight.data.remote.dto.JoinRequest
 import xyz.rigby3.lightweight.data.remote.dto.LoginRequest
 import xyz.rigby3.lightweight.data.remote.dto.RegisterRequest
 import xyz.rigby3.lightweight.data.remote.dto.SessionDto
-import xyz.rigby3.lightweight.data.remote.dto.SessionExerciseDto
 import xyz.rigby3.lightweight.data.remote.dto.SessionSummaryDto
-import xyz.rigby3.lightweight.data.remote.dto.SetDto
+import xyz.rigby3.lightweight.data.remote.dto.SyncResultDto
+import xyz.rigby3.lightweight.data.remote.dto.SyncSessionDto
 import xyz.rigby3.lightweight.data.remote.dto.TemplateDto
 
 interface LightweightApi {
@@ -61,25 +58,10 @@ interface LightweightApi {
         @Path("id") id: Long,
     ): SessionDto
 
-    // Sync (push) — individual endpoints preserve full session data
-    @POST("/api/v1/sessions")
-    suspend fun createSession(
+    // Sync — push complete sessions atomically
+    @POST("/api/v1/sessions/sync")
+    suspend fun syncSessions(
         @Header("Authorization") token: String,
-        @Body body: CreateSessionDto,
-    ): SessionDto
-
-    @POST("/api/v1/sessions/{sid}/exercises")
-    suspend fun addSessionExercise(
-        @Header("Authorization") token: String,
-        @Path("sid") sessionId: Long,
-        @Body body: AddSessionExerciseDto,
-    ): SessionExerciseDto
-
-    @POST("/api/v1/sessions/{sid}/exercises/{seid}/sets")
-    suspend fun addSet(
-        @Header("Authorization") token: String,
-        @Path("sid") sessionId: Long,
-        @Path("seid") sessionExerciseId: Long,
-        @Body body: CreateSetDto,
-    ): SetDto
+        @Body body: List<SyncSessionDto>,
+    ): SyncResultDto
 }
