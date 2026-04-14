@@ -149,7 +149,7 @@ private fun SettingsContent(
                 )
                 Text(
                     text = when (val status = state.importStatus) {
-                        is ImportStatus.Idle -> "Push local workouts, pull from server"
+                        is ImportStatus.Idle -> "Back up workouts to server"
                         is ImportStatus.InProgress -> if (status.total > 0) {
                             "${status.phase} (${status.current}/${status.total})"
                         } else {
@@ -183,7 +183,7 @@ private fun SettingsContent(
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = "Sync after each workout",
+                        text = "Back up after each workout",
                         style = typography.body,
                         color = colors.textSecondary,
                         modifier = Modifier.padding(top = 4.dp),

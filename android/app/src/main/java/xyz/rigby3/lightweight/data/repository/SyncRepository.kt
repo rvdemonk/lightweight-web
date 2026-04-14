@@ -21,7 +21,6 @@ class SyncRepository @Inject constructor(
     private val api: LightweightApi,
     private val db: LightweightDatabase,
     private val tokenStore: TokenStore,
-    private val dataImportRepository: DataImportRepository,
 ) {
     private val userId get() = tokenStore.userId
 
