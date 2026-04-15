@@ -47,7 +47,7 @@ export function App() {
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/settings/invites" element={<ProtectedRoute><InvitesPage /></ProtectedRoute>} />
         <Route path="/whats-new" element={<ProtectedRoute><WhatsNewPage /></ProtectedRoute>} />
-        {isAdmin() && <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />}
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

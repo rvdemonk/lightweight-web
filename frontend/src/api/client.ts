@@ -129,6 +129,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ username, password, email, platform, referrer }),
     }),
+  betaJoin: (email: string, platform: string, referrer?: string) =>
+    request<{ email: string; platform: string }>('/beta/join', {
+      method: 'POST',
+      body: JSON.stringify({ email, platform, referrer }),
+    }),
 
   // Invites
   createInvite: () =>
@@ -288,10 +293,18 @@ export const api = {
     request<import('./types').ExercisePreviousSets[]>(`/sessions/${sessionId}/exercise-previous`),
 
   // Admin
-  adminOverview: () => request<import('./types').AdminOverview>('/admin/overview'),
   adminUsers: () => request<import('./types').AdminUser[]>('/admin/users'),
   adminBeta: () => request<import('./types').AdminBetaSignup[]>('/admin/beta'),
-  adminInvites: () => request<import('./types').AdminInvite[]>('/admin/invites'),
+  adminAddBeta: (email: string, platform: string, referrer?: string) =>
+    request<import('./types').AdminBetaSignup>('/admin/beta', {
+      method: 'POST',
+      body: JSON.stringify({ email, platform, referrer }),
+    }),
+  adminUpdateBetaStatus: (id: number, status: string) =>
+    request<void>(`/admin/beta/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
   adminActivity: (days?: number) =>
     request<import('./types').AdminActivity[]>(`/admin/activity${days ? `?days=${days}` : ''}`),
 };

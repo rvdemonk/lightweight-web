@@ -213,28 +213,12 @@ export interface ExportMeta {
 
 // ── Admin ──
 
-export interface AdminOverview {
-  total_users: number;
-  total_beta_signups: number;
-  invites_created: number;
-  invites_claimed: number;
-  active_auth_sessions: number;
-  recent_registrations: AdminRegistration[];
-}
-
-export interface AdminRegistration {
-  username: string | null;
-  created_at: string;
-  invited_by: string | null;
-}
-
 export interface AdminUser {
   id: number;
   username: string | null;
   email: string | null;
+  platform: string | null;
   created_at: string;
-  invited_by: string | null;
-  auth_sessions: number;
   workout_count: number;
   last_workout: string | null;
 }
@@ -247,14 +231,6 @@ export interface AdminBetaSignup {
   referrer: string | null;
   status: string;
   created_at: string;
-}
-
-export interface AdminInvite {
-  code_short: string;
-  creator: string;
-  claimed_by: string | null;
-  created_at: string;
-  claimed_at: string | null;
 }
 
 export interface AdminActivity {

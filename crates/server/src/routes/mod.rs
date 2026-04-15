@@ -47,16 +47,35 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
 
 // ── Auth handlers ──
 
-use axum::{extract::State, http::StatusCode, Extension, Json};
+use axum::{extract::State, http::{HeaderMap, StatusCode}, Extension, Json};
 use crate::auth::AuthToken;
 use lightweight_core::models::{AuthResponse, GoogleAuthRequest, LoginRequest, RegisterRequest};
 
+pub(super) fn detect_platform(headers: &HeaderMap) -> &'static str {
+    if let Some(ua) = headers.get("user-agent").and_then(|v| v.to_str().ok()) {
+        if ua.contains("okhttp") || ua.contains("Android") {
+            return "android";
+        }
+    }
+    "web"
+}
+
+pub(crate) fn tag_session_platform(state: &AppState, token: &str, platform: &str) {
+    if let Ok(conn) = state.db.lock() {
+        let _ = conn.execute(
+            "UPDATE auth_sessions SET platform = ?1 WHERE token = ?2",
+            [platform, token],
+        );
+    }
+}
+
 async fn auth_register(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<AuthResponse>), StatusCode> {
     let invite_code = std::env::var("LW_INVITE_CODE").ok();
-    lightweight_core::auth::register(
+    let result = lightweight_core::auth::register(
         &state.db,
         &body.username,
         &body.password,
@@ -64,18 +83,20 @@ async fn auth_register(
         invite_code.as_deref(),
         body.email.as_deref(),
     )
-    .map(|r| (StatusCode::CREATED, Json(r)))
     .map_err(|e| match e {
         lightweight_core::error::AppError::UsernameTaken => StatusCode::CONFLICT,
         lightweight_core::error::AppError::InvalidInviteCode => StatusCode::FORBIDDEN,
         lightweight_core::error::AppError::InvalidUsername(_) => StatusCode::BAD_REQUEST,
         lightweight_core::error::AppError::WeakPassword => StatusCode::BAD_REQUEST,
         _ => StatusCode::INTERNAL_SERVER_ERROR,
-    })
+    })?;
+    tag_session_platform(&state, &result.token, detect_platform(&headers));
+    Ok((StatusCode::CREATED, Json(result)))
 }
 
 async fn auth_google(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<GoogleAuthRequest>,
 ) -> Result<(StatusCode, Json<AuthResponse>), StatusCode> {
     let google_client_id = std::env::var("LW_GOOGLE_CLIENT_ID")
@@ -89,18 +110,21 @@ async fn auth_google(
     .await
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    lightweight_core::auth::google_auth(&state.db, &claims.sub, claims.email.as_deref())
-        .map(|r| (StatusCode::CREATED, Json(r)))
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    let result = lightweight_core::auth::google_auth(&state.db, &claims.sub, claims.email.as_deref())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    tag_session_platform(&state, &result.token, detect_platform(&headers));
+    Ok((StatusCode::CREATED, Json(result)))
 }
 
 async fn auth_login(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, StatusCode> {
-    lightweight_core::auth::login(&state.db, &body.username, &body.password)
-        .map(Json)
-        .map_err(|_| StatusCode::UNAUTHORIZED)
+    let result = lightweight_core::auth::login(&state.db, &body.username, &body.password)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    tag_session_platform(&state, &result.token, detect_platform(&headers));
+    Ok(Json(result))
 }
 
 async fn auth_check() -> StatusCode {

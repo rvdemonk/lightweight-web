@@ -2,12 +2,39 @@ use axum::{extract::State, http::StatusCode, Json, Router, routing::post};
 use std::sync::Arc;
 
 use crate::app::AppState;
-use lightweight_core::models::{AuthResponse, BetaRegisterRequest, BetaSignupRequest, BetaSignupResponse};
+use lightweight_core::models::{AuthResponse, BetaJoinRequest, BetaJoinResponse, BetaRegisterRequest, BetaSignupRequest, BetaSignupResponse};
 
 pub fn public_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/beta/signup", post(beta_signup))
         .route("/beta/register", post(beta_register))
+        .route("/beta/join", post(beta_join))
+}
+
+/// Email-only beta join (no account creation, works in any browser)
+async fn beta_join(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<BetaJoinRequest>,
+) -> Result<(StatusCode, Json<BetaJoinResponse>), StatusCode> {
+    let inserted = lightweight_core::beta::record_join(
+        &state.db,
+        &body.email,
+        &body.platform,
+        body.referrer.as_deref(),
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if !inserted {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    Ok((
+        StatusCode::CREATED,
+        Json(BetaJoinResponse {
+            email: body.email,
+            platform: body.platform,
+        }),
+    ))
 }
 
 /// Google Sign-In beta signup (Android flow)
@@ -30,6 +57,8 @@ async fn beta_signup(
 
     let auth = lightweight_core::auth::google_auth(&state.db, &claims.sub, Some(&email))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    super::tag_session_platform(&state, &auth.token, &body.platform);
 
     lightweight_core::beta::record_signup(
         &state.db,
@@ -81,6 +110,8 @@ async fn beta_register(
         body.referrer.as_deref(),
     )
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    super::tag_session_platform(&state, &auth.token, &body.platform);
 
     Ok((StatusCode::CREATED, Json(auth)))
 }
