@@ -1,5 +1,9 @@
 package xyz.rigby3.lightweight.ui.screens.templates
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -65,17 +70,26 @@ private fun TemplatesContent(
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
 
-    LazyColumn(
+    val contentVisible = remember { MutableTransitionState(false) }
+    contentVisible.targetState = !state.isLoading
+
+    AnimatedVisibility(
+        visibleState = contentVisible,
+        enter = fadeIn(tween(150)),
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bgPrimary)
-            .padding(horizontal = PagePadding),
+            .background(colors.bgPrimary),
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = PagePadding),
+        ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        if (!state.isLoading && state.templates.isEmpty()) {
+        if (state.templates.isEmpty()) {
             item {
                 Text(
                     text = "No templates yet",
@@ -149,6 +163,7 @@ private fun TemplatesContent(
                 fullWidth = true,
             )
             Spacer(modifier = Modifier.height(32.dp))
+        }
         }
     }
 }

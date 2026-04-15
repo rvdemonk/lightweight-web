@@ -1,5 +1,9 @@
 package xyz.rigby3.lightweight.ui.screens.analytics
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,21 +77,30 @@ fun AnalyticsScreen(
             onTabSelected = viewModel::selectTab,
         )
 
-        when (state.selectedTab) {
-            AnalyticsTab.Progression -> ProgressionTab(
-                state = state,
-                chartColors = chartColors,
-                chartTextStyles = chartTextStyles,
-                onExerciseSelected = viewModel::selectExercise,
-                onModeChanged = viewModel::setProgressionMode,
-                onToggleComparison = viewModel::toggleComparisonExercise,
-            )
-            AnalyticsTab.Volume -> VolumeTab(
-                state = state,
-                chartColors = chartColors,
-                chartTextStyles = chartTextStyles,
-                onVolumeModeChanged = viewModel::setVolumeMode,
-            )
+        val contentVisible = remember { MutableTransitionState(false) }
+        contentVisible.targetState = !state.isLoading
+
+        AnimatedVisibility(
+            visibleState = contentVisible,
+            enter = fadeIn(tween(150)),
+            modifier = Modifier.weight(1f),
+        ) {
+            when (state.selectedTab) {
+                AnalyticsTab.Progression -> ProgressionTab(
+                    state = state,
+                    chartColors = chartColors,
+                    chartTextStyles = chartTextStyles,
+                    onExerciseSelected = viewModel::selectExercise,
+                    onModeChanged = viewModel::setProgressionMode,
+                    onToggleComparison = viewModel::toggleComparisonExercise,
+                )
+                AnalyticsTab.Volume -> VolumeTab(
+                    state = state,
+                    chartColors = chartColors,
+                    chartTextStyles = chartTextStyles,
+                    onVolumeModeChanged = viewModel::setVolumeMode,
+                )
+            }
         }
     }
 }

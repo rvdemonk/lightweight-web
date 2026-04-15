@@ -1,5 +1,9 @@
 package xyz.rigby3.lightweight.ui.screens.home
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -108,20 +112,25 @@ private fun HomeContent(
             .padding(horizontal = PagePadding),
     ) {
         if (!showTemplates) {
-            if (state.loading) {
-                Spacer(modifier = Modifier.weight(1f))
-            } else if (isNewUser) {
-                WelcomeContent(
-                    hasTemplates = state.templates.isNotEmpty(),
-                    onNavigateToTemplates = onNavigateToTemplates,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                DashboardContent(
-                    state = state,
-                    onSessionTap = onSessionTap,
-                    modifier = Modifier.weight(1f),
-                )
+            val contentVisible = remember { MutableTransitionState(false) }
+            contentVisible.targetState = !state.loading
+
+            AnimatedVisibility(
+                visibleState = contentVisible,
+                enter = fadeIn(tween(150)),
+                modifier = Modifier.weight(1f),
+            ) {
+                if (isNewUser) {
+                    WelcomeContent(
+                        hasTemplates = state.templates.isNotEmpty(),
+                        onNavigateToTemplates = onNavigateToTemplates,
+                    )
+                } else {
+                    DashboardContent(
+                        state = state,
+                        onSessionTap = onSessionTap,
+                    )
+                }
             }
 
             // Subtle separator

@@ -1,5 +1,9 @@
 package xyz.rigby3.lightweight.ui.screens.history
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,9 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -65,43 +69,45 @@ private fun HistoryContent(
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = colors.accentPrimary)
-            }
-        } else if (state.sessions.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No sessions yet",
-                    style = typography.body,
-                    color = colors.textSecondary,
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = PagePadding),
-            ) {
-                items(state.sessions, key = { it.id }) { summary ->
-                    SessionCard(
-                        summary = summary,
-                        onClick = {
-                            if (summary.status == "active" || summary.status == "paused") {
-                                onNavigateToWorkout()
-                            } else {
-                                onNavigateToSession(summary.id)
-                            }
-                        },
+        val contentVisible = remember { MutableTransitionState(false) }
+        contentVisible.targetState = !state.isLoading
+
+        AnimatedVisibility(
+            visibleState = contentVisible,
+            enter = fadeIn(tween(150)),
+            modifier = Modifier.weight(1f),
+        ) {
+            if (state.sessions.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "No sessions yet",
+                        style = typography.body,
+                        color = colors.textSecondary,
                     )
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = PagePadding),
+                ) {
+                    items(state.sessions, key = { it.id }) { summary ->
+                        SessionCard(
+                            summary = summary,
+                            onClick = {
+                                if (summary.status == "active" || summary.status == "paused") {
+                                    onNavigateToWorkout()
+                                } else {
+                                    onNavigateToSession(summary.id)
+                                }
+                            },
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                }
             }
         }
     }
