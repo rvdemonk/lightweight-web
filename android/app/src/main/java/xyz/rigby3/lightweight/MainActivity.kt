@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
@@ -14,11 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.repository.ExerciseRepository
 import xyz.rigby3.lightweight.data.repository.SessionRepository
@@ -40,14 +39,17 @@ class MainActivity : ComponentActivity() {
 
     private var isDark by mutableStateOf(true)
     private var hasActiveWorkout by mutableStateOf(false)
+    private var isDataReady by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen().setKeepOnScreenCondition { !isDataReady }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         isDark = tokenStore.isDarkTheme
 
-        lifecycleScope.launch { exerciseRepository.seedIfEmpty() }
+        // Non-logged-in users go straight to login — no data to wait for
+        if (!tokenStore.isLoggedIn) isDataReady = true
 
         setContent {
             LightweightTheme(darkTheme = isDark) {
@@ -79,6 +81,8 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    // Seed default exercises after first frame
+                    exerciseRepository.seedIfEmpty()
                 }
 
                 val currentRoute = navEntry?.destination?.route ?: ""
@@ -105,6 +109,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(contentPadding),
                         isLoggedIn = tokenStore.isLoggedIn,
                         onThemeToggled = { isDark = tokenStore.isDarkTheme },
+                        onHomeDataReady = { isDataReady = true },
                     )
                 }
             }

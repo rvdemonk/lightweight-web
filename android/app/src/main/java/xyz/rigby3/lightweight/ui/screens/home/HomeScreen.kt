@@ -62,11 +62,17 @@ fun HomeScreen(
     onNavigateToWorkout: () -> Unit = {},
     onNavigateToTemplates: () -> Unit = {},
     onNavigateToSession: (Long) -> Unit = {},
+    onDataReady: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.reload() }
+
+    // Dismiss splash screen once critical data has loaded
+    LaunchedEffect(state.loading) {
+        if (!state.loading) onDataReady()
+    }
 
     HomeContent(
         state = state,

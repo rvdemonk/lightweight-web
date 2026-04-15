@@ -99,6 +99,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.splashscreen)
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
