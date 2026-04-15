@@ -42,6 +42,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Include baseline profile in debug builds for testing
+            isProfileable = true
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
@@ -100,6 +104,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.splashscreen)
+    implementation(libs.profileinstaller)
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)

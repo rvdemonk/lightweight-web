@@ -1,0 +1,26 @@
+# Baseline profile — AOT-compile startup hot paths
+# Applied at install time so ART skips JIT on first cold start
+
+# App startup chain
+HSPLxyz/rigby3/lightweight/LightweightApp;->**(**)**
+HSPLxyz/rigby3/lightweight/MainActivity;->**(**)**
+
+# Hilt DI graph construction
+HSPLxyz/rigby3/lightweight/di/**;->**(**)**
+Lxyz/rigby3/lightweight/Hilt_LightweightApp;
+Lxyz/rigby3/lightweight/DaggerLightweightApp_HiltComponents_SingletonC;
+
+# Data layer (Room + repositories)
+HSPLxyz/rigby3/lightweight/data/local/**;->**(**)**
+HSPLxyz/rigby3/lightweight/data/repository/**;->**(**)**
+
+# Home screen (first visible screen)
+HSPLxyz/rigby3/lightweight/ui/screens/home/**;->**(**)**
+
+# Theme + navigation (composed on every startup)
+HSPLxyz/rigby3/lightweight/ui/theme/**;->**(**)**
+HSPLxyz/rigby3/lightweight/ui/navigation/**;->**(**)**
+HSPLxyz/rigby3/lightweight/ui/components/**;->**(**)**
+
+# Domain models deserialized during startup
+Lxyz/rigby3/lightweight/domain/**;
