@@ -223,14 +223,14 @@ export interface AdminOverview {
 }
 
 export interface AdminRegistration {
-  username: string;
+  username: string | null;
   created_at: string;
   invited_by: string | null;
 }
 
 export interface AdminUser {
   id: number;
-  username: string;
+  username: string | null;
   email: string | null;
   created_at: string;
   invited_by: string | null;

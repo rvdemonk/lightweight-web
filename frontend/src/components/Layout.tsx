@@ -76,10 +76,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         top: 0,
         zIndex: 200,
       }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
+        <Link to="/" style={{
+          textDecoration: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          filter: 'drop-shadow(0 0 4px rgba(212,118,44,0.3))',
+        }}>
+          <svg width={20} height={20} viewBox="0 0 28 28" fill="none" style={{ display: 'block' }}>
+            <rect x="1.5" y="1.5" width="25" height="25" rx="1"
+              stroke="var(--accent-primary)" strokeWidth={1.5} />
+            <polygon points="1.5,1.5 26.5,8.2 8.2,26.5"
+              stroke="var(--accent-primary)" strokeWidth={1.5}
+              strokeLinejoin="round" fill="none" />
+          </svg>
           <span style={{
             fontWeight: 600,
-            fontSize: 20,
+            fontSize: 18,
             color: 'var(--accent-primary)',
             fontFamily: 'var(--font-display)',
             textShadow: 'var(--glow-primary-text)',
@@ -128,6 +141,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {isAdmin() && (
+            <Link
+              to="/admin"
+              style={{
+                color: location.pathname === '/admin'
+                  ? 'var(--accent-cyan)'
+                  : 'var(--text-secondary)',
+                fontSize: 12,
+                fontWeight: 500,
+                textDecoration: 'none',
+                letterSpacing: '1px',
+                textShadow: location.pathname === '/admin' ? 'var(--glow-cyan-text)' : 'none',
+              }}
+            >
+              ADMIN
+            </Link>
+          )}
           <Link
             to="/settings"
             style={{
@@ -374,7 +404,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {[
               { path: '/settings', label: 'SETTINGS', icon: '⚙' },
               { path: '/settings/invites', label: 'INVITES', icon: '✉' },
-              ...(isAdmin() ? [{ path: '/admin', label: 'ADMIN', icon: '◆' }] : []),
             ].map(item => {
               const active = location.pathname === item.path;
               return (

@@ -38,7 +38,7 @@ struct OverviewStats {
 
 #[derive(Serialize)]
 struct Registration {
-    username: String,
+    username: Option<String>,
     created_at: String,
     invited_by: Option<String>,
 }
@@ -46,7 +46,7 @@ struct Registration {
 #[derive(Serialize)]
 struct AdminUser {
     id: i64,
-    username: String,
+    username: Option<String>,
     email: Option<String>,
     created_at: String,
     invited_by: Option<String>,

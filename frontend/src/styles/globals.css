@@ -437,6 +437,11 @@ input:focus, textarea:focus, select:focus {
   white-space: nowrap;
 }
 
+/* Admin page — full-width dashboard layout */
+.admin-page {
+  max-width: none;
+}
+
 /* Grid pattern background — full width on desktop */
 .grid-bg {
   background-image: var(--grid-pattern);

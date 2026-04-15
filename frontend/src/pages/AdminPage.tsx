@@ -18,32 +18,7 @@ function formatDuration(min: number | null): string {
   return `${min}min`;
 }
 
-function Stat({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  return (
-    <div className="card" style={{ flex: 1, minWidth: 120, textAlign: 'center' }}>
-      <div style={{
-        fontSize: 28,
-        fontFamily: 'var(--font-data)',
-        fontWeight: 600,
-        color: color || 'var(--accent-cyan)',
-        textShadow: color ? undefined : 'var(--glow-cyan-text)',
-        lineHeight: 1,
-        marginBottom: 6,
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontSize: 10,
-        fontFamily: 'var(--font-display)',
-        letterSpacing: '2px',
-        color: 'var(--text-secondary)',
-        textTransform: 'uppercase',
-      }}>
-        {label}
-      </div>
-    </div>
-  );
-}
+// ── Shared table primitives ──
 
 function Table({ children }: { children: React.ReactNode }) {
   return (
@@ -51,9 +26,8 @@ function Table({ children }: { children: React.ReactNode }) {
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
-        fontFamily: 'var(--font-data)',
-        fontSize: 12,
-        minWidth: 500,
+        fontFamily: 'var(--font-body)',
+        fontSize: 14,
       }}>
         {children}
       </table>
@@ -65,9 +39,10 @@ function Th({ children, style }: { children: React.ReactNode; style?: React.CSSP
   return (
     <th style={{
       textAlign: 'left',
-      padding: '8px 10px',
-      fontSize: 10,
+      padding: '10px 14px',
+      fontSize: 11,
       fontFamily: 'var(--font-display)',
+      fontWeight: 600,
       letterSpacing: '2px',
       color: 'var(--text-secondary)',
       borderBottom: '1px solid var(--border-subtle)',
@@ -82,7 +57,7 @@ function Th({ children, style }: { children: React.ReactNode; style?: React.CSSP
 function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <td style={{
-      padding: '8px 10px',
+      padding: '10px 14px',
       borderBottom: '1px solid var(--border-subtle)',
       whiteSpace: 'nowrap',
       color: 'var(--text-primary)',
@@ -95,12 +70,12 @@ function Td({ children, style }: { children: React.ReactNode; style?: React.CSSP
 
 function StatusBadge({ status }: { status: string }) {
   const color = status === 'pending' ? 'var(--accent-amber)'
-    : status === 'added' ? 'var(--accent-green)'
+    : status === 'claimed' || status === 'added' ? 'var(--accent-green)'
     : 'var(--text-secondary)';
   return (
     <span style={{
       color,
-      fontSize: 11,
+      fontWeight: 500,
       letterSpacing: '1px',
       textTransform: 'uppercase',
     }}>
@@ -109,7 +84,257 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function Empty({ text }: { text: string }) {
+  return (
+    <div style={{
+      padding: 32,
+      color: 'var(--text-secondary)',
+      fontSize: 14,
+      fontFamily: 'var(--font-body)',
+      textAlign: 'center',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+// ── Tabs ──
+
+const TABS = ['overview', 'beta', 'users', 'activity', 'invites'] as const;
+type Tab = typeof TABS[number];
+
+const TAB_LABELS: Record<Tab, string> = {
+  overview: 'OVERVIEW',
+  beta: 'BETA SIGNUPS',
+  users: 'USERS',
+  activity: 'ACTIVITY',
+  invites: 'INVITES',
+};
+
+// ── Tab content ──
+
+function OverviewTab({ overview }: { overview: AdminOverview | null }) {
+  if (!overview) return <Empty text="Loading..." />;
+
+  const stats = [
+    { label: 'USERS', value: overview.total_users, color: 'var(--accent-cyan)' },
+    { label: 'BETA SIGNUPS', value: overview.total_beta_signups, color: 'var(--accent-cyan)' },
+    { label: 'INVITES CLAIMED', value: `${overview.invites_claimed} / ${overview.invites_created}`, color: 'var(--accent-amber)' },
+    { label: 'ACTIVE SESSIONS', value: overview.active_auth_sessions, color: 'var(--accent-green)' },
+  ];
+
+  return (
+    <>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 12,
+        marginBottom: 32,
+      }}>
+        {stats.map(s => (
+          <div className="card" key={s.label} style={{ textAlign: 'center', padding: 20 }}>
+            <div style={{
+              fontSize: 36,
+              fontFamily: 'var(--font-data)',
+              fontWeight: 700,
+              color: s.color,
+              lineHeight: 1,
+              marginBottom: 8,
+            }}>
+              {s.value}
+            </div>
+            <div style={{
+              fontSize: 12,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              letterSpacing: '2px',
+              color: 'var(--text-secondary)',
+            }}>
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {overview.recent_registrations.length > 0 && (
+        <>
+          <div style={{
+            fontSize: 16,
+            fontFamily: 'var(--font-display)',
+            fontWeight: 600,
+            letterSpacing: '2px',
+            color: 'var(--text-primary)',
+            marginBottom: 12,
+          }}>
+            RECENT REGISTRATIONS (7D)
+          </div>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>USERNAME</Th>
+                  <Th>JOINED</Th>
+                  <Th>INVITED BY</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {overview.recent_registrations.map((r, i) => (
+                  <tr key={i}>
+                    <Td style={{ fontWeight: 600 }}>{r.username || '\u2014'}</Td>
+                    <Td>{formatDate(r.created_at)}</Td>
+                    <Td style={{ color: 'var(--text-secondary)' }}>{r.invited_by || '(admin)'}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function BetaTab({ beta }: { beta: AdminBetaSignup[] | null }) {
+  if (!beta) return <Empty text="Loading..." />;
+  if (beta.length === 0) return <Empty text="No signups yet" />;
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Table>
+        <thead>
+          <tr>
+            <Th>EMAIL</Th>
+            <Th>USERNAME</Th>
+            <Th>PLATFORM</Th>
+            <Th>STATUS</Th>
+            <Th>DATE</Th>
+            <Th>REFERRER</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {beta.map(s => (
+            <tr key={s.id}>
+              <Td style={{ color: 'var(--accent-cyan)' }}>{s.email}</Td>
+              <Td>{s.username || '\u2014'}</Td>
+              <Td>{s.platform}</Td>
+              <Td><StatusBadge status={s.status} /></Td>
+              <Td>{formatDate(s.created_at)}</Td>
+              <Td style={{ color: 'var(--text-secondary)' }}>{s.referrer || '\u2014'}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}
+
+function UsersTab({ users }: { users: AdminUser[] | null }) {
+  if (!users) return <Empty text="Loading..." />;
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Table>
+        <thead>
+          <tr>
+            <Th style={{ textAlign: 'right' }}>ID</Th>
+            <Th>USERNAME</Th>
+            <Th>EMAIL</Th>
+            <Th>JOINED</Th>
+            <Th>INVITED BY</Th>
+            <Th style={{ textAlign: 'right' }}>AUTH</Th>
+            <Th style={{ textAlign: 'right' }}>WORKOUTS</Th>
+            <Th>LAST WORKOUT</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr key={u.id}>
+              <Td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{u.id}</Td>
+              <Td style={{ fontWeight: 600 }}>{u.username || '\u2014'}</Td>
+              <Td style={{ color: 'var(--text-secondary)' }}>{u.email || '\u2014'}</Td>
+              <Td>{formatDate(u.created_at)}</Td>
+              <Td style={{ color: 'var(--text-secondary)' }}>{u.invited_by || '(admin)'}</Td>
+              <Td style={{ textAlign: 'right' }}>{u.auth_sessions}</Td>
+              <Td style={{ textAlign: 'right', color: 'var(--accent-cyan)' }}>{u.workout_count}</Td>
+              <Td style={{ color: 'var(--text-secondary)' }}>{u.last_workout ? formatDate(u.last_workout) : '\u2014'}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}
+
+function ActivityTab({ activity }: { activity: AdminActivity[] | null }) {
+  if (!activity) return <Empty text="Loading..." />;
+  if (activity.length === 0) return <Empty text="No activity" />;
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Table>
+        <thead>
+          <tr>
+            <Th>DATE</Th>
+            <Th>USER</Th>
+            <Th>WORKOUT</Th>
+            <Th style={{ textAlign: 'right' }}>DURATION</Th>
+            <Th style={{ textAlign: 'right' }}>SETS</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {activity.map((a, i) => (
+            <tr key={i}>
+              <Td>{a.date}</Td>
+              <Td style={{ fontWeight: 600 }}>{a.username}</Td>
+              <Td>{a.workout_name}</Td>
+              <Td style={{ textAlign: 'right' }}>{formatDuration(a.duration_min)}</Td>
+              <Td style={{ textAlign: 'right', color: 'var(--accent-cyan)' }}>{a.set_count}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}
+
+function InvitesTab({ invites }: { invites: AdminInvite[] | null }) {
+  if (!invites) return <Empty text="Loading..." />;
+  if (invites.length === 0) return <Empty text="No invites" />;
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <Table>
+        <thead>
+          <tr>
+            <Th>CODE</Th>
+            <Th>CREATOR</Th>
+            <Th>STATUS</Th>
+            <Th>CLAIMED BY</Th>
+            <Th>CREATED</Th>
+            <Th>CLAIMED</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {invites.map((inv, i) => (
+            <tr key={i}>
+              <Td style={{ fontFamily: 'var(--font-data)' }}>{inv.code_short}</Td>
+              <Td>{inv.creator}</Td>
+              <Td><StatusBadge status={inv.claimed_by ? 'claimed' : 'pending'} /></Td>
+              <Td>{inv.claimed_by || '\u2014'}</Td>
+              <Td>{formatDate(inv.created_at)}</Td>
+              <Td style={{ color: 'var(--text-secondary)' }}>{inv.claimed_at ? formatDate(inv.claimed_at) : '\u2014'}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+}
+
+// ── Page ──
+
 export function AdminPage() {
+  const [tab, setTab] = useState<Tab>('overview');
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [beta, setBeta] = useState<AdminBetaSignup[] | null>(null);
@@ -132,10 +357,10 @@ export function AdminPage() {
 
   if (error) {
     return (
-      <div className="page" style={{ paddingTop: 40, textAlign: 'center' }}>
+      <div className="page admin-page" style={{ paddingTop: 40, textAlign: 'center' }}>
         <div style={{
-          fontSize: 14,
-          fontFamily: 'var(--font-data)',
+          fontSize: 16,
+          fontFamily: 'var(--font-body)',
           color: 'var(--accent-red)',
           textShadow: 'var(--glow-red-text)',
           letterSpacing: '2px',
@@ -147,171 +372,53 @@ export function AdminPage() {
   }
 
   return (
-    <div className="page" style={{ paddingTop: 20 }}>
-      {/* Overview */}
-      <div className="nerv-divider" style={{ marginBottom: 20 }}>
-        <span>OVERVIEW</span>
+    <div className="page admin-page" style={{ paddingTop: 20, display: 'flex', gap: 0 }}>
+      {/* Sidebar tabs */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        width: 180,
+        flexShrink: 0,
+        paddingRight: 24,
+        borderRight: '1px solid var(--border-subtle)',
+        marginRight: 24,
+      }}>
+        {TABS.map(t => {
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: '10px 14px',
+                background: active ? 'var(--bg-elevated)' : 'none',
+                border: 'none',
+                borderRadius: 2,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: '2px',
+                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                textAlign: 'left',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s, background 0.15s',
+              }}
+            >
+              {TAB_LABELS[t]}
+            </button>
+          );
+        })}
       </div>
 
-      {overview ? (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
-          <Stat label="Users" value={overview.total_users} />
-          <Stat label="Beta Signups" value={overview.total_beta_signups} />
-          <Stat label="Invites" value={`${overview.invites_claimed}/${overview.invites_created}`} />
-          <Stat label="Sessions" value={overview.active_auth_sessions} color="var(--accent-green)" />
-        </div>
-      ) : (
-        <div style={{ marginBottom: 32, color: 'var(--text-secondary)', fontSize: 12 }}>Loading...</div>
-      )}
-
-      {/* Beta Signups */}
-      <div className="nerv-divider" style={{ marginBottom: 16 }}>
-        <span>BETA SIGNUPS</span>
-      </div>
-
-      <div className="card" style={{ padding: 0, marginBottom: 32, overflow: 'hidden' }}>
-        {beta ? beta.length === 0 ? (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>No signups yet</div>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>EMAIL</Th>
-                <Th>USER</Th>
-                <Th>PLATFORM</Th>
-                <Th>STATUS</Th>
-                <Th>DATE</Th>
-                <Th>REFERRER</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {beta.map(s => (
-                <tr key={s.id}>
-                  <Td style={{ color: 'var(--accent-cyan)' }}>{s.email}</Td>
-                  <Td>{s.username || '\u2014'}</Td>
-                  <Td>{s.platform}</Td>
-                  <Td><StatusBadge status={s.status} /></Td>
-                  <Td>{formatDate(s.created_at)}</Td>
-                  <Td style={{ color: 'var(--text-secondary)' }}>{s.referrer || '\u2014'}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        ) : (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Loading...</div>
-        )}
-      </div>
-
-      {/* Users */}
-      <div className="nerv-divider" style={{ marginBottom: 16 }}>
-        <span>USERS</span>
-      </div>
-
-      <div className="card" style={{ padding: 0, marginBottom: 32, overflow: 'hidden' }}>
-        {users ? (
-          <Table>
-            <thead>
-              <tr>
-                <Th style={{ textAlign: 'right' }}>ID</Th>
-                <Th>USERNAME</Th>
-                <Th>JOINED</Th>
-                <Th>INVITED BY</Th>
-                <Th style={{ textAlign: 'right' }}>AUTH</Th>
-                <Th style={{ textAlign: 'right' }}>WORKOUTS</Th>
-                <Th>LAST WORKOUT</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id}>
-                  <Td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{u.id}</Td>
-                  <Td style={{ fontWeight: 600 }}>{u.username}</Td>
-                  <Td>{formatDate(u.created_at)}</Td>
-                  <Td style={{ color: 'var(--text-secondary)' }}>{u.invited_by || '(admin)'}</Td>
-                  <Td style={{ textAlign: 'right' }}>{u.auth_sessions}</Td>
-                  <Td style={{ textAlign: 'right', color: 'var(--accent-cyan)' }}>{u.workout_count}</Td>
-                  <Td style={{ color: 'var(--text-secondary)' }}>{u.last_workout ? formatDate(u.last_workout) : '\u2014'}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        ) : (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Loading...</div>
-        )}
-      </div>
-
-      {/* Activity */}
-      <div className="nerv-divider" style={{ marginBottom: 16 }}>
-        <span>RECENT ACTIVITY (14D)</span>
-      </div>
-
-      <div className="card" style={{ padding: 0, marginBottom: 32, overflow: 'hidden' }}>
-        {activity ? activity.length === 0 ? (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>No activity</div>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>DATE</Th>
-                <Th>USER</Th>
-                <Th>WORKOUT</Th>
-                <Th style={{ textAlign: 'right' }}>DURATION</Th>
-                <Th style={{ textAlign: 'right' }}>SETS</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {activity.map((a, i) => (
-                <tr key={i}>
-                  <Td>{a.date}</Td>
-                  <Td style={{ fontWeight: 600 }}>{a.username}</Td>
-                  <Td>{a.workout_name}</Td>
-                  <Td style={{ textAlign: 'right' }}>{formatDuration(a.duration_min)}</Td>
-                  <Td style={{ textAlign: 'right', color: 'var(--accent-cyan)' }}>{a.set_count}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        ) : (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Loading...</div>
-        )}
-      </div>
-
-      {/* Invites */}
-      <div className="nerv-divider" style={{ marginBottom: 16 }}>
-        <span>INVITES</span>
-      </div>
-
-      <div className="card" style={{ padding: 0, marginBottom: 32, overflow: 'hidden' }}>
-        {invites ? invites.length === 0 ? (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>No invites</div>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>CODE</Th>
-                <Th>CREATOR</Th>
-                <Th>STATUS</Th>
-                <Th>CLAIMED BY</Th>
-                <Th>CREATED</Th>
-                <Th>CLAIMED</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {invites.map((inv, i) => (
-                <tr key={i}>
-                  <Td style={{ fontFamily: 'var(--font-data)' }}>{inv.code_short}</Td>
-                  <Td>{inv.creator}</Td>
-                  <Td><StatusBadge status={inv.claimed_by ? 'claimed' : 'pending'} /></Td>
-                  <Td>{inv.claimed_by || '\u2014'}</Td>
-                  <Td>{formatDate(inv.created_at)}</Td>
-                  <Td style={{ color: 'var(--text-secondary)' }}>{inv.claimed_at ? formatDate(inv.claimed_at) : '\u2014'}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        ) : (
-          <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 12 }}>Loading...</div>
-        )}
+      {/* Tab content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {tab === 'overview' && <OverviewTab overview={overview} />}
+        {tab === 'beta' && <BetaTab beta={beta} />}
+        {tab === 'users' && <UsersTab users={users} />}
+        {tab === 'activity' && <ActivityTab activity={activity} />}
+        {tab === 'invites' && <InvitesTab invites={invites} />}
       </div>
     </div>
   );
