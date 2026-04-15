@@ -153,13 +153,16 @@ export async function createLockup(container, {
   color = DEFAULT_COLOR,
   strokeWidth = MARK_STROKE,
 } = {}) {
-  await document.fonts.ready;
-
-  // Double rAF to let font rendering settle
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Explicitly load the brand font — document.fonts.ready only waits for
+  // fonts already requested by the page, so Canvas measureText can race
+  // against lazy font loading and measure with the fallback instead.
+  const v = VARIANTS[variant];
+  await document.fonts.load(`${v.weight} ${v.fontSize}px ${FONT_FAMILY}`);
+  if (tagline) {
+    await document.fonts.load(`${TAGLINE_STYLE.weight} ${TAGLINE_STYLE.fontSize}px ${FONT_FAMILY}`);
+  }
 
   const layout = computeLayout(variant, tagline, width, height);
-  const v = VARIANTS[variant];
 
   // Build SVG
   const svg = svgEl('svg');
