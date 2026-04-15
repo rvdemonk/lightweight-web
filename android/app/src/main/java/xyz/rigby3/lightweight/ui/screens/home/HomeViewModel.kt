@@ -33,6 +33,7 @@ data class ExerciseMover(
 )
 
 data class HomeState(
+    val loading: Boolean = true,
     val heatmapData: List<DayActivity> = emptyList(),
     val templates: List<Template> = emptyList(),
     val isCreatingSession: Boolean = false,
@@ -71,13 +72,13 @@ class HomeViewModel @Inject constructor(
     }
 
     fun reload() {
-        loadHeatmap()
+        loadCriticalPath()
         loadTemplates()
-        loadRecentSessions()
         loadStrengthTrend()
     }
 
-    private fun loadHeatmap() {
+    /** Heatmap + recent sessions in one shot — resolves welcome vs dashboard before first frame. */
+    private fun loadCriticalPath() {
         viewModelScope.launch {
             val rows = analyticsDao.getActivityHeatmap(
                 userId = tokenStore.userId,
@@ -85,12 +86,15 @@ class HomeViewModel @Inject constructor(
             )
             val data = rows.map { DayActivity(date = it.date, setCount = it.setCount) }
             val stats = computeStats(data)
+            val recent = sessionRepository.getRecentCompleted()
             _state.update {
                 it.copy(
                     heatmapData = data,
                     sessionsThisWeek = stats.thisWeek,
                     weekStreak = stats.weekStreak,
                     daysSinceLast = stats.daysSinceLast,
+                    recentSessions = recent,
+                    loading = false,
                 )
             }
         }
@@ -122,13 +126,6 @@ class HomeViewModel @Inject constructor(
                 )
             }
             _state.update { it.copy(templates = templates) }
-        }
-    }
-
-    private fun loadRecentSessions() {
-        viewModelScope.launch {
-            val recent = sessionRepository.getRecentCompleted()
-            _state.update { it.copy(recentSessions = recent) }
         }
     }
 
