@@ -213,7 +213,7 @@ async fn beta(
         .prepare(
             "SELECT b.id, b.email, u.username, b.platform, b.referrer, b.status, b.created_at
              FROM beta_signups b
-             JOIN users u ON u.id = b.user_id
+             LEFT JOIN users u ON u.id = b.user_id
              ORDER BY b.created_at DESC",
         )
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -248,8 +248,8 @@ async fn invites(
         .prepare(
             "SELECT
                 substr(i.code, 1, 8),
-                creator.username,
-                claimer.username,
+                COALESCE(creator.username, creator.email, 'Unknown'),
+                COALESCE(claimer.username, claimer.email),
                 i.created_at,
                 i.used_at
              FROM invites i
@@ -290,7 +290,7 @@ async fn activity(
         .prepare(
             "SELECT
                 date(s.started_at),
-                u.username,
+                COALESCE(u.username, u.email, 'Unknown'),
                 COALESCE(s.name, t.name, 'Freeform'),
                 CASE WHEN s.ended_at IS NOT NULL THEN
                     CAST((julianday(s.ended_at) - julianday(s.started_at)) * 1440 - s.paused_duration / 60.0 AS INTEGER)
