@@ -2,6 +2,29 @@
 
 All notable changes to Lightweight.
 
+<!--
+RELEASE PIPELINE — tracks what's shipped where.
+  Device: installed on Lewis's phone (release APK via adb)
+  Console: uploaded to Play Store (bundle version)
+When a new bundle ships to console, mark rows with the version.
+When all rows are shipped, move them into a versioned section below and clear the table.
+-->
+
+## Unreleased
+
+| Change | Device | Console | Commit |
+|--------|:------:|:-------:|--------|
+| Triangle grid sync animation, dev tools preview | yes | — | dcb60fa |
+| Beta signup flow and admin dashboard | yes | — | 9c39028 |
+| Fix beta page flicker (web) | n/a | — | d8565cf |
+| Fade-in content on all tab screens | yes | — | fbe74ed |
+| Baseline profile for AOT startup | yes | — | 6a19e29 |
+| Branded splash held until dashboard ready | yes | — | 7b20e6c |
+| Eliminate welcome screen flash (loading gate) | yes | — | 52c9dc9 |
+| New-user experience polish (PRs, picker, analytics) | yes | 1.0.0 | 2645f4e |
+
+**Console 1.0.0** = internal + closed testing (2026-04-15, versionCode 1)
+
 ---
 
 ## v1.1.0 — 2026-04-15
