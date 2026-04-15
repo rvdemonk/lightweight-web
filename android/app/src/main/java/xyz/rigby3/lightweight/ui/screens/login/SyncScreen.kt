@@ -23,27 +23,19 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.dp
 import xyz.rigby3.lightweight.ui.theme.LightweightTheme
-import kotlin.math.cos
+import kotlin.math.abs
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun SyncScreen() {
     val colors = LightweightTheme.colors
-    val typography = LightweightTheme.typography
     val t = rememberInfiniteTransition(label = "sync")
 
     val amber = colors.accentPrimary
-    val cyan = colors.accentCyan
 
-    // Mark pulse
-    val markScale by t.animateFloat(
-        initialValue = 0.93f, targetValue = 1.07f,
-        animationSpec = infiniteRepeatable(
-            tween(1400, easing = EaseInOutSine), RepeatMode.Reverse,
-        ), label = "markScale",
-    )
+    // Glow pulse on center mark
     val markGlow by t.animateFloat(
         initialValue = 0.15f, targetValue = 0.45f,
         animationSpec = infiniteRepeatable(
@@ -51,40 +43,12 @@ fun SyncScreen() {
         ), label = "markGlow",
     )
 
-    // Three octagon rings, staggered phase
-    val ring1 by t.animateFloat(
-        initialValue = 0.08f, targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(
-            tween(2400, easing = EaseInOutSine), RepeatMode.Reverse,
-        ), label = "r1",
-    )
-    val ring2 by t.animateFloat(
-        initialValue = 0.5f, targetValue = 0.08f,
-        animationSpec = infiniteRepeatable(
-            tween(2400, delayMillis = 800, easing = EaseInOutSine), RepeatMode.Reverse,
-        ), label = "r2",
-    )
-    val ring3 by t.animateFloat(
-        initialValue = 0.08f, targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(
-            tween(2400, delayMillis = 1600, easing = EaseInOutSine), RepeatMode.Reverse,
-        ), label = "r3",
-    )
-
-    // Slow rotation for outer elements
-    val rotation by t.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            tween(24000, easing = LinearEasing), RepeatMode.Restart,
-        ), label = "rot",
-    )
-
-    // Vertical scan line
-    val scanY by t.animateFloat(
-        initialValue = -0.1f, targetValue = 1.1f,
+    // Ripple phase — drives triangle pulse outward from center
+    val ripple by t.animateFloat(
+        initialValue = 0f, targetValue = 8f,
         animationSpec = infiniteRepeatable(
             tween(3500, easing = LinearEasing), RepeatMode.Restart,
-        ), label = "scan",
+        ), label = "ripple",
     )
 
     Box(
@@ -96,105 +60,80 @@ fun SyncScreen() {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cx = size.width / 2
             val cy = size.height / 2
-            val unit = size.width.coerceAtMost(size.height)
 
-            // Concentric octagons
-            val radii = listOf(unit * 0.16f, unit * 0.25f, unit * 0.34f)
-            val alphas = listOf(ring1, ring2, ring3)
-            radii.forEachIndexed { i, r ->
-                drawOctagon(
-                    center = Offset(cx, cy),
-                    radius = r,
-                    color = amber.copy(alpha = alphas[i]),
-                    strokeWidth = if (i == 0) 1.8f else 1.2f,
-                    rotationDeg = rotation * if (i % 2 == 0) 1f else -0.6f,
-                )
+            // Triangle grid tessellation
+            val triSide = size.width.coerceAtMost(size.height) * 0.075f
+            val triH = triSide * sqrt(3f) / 2f
+            val colStep = triSide / 2f
+            val rowStep = triH
+
+            // How many rows/cols to cover the screen
+            val cols = (size.width / colStep).toInt() + 4
+            val rows = (size.height / rowStep).toInt() + 4
+
+            // Center mark exclusion radius (don't draw triangles over the logo)
+            val exclusion = 68f
+
+            for (row in -rows / 2..rows / 2) {
+                for (col in -cols / 2..cols / 2) {
+                    val pointsUp = (row + col) % 2 == 0
+
+                    // Triangle center position
+                    val tx = cx + col * colStep
+                    val ty = cy + row * rowStep + if (pointsUp) triH / 3f else -triH / 3f + triH
+
+                    // Distance from center for ripple + exclusion
+                    val dx = tx - cx
+                    val dy = ty - cy
+                    val dist = sqrt(dx * dx + dy * dy)
+
+                    // Skip triangles that overlap the center logo
+                    if (dist < exclusion) continue
+
+                    // Ripple wave based on distance
+                    val normDist = dist / (size.width * 0.3f)
+                    val phase = ripple - normDist * 4f
+                    val wave = sin(phase * Math.PI).toFloat().coerceAtLeast(0f)
+                    val alpha = 0.06f + wave * 0.4f
+
+                    drawTriangle(
+                        center = Offset(tx, ty),
+                        side = triSide,
+                        pointsUp = pointsUp,
+                        color = amber.copy(alpha = alpha),
+                        strokeWidth = if (dist < size.width * 0.2f) 1.2f else 0.8f,
+                    )
+                }
             }
 
-            // Tick marks around outer ring
-            val tickRadius = unit * 0.38f
-            val tickCount = 48
-            for (j in 0 until tickCount) {
-                val angle = Math.toRadians((rotation * 0.3 + j * 360.0 / tickCount))
-                val major = j % 6 == 0
-                val len = if (major) 10f else 5f
-                val a = if (major) 0.35f else 0.12f
-                val inner = tickRadius - len
-                drawLine(
-                    color = amber.copy(alpha = a),
-                    start = Offset(
-                        cx + inner * cos(angle).toFloat(),
-                        cy + inner * sin(angle).toFloat(),
-                    ),
-                    end = Offset(
-                        cx + tickRadius * cos(angle).toFloat(),
-                        cy + tickRadius * sin(angle).toFloat(),
-                    ),
-                    strokeWidth = if (major) 1.2f else 0.8f,
-                )
-            }
-
-            // Corner brackets (NERV-style framing)
-            val bracketInset = unit * 0.06f
-            val bracketLen = unit * 0.08f
-            val bracketAlpha = 0.2f
-            val bracketStroke = 1.2f
-            // Top-left
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(bracketInset, bracketInset), Offset(bracketInset + bracketLen, bracketInset), bracketStroke)
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(bracketInset, bracketInset), Offset(bracketInset, bracketInset + bracketLen), bracketStroke)
-            // Top-right
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(size.width - bracketInset, bracketInset), Offset(size.width - bracketInset - bracketLen, bracketInset), bracketStroke)
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(size.width - bracketInset, bracketInset), Offset(size.width - bracketInset, bracketInset + bracketLen), bracketStroke)
-            // Bottom-left
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(bracketInset, size.height - bracketInset), Offset(bracketInset + bracketLen, size.height - bracketInset), bracketStroke)
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(bracketInset, size.height - bracketInset), Offset(bracketInset, size.height - bracketInset - bracketLen), bracketStroke)
-            // Bottom-right
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(size.width - bracketInset, size.height - bracketInset), Offset(size.width - bracketInset - bracketLen, size.height - bracketInset), bracketStroke)
-            drawLine(cyan.copy(alpha = bracketAlpha), Offset(size.width - bracketInset, size.height - bracketInset), Offset(size.width - bracketInset, size.height - bracketInset - bracketLen), bracketStroke)
-
-            // Horizontal scan line with trailing glow
-            val lineY = size.height * scanY
-            val scanHalf = unit * 0.38f
-            drawLine(
-                cyan.copy(alpha = 0.4f),
-                Offset(cx - scanHalf, lineY),
-                Offset(cx + scanHalf, lineY),
-                1.5f,
-            )
-            for (k in 1..6) {
-                drawLine(
-                    cyan.copy(alpha = 0.4f * (1f - k / 6f) * 0.4f),
-                    Offset(cx - scanHalf, lineY - k * 4f),
-                    Offset(cx + scanHalf, lineY - k * 4f),
-                    1.5f,
-                )
-            }
-
-            // Central logomark
+            // Central logomark — fixed size, no pulse
             drawMark(
                 center = Offset(cx, cy),
-                markSize = 72f * markScale,
+                markSize = 100f,
                 color = amber,
                 glowAlpha = markGlow,
             )
         }
-
     }
 }
 
-private fun DrawScope.drawOctagon(
+private fun DrawScope.drawTriangle(
     center: Offset,
-    radius: Float,
+    side: Float,
+    pointsUp: Boolean,
     color: Color,
     strokeWidth: Float,
-    rotationDeg: Float,
 ) {
+    val h = side * sqrt(3f) / 2f
     val path = Path().apply {
-        for (i in 0 until 8) {
-            val angle = Math.toRadians((rotationDeg + i * 45.0 + 22.5))
-            val x = center.x + radius * cos(angle).toFloat()
-            val y = center.y + radius * sin(angle).toFloat()
-            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        if (pointsUp) {
+            moveTo(center.x, center.y - h * 2f / 3f)
+            lineTo(center.x - side / 2f, center.y + h / 3f)
+            lineTo(center.x + side / 2f, center.y + h / 3f)
+        } else {
+            moveTo(center.x, center.y + h * 2f / 3f)
+            lineTo(center.x - side / 2f, center.y - h / 3f)
+            lineTo(center.x + side / 2f, center.y - h / 3f)
         }
         close()
     }

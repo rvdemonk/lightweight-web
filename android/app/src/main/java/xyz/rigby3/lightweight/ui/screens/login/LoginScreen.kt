@@ -1,5 +1,7 @@
 package xyz.rigby3.lightweight.ui.screens.login
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,17 +64,23 @@ fun LoginScreen(
         }
     }
 
-    if (state.isSyncing) {
-        SyncScreen()
-    } else {
-        LoginContent(
-            state = state,
-            onUsernameChange = viewModel::updateUsername,
-            onPasswordChange = viewModel::updatePassword,
-            onLogin = viewModel::login,
-            onGoogleSignIn = { viewModel.googleSignIn(context) },
-            onNavigateToRegister = onNavigateToRegister,
-        )
+    Crossfade(
+        targetState = state.isSyncing,
+        animationSpec = tween(300),
+        label = "syncTransition",
+    ) { syncing ->
+        if (syncing) {
+            SyncScreen()
+        } else {
+            LoginContent(
+                state = state,
+                onUsernameChange = viewModel::updateUsername,
+                onPasswordChange = viewModel::updatePassword,
+                onLogin = viewModel::login,
+                onGoogleSignIn = { viewModel.googleSignIn(context) },
+                onNavigateToRegister = onNavigateToRegister,
+            )
+        }
     }
 }
 

@@ -56,12 +56,28 @@ fun SettingsScreen(
         }
     }
 
+    if (state.showSyncPreview) {
+        xyz.rigby3.lightweight.ui.screens.login.SyncScreen()
+        // Tap anywhere to dismiss
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = { viewModel.toggleSyncPreview() },
+                ),
+        )
+        return
+    }
+
     SettingsContent(
         state = state,
         onToggleTheme = { viewModel.toggleTheme(); onThemeToggled() },
         onNavigateToInvites = onNavigateToInvites,
         onSync = viewModel::sync,
         onToggleAutoSync = viewModel::toggleAutoSync,
+        onToggleSyncPreview = viewModel::toggleSyncPreview,
         onLogout = viewModel::logout,
     )
 }
@@ -73,6 +89,7 @@ private fun SettingsContent(
     onNavigateToInvites: () -> Unit,
     onSync: () -> Unit,
     onToggleAutoSync: () -> Unit,
+    onToggleSyncPreview: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val colors = LightweightTheme.colors
@@ -209,6 +226,27 @@ private fun SettingsContent(
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp),
                 )
+            }
+        }
+
+        // --- DEV TOOLS section (admin only) ---
+        if (state.userId == 1L) {
+            SectionHeader(text = "DEV TOOLS")
+
+            LwCard(onClick = onToggleSyncPreview) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "SYNC ANIMATION",
+                        style = typography.cardTitle,
+                        color = colors.textPrimary,
+                    )
+                    Text(
+                        text = "Preview first-login animation",
+                        style = typography.body,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
 

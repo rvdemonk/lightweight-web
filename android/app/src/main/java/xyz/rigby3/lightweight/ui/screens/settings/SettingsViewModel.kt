@@ -24,6 +24,8 @@ data class SettingsState(
     val isDarkTheme: Boolean = true,
     val importStatus: ImportStatus = ImportStatus.Idle,
     val autoSyncEnabled: Boolean = false,
+    val userId: Long = 0,
+    val showSyncPreview: Boolean = false,
 )
 
 sealed interface ImportStatus {
@@ -52,6 +54,7 @@ class SettingsViewModel @Inject constructor(
             email = tokenStore.email,
             isDarkTheme = tokenStore.isDarkTheme,
             autoSyncEnabled = tokenStore.autoSyncEnabled,
+            userId = tokenStore.userId,
         )
     )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
@@ -120,6 +123,10 @@ class SettingsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun toggleSyncPreview() {
+        _state.update { it.copy(showSyncPreview = !it.showSyncPreview) }
     }
 
     fun logout() {
