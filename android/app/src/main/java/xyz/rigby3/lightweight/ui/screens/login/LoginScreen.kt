@@ -215,7 +215,7 @@ private fun LoginContent(
 
             Text(
                 text = "CREATE ACCOUNT",
-                style = typography.label,
+                style = typography.button,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
@@ -231,7 +231,7 @@ private fun LoginContent(
  * Drawn with glow (wider soft stroke behind crisp stroke).
  */
 @Composable
-private fun LightweightMark(
+fun LightweightMark(
     color: Color,
     modifier: Modifier = Modifier,
 ) {

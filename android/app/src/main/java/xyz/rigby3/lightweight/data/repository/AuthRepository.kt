@@ -7,6 +7,7 @@ import xyz.rigby3.lightweight.data.remote.LightweightApi
 import xyz.rigby3.lightweight.data.remote.dto.GoogleAuthRequest
 import xyz.rigby3.lightweight.data.remote.dto.JoinRequest
 import xyz.rigby3.lightweight.data.remote.dto.LoginRequest
+import xyz.rigby3.lightweight.data.remote.dto.MeResponse
 import xyz.rigby3.lightweight.data.remote.dto.RegisterRequest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,8 +32,8 @@ class AuthRepository @Inject constructor(
         exerciseRepository.seedIfEmpty()
     }
 
-    suspend fun register(username: String, password: String) {
-        val response = api.register(RegisterRequest(username, password))
+    suspend fun register(username: String, password: String, email: String?) {
+        val response = api.register(RegisterRequest(username, password, email))
         tokenStore.token = response.token
         tokenStore.userId = response.userId
         tokenStore.username = username
@@ -56,6 +57,11 @@ class AuthRepository @Inject constructor(
         tokenStore.email = email
         migrateLocalDataIfNeeded(response.userId)
         exerciseRepository.seedIfEmpty()
+    }
+
+    suspend fun me(): MeResponse {
+        val token = tokenStore.token ?: throw IllegalStateException("Not logged in")
+        return api.me("Bearer $token")
     }
 
     suspend fun logout() {

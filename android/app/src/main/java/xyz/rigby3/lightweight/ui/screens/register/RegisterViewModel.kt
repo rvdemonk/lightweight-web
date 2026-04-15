@@ -1,6 +1,5 @@
 package xyz.rigby3.lightweight.ui.screens.register
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,12 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import xyz.rigby3.lightweight.data.auth.GoogleSignInHelper
 import xyz.rigby3.lightweight.data.repository.AuthRepository
 import javax.inject.Inject
 
 data class RegisterState(
     val username: String = "",
+    val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -31,7 +30,6 @@ sealed interface RegisterEvent {
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val googleSignInHelper: GoogleSignInHelper,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterState())
@@ -42,6 +40,10 @@ class RegisterViewModel @Inject constructor(
 
     fun updateUsername(value: String) {
         _state.update { it.copy(username = value, error = null) }
+    }
+
+    fun updateEmail(value: String) {
+        _state.update { it.copy(email = value, error = null) }
     }
 
     fun updatePassword(value: String) {
@@ -59,7 +61,8 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                authRepository.register(s.username.trim(), s.password)
+                val email = s.email.trim().ifBlank { null }
+                authRepository.register(s.username.trim(), s.password, email)
                 _events.emit(RegisterEvent.Success)
             } catch (e: HttpException) {
                 val msg = when (e.code()) {
@@ -70,24 +73,6 @@ class RegisterViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = false, error = msg) }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = "Registration failed") }
-            }
-        }
-    }
-
-    fun googleSignIn(activityContext: Context) {
-        if (_state.value.isLoading) return
-
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                val credential = googleSignInHelper.getGoogleCredential(activityContext)
-                authRepository.googleSignIn(credential.idToken, credential.displayName, credential.email)
-                _events.emit(RegisterEvent.Success)
-            } catch (e: Exception) {
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = "Google sign-in failed",
-                ) }
             }
         }
     }
