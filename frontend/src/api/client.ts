@@ -98,7 +98,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ username, password, invite_code, email }),
     }).then(r => { setUserId(r.user_id); return r; }),
+  googleAuth: (id_token: string) =>
+    request<{ token: string; user_id: number }>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ id_token }),
+    }).then(r => { setUserId(r.user_id); return r; }),
   checkAuth: () => request<void>('/auth/check'),
+  me: () => request<{ user_id: number; username: string | null; email: string | null; created_at: string }>('/auth/me'),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   validateJoinCode: (code: string) =>
     request<{ valid: boolean; invited_by: string | null }>(`/auth/join/${code}`),

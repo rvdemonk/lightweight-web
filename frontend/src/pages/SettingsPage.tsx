@@ -87,8 +87,11 @@ export function SettingsPage() {
   const [exportDone, setExportDone] = useState(false);
   const [exportCooldown, setExportCooldown] = useState<string | null>(null);
   const [inviteData, setInviteData] = useState<InviteList | null>(null);
+  const [user, setUser] = useState<{ username: string | null; email: string | null; created_at: string } | null>(null);
 
   useEffect(() => {
+    api.me().then(setUser).catch(() => {});
+
     api.getPreference('show_whats_new').then(val => {
       if (val === 'false') setShowWhatsNew(false);
     }).catch(() => {});
@@ -178,6 +181,40 @@ export function SettingsPage() {
 
   return (
     <div className="page" style={{ paddingTop: 20 }}>
+      {/* User profile */}
+      {user && (
+        <div style={{ marginBottom: 24 }}>
+          <div className="label" style={{ marginBottom: 12 }}>ACCOUNT</div>
+          <div className="card">
+            <div style={{
+              fontSize: 16,
+              fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              marginBottom: user.email ? 4 : 0,
+            }}>
+              {user.username || user.email || 'User'}
+            </div>
+            {user.email && user.username && (
+              <div style={{
+                fontSize: 13,
+                fontFamily: 'var(--font-data)',
+                color: 'var(--text-secondary)',
+              }}>
+                {user.email}
+              </div>
+            )}
+            <div style={{
+              fontSize: 11,
+              fontFamily: 'var(--font-data)',
+              color: 'var(--text-secondary)',
+              marginTop: 6,
+            }}>
+              JOINED {formatDate(user.created_at)}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="nerv-divider" style={{ marginBottom: 24 }}>
         <span>CONFIGURATION</span>
       </div>
@@ -240,9 +277,8 @@ export function SettingsPage() {
         </Link>
       </div>
 
-      {/* Account */}
+      {/* Logout */}
       <div>
-        <div className="label" style={{ marginBottom: 12 }}>ACCOUNT</div>
         <SettingsRow
           label="LOG OUT"
           onClick={logout}

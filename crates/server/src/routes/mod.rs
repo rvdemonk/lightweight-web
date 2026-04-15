@@ -32,6 +32,7 @@ async fn get_config() -> Json<serde_json::Value> {
 pub fn protected_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/check", get(auth_check))
+        .route("/auth/me", get(auth_me))
         .route("/auth/logout", post(auth_logout))
         .merge(exercises::routes())
         .merge(templates::routes())
@@ -104,6 +105,27 @@ async fn auth_login(
 
 async fn auth_check() -> StatusCode {
     StatusCode::OK
+}
+
+async fn auth_me(
+    State(state): State<Arc<AppState>>,
+    Extension(crate::auth::UserId(user_id)): Extension<crate::auth::UserId>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let conn = state.db.lock().unwrap();
+    let result: Result<(Option<String>, Option<String>, String), _> = conn.query_row(
+        "SELECT username, email, created_at FROM users WHERE id = ?1",
+        [user_id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    );
+    match result {
+        Ok((username, email, created_at)) => Ok(Json(serde_json::json!({
+            "user_id": user_id,
+            "username": username,
+            "email": email,
+            "created_at": created_at,
+        }))),
+        Err(_) => Err(StatusCode::NOT_FOUND),
+    }
 }
 
 async fn auth_logout(

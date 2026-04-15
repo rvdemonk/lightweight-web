@@ -1,8 +1,13 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 
 const isAndroidUA = /android/i.test(navigator.userAgent);
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+const PLAY_STORE_LINK = 'https://play.google.com/store/apps/details?id=xyz.rigby3.lightweight';
+const PLAY_STORE_TEST_LINK = 'https://play.google.com/apps/testing/xyz.rigby3.lightweight';
 
 function Mark({ size = 32 }: { size?: number }) {
   return (
@@ -80,21 +85,35 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
           You're in
         </div>
         <div style={{
-          fontSize: 16,
+          fontSize: 15,
           fontFamily: 'var(--font-body)',
           color: 'var(--text-primary)',
           textAlign: 'center',
-          lineHeight: 1.7,
+          lineHeight: 1.6,
+          marginBottom: 28,
         }}>
-          You will receive a download link for the Android beta at{' '}
+          Signed in as{' '}
           <span style={{
             fontFamily: 'var(--font-data)',
             color: 'var(--accent-cyan)',
             textShadow: 'var(--glow-cyan-text)',
-            fontSize: 14,
+            fontSize: 13,
           }}>{email}</span>
-          {' '}shortly.
         </div>
+        <a
+          href={PLAY_STORE_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-primary btn-full"
+          style={{
+            ['--btn-cut' as string]: '10px',
+            textDecoration: 'none',
+            display: 'block',
+            textAlign: 'center',
+          }}
+        >
+          Install from Google Play
+        </a>
       </>
     );
   }
@@ -130,8 +149,11 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
           <div ref={buttonRef} style={{
             display: 'flex',
             justifyContent: 'center',
-            transform: 'scale(1.08)',
+            transform: googleReady ? 'scale(1.08)' : undefined,
             transformOrigin: 'center',
+            visibility: googleReady ? 'visible' : 'hidden',
+            height: 48,
+            overflow: 'hidden',
           }} />
         )}
         {!googleReady && state !== 'loading' && (
@@ -162,72 +184,35 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
   );
 }
 
-// ── Google Sign-In hook (shared by both flows) ──
-
-function useGoogleSignIn(onSuccess: (credential: string) => void) {
-  const [googleReady, setGoogleReady] = useState(false);
-  const [clientId, setClientId] = useState('');
-  const buttonRef = useRef<HTMLDivElement>(null);
-  const callbackRef = useRef(onSuccess);
-  callbackRef.current = onSuccess;
-
-  useEffect(() => {
-    api.getConfig().then(config => {
-      if (config.google_client_id) setClientId(config.google_client_id);
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!clientId) return;
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      const google = (window as any).google;
-      if (google?.accounts?.id) {
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (resp: { credential: string }) => callbackRef.current(resp.credential),
-        });
-        setGoogleReady(true);
-      }
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [clientId]);
-
-  useEffect(() => {
-    if (!googleReady || !buttonRef.current) return;
-    const google = (window as any).google;
-    google.accounts.id.renderButton(buttonRef.current, {
-      theme: 'filled_black',
-      size: 'large',
-      width: 320,
-      text: 'signin_with',
-    });
-  }, [googleReady]);
-
-  return { buttonRef, googleReady };
-}
-
 // ── Non-Android flow: username/password + optional Google Sign-In ──
 
 function RegisterFlow({ referrer }: { referrer: string | null }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [googleEmail, setGoogleEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPostGoogle, setShowPostGoogle] = useState(false);
 
   const handleGoogleCredential = useCallback(async (credential: string) => {
     setError('');
     setLoading(true);
     try {
-      const device = /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' : 'desktop';
+      const device = isIOS ? 'ios' : 'desktop';
       const result = await api.betaSignup(credential, device, referrer || undefined);
       setToken(result.token);
-      navigate('/');
+      setGoogleEmail(result.email);
+
+      if (isIOS) {
+        // iPhone: straight to web app
+        navigate('/');
+      } else {
+        // Desktop: show both options
+        setShowPostGoogle(true);
+        setLoading(false);
+      }
     } catch (err: any) {
       setLoading(false);
       setError(err?.status === 401 ? 'GOOGLE SIGN-IN FAILED' : 'SIGNUP FAILED — TRY AGAIN');
@@ -263,6 +248,139 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
     boxShadow: hasError ? 'var(--error-shadow)' : undefined,
   });
 
+  // Desktop post-Google: show both options
+  if (showPostGoogle) {
+    return (
+      <>
+        <div style={{
+          fontSize: 18,
+          fontFamily: 'var(--font-body)',
+          fontWeight: 600,
+          color: 'var(--accent-green)',
+          textShadow: 'var(--glow-green-text)',
+          letterSpacing: '1px',
+          marginBottom: 24,
+          textTransform: 'uppercase',
+          textAlign: 'center',
+        }}>
+          You're in
+        </div>
+        <div style={{
+          fontSize: 17,
+          fontFamily: 'var(--font-body)',
+          color: 'var(--text-primary)',
+          textAlign: 'center',
+          lineHeight: 1.6,
+          marginBottom: 32,
+        }}>
+          Signed in as{' '}
+          <span style={{
+            fontFamily: 'var(--font-data)',
+            color: 'var(--accent-cyan)',
+            textShadow: 'var(--glow-cyan-text)',
+            fontSize: 15,
+          }}>{googleEmail}</span>
+        </div>
+
+        {/* Android card */}
+        <div style={{
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 4,
+          padding: '24px',
+          marginBottom: 16,
+          width: '100%',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 12,
+          }}>
+            {/* Android icon */}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V7H6v11zM3.5 7C2.67 7 2 7.67 2 8.5v7c0 .83.67 1.5 1.5 1.5S5 16.33 5 15.5v-7C5 7.67 4.33 7 3.5 7zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48A5.84 5.84 0 0012 0c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31A5.983 5.983 0 006 6h12c0-2.21-1.2-4.15-2.97-5.18-.15-.09-.01.25 0 .34zM10 4H9V3h1v1zm5 0h-1V3h1v1z"
+                fill="var(--accent-primary)" />
+            </svg>
+            <div style={{
+              fontSize: 16,
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
+              color: 'var(--accent-primary)',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+            }}>
+              Android Users
+            </div>
+          </div>
+          <div style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-body)',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            marginBottom: 20,
+          }}>
+            Install Lightweight on your Android device via Google Play
+          </div>
+          <a
+            href={PLAY_STORE_TEST_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-full"
+            style={{
+              ['--btn-cut' as string]: '10px',
+              textDecoration: 'none',
+              display: 'block',
+              textAlign: 'center',
+            }}
+          >
+            Get the Android App
+          </a>
+        </div>
+
+        {/* Web/iPhone card */}
+        <div style={{
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 4,
+          padding: '24px',
+          width: '100%',
+        }}>
+          <div style={{
+            fontSize: 16,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 600,
+            color: 'var(--accent-cyan)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            marginBottom: 12,
+          }}>
+            iPhone & Web Users
+          </div>
+          <div style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-body)',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            marginBottom: 20,
+          }}>
+            Start tracking workouts now in the web app
+          </div>
+          <button
+            className="btn btn-primary btn-full"
+            style={{
+              ['--btn-cut' as string]: '10px',
+              background: 'var(--bg-elevated)',
+              color: 'var(--accent-cyan)',
+              filter: 'none',
+            }}
+            onClick={() => navigate('/')}
+          >
+            Go to Lightweight Web
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div style={{
@@ -276,7 +394,45 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
         Sign up to join the Lightweight beta
       </div>
 
-      <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+      {/* Google Sign-In — golden path */}
+      <div style={{ width: '100%', marginBottom: 4 }}>
+        {loading ? (
+          <div style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-body)',
+            color: 'var(--text-secondary)',
+            textAlign: 'center',
+            padding: '12px 0',
+          }}>
+            Signing in...
+          </div>
+        ) : (
+          <div ref={buttonRef} style={{
+            display: 'flex',
+            justifyContent: 'center',
+            visibility: googleReady ? 'visible' : 'hidden',
+            height: 44,
+            overflow: 'hidden',
+          }} />
+        )}
+      </div>
+
+      {/* OR divider */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        margin: '16px auto',
+        width: '100%',
+        maxWidth: 320,
+      }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
+
+      {/* Custom registration — secondary */}
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 320, margin: '0 auto' }}>
         <input
           type="email"
           placeholder="EMAIL"
@@ -317,42 +473,17 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
         <button
           type="submit"
           className="btn btn-primary btn-full"
-          style={{ ['--btn-cut' as string]: '10px' }}
+          style={{
+            ['--btn-cut' as string]: '10px',
+            background: 'var(--bg-elevated)',
+            color: 'var(--accent-primary)',
+            filter: 'none',
+          }}
           disabled={loading}
         >
           {loading ? 'Creating account...' : 'Join Beta'}
         </button>
       </form>
-
-      {/* OR divider */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        margin: '20px 0',
-        width: '100%',
-      }}>
-        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-        <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
-        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
-      </div>
-
-      {/* Google Sign-In */}
-      <div style={{ width: '100%' }}>
-        {loading ? (
-          <div style={{
-            fontSize: 14,
-            fontFamily: 'var(--font-body)',
-            color: 'var(--text-secondary)',
-            textAlign: 'center',
-            padding: '12px 0',
-          }}>
-            Signing in...
-          </div>
-        ) : (
-          <div ref={buttonRef} style={{ display: 'flex', justifyContent: 'center' }} />
-        )}
-      </div>
     </>
   );
 }
@@ -364,13 +495,9 @@ export function BetaPage() {
   const navigate = useNavigate();
   const referrer = searchParams.get('ref');
 
-  const loggedIn = isLoggedIn();
-
-  useLayoutEffect(() => {
-    if (loggedIn) navigate('/', { replace: true });
-  }, [loggedIn, navigate]);
-
-  if (loggedIn) return null;
+  if (isLoggedIn()) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div style={{

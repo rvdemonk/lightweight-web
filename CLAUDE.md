@@ -7,7 +7,7 @@ Multi-user workout tracker. Frictionless mobile logging, progressive overload tr
 - Optimised for one-handed phone use between sets
 - Progressive disclosure everywhere — show names first, details on demand
 - NGE-influenced dark aesthetic: angular, monospace data, amber/cyan accents
-- Multi-user with invite-link-gated registration, single binary, no cloud dependencies
+- Multi-user with open beta registration + invite system, single binary, no cloud dependencies
 
 ## Memory Principles
 
@@ -44,7 +44,7 @@ Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Da
 
 ## Product Direction
 
-Android native is the primary client, actively dogfooded. Release-signed, bidirectional sync (push-only client, atomic server endpoint), ready for Play Store closed testing. The web app is a read-only desktop dashboard for lift metrics and account data — the Android app is now ahead of it in features. The Rust/Axum API server is the backend and source of truth. Google requires 12 testers active for 14 days on closed testing before production/open testing access is granted.
+Android native is the primary client, actively dogfooded. Release-signed, bidirectional sync (push-only client, atomic server endpoint), live on Play Store closed testing. The web app is a read-only desktop dashboard for lift metrics and account data — the Android app is now ahead of it in features. The Rust/Axum API server is the backend and source of truth. `/beta` is the universal onboarding page: Android users sign in with Google and get the Play Store closed testing link; iPhone/desktop users register and use the web app. Google requires 12 testers active for 14 days on closed testing before production/open testing access is granted.
 
 ## Tools
 
@@ -58,10 +58,10 @@ Android native is the primary client, actively dogfooded. Release-signed, bidire
 - Build frontend before Rust release — `rust-embed` embeds `frontend/dist/`
 - A placeholder `frontend/dist/index.html` must exist or rust-embed won't compile
 - Deploy: `./deploy.sh` — builds frontend, cross-compiles server + lw-admin via cargo-zigbuild, auto-backups prod DB, SCPs to droplet, restarts service
-- Admin: `ssh root@170.64.189.221 /var/www/lightweight/lw-admin --db /var/www/lightweight/data/lightweight.db` — read-only CLI for user/invite/activity stats. Subcommands: `overview` (default), `users`, `invites`, `activity [--days N]`. Lives in `crates/admin/`, intentionally decoupled from the web app.
+- Admin: `ssh root@170.64.189.221 /var/www/lightweight/lw-admin --db /var/www/lightweight/data/lightweight.db` — read-only CLI for user/invite/activity stats. Subcommands: `overview` (default), `users`, `invites`, `activity [--days N]`, `beta`. Lives in `crates/admin/`, intentionally decoupled from the web app.
 - Backup: `./backup.sh [label]` — stops server (WAL checkpoint), SCPs DB, restarts. Backups in `backups/YYYY-MM-DD/`
 - Production: `https://lightweight.3rigby.xyz` (DO droplet 170.64.189.221, systemd + nginx + Let's Encrypt)
-- Env vars in prod systemd: `LW_DB_PATH`, `LW_PORT`, `LW_INVITE_CODE` (admin backdoor), `LW_CORS_ORIGIN` (locked to production URL)
+- Env vars in prod systemd: `LW_DB_PATH`, `LW_PORT`, `LW_INVITE_CODE` (admin backdoor), `LW_CORS_ORIGIN` (locked to production URL), `LW_GOOGLE_CLIENT_ID` (web Google OAuth client ID)
 - Server binds 127.0.0.1 by default (behind nginx). Set `LW_HOST=0.0.0.0` for direct access in dev.
 - Android: `cd android && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`
 - Install on device: `~/Library/Android/sdk/platform-tools/adb install -r android/app/build/outputs/apk/debug/app-debug.apk`
