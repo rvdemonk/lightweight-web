@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -11,15 +12,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import xyz.rigby3.lightweight.data.local.TokenStore
-import xyz.rigby3.lightweight.data.repository.ExerciseRepository
 import xyz.rigby3.lightweight.data.repository.SessionRepository
 import xyz.rigby3.lightweight.ui.navigation.LightweightBottomBar
 import xyz.rigby3.lightweight.ui.navigation.LightweightNavGraph
@@ -34,26 +36,27 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var tokenStore: TokenStore
-    @Inject lateinit var exerciseRepository: ExerciseRepository
     @Inject lateinit var sessionRepository: SessionRepository
 
-    private var isDark by mutableStateOf(true)
+    private val viewModel: MainActivityViewModel by viewModels()
     private var hasActiveWorkout by mutableStateOf(false)
-    private var isDataReady by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen().setKeepOnScreenCondition { !isDataReady }
+        installSplashScreen().setKeepOnScreenCondition {
+            viewModel.uiState.value is MainActivityUiState.Loading
+        }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        isDark = tokenStore.isDarkTheme
-
-        // Non-logged-in users go straight to login — no data to wait for
-        if (!tokenStore.isLoggedIn) isDataReady = true
-
         setContent {
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            if (uiState is MainActivityUiState.Loading) return@setContent
+
+            val readyState = uiState as MainActivityUiState.Ready
+            var isDark by remember { mutableStateOf(readyState.isDarkTheme) }
+
             LightweightTheme(darkTheme = isDark) {
-                // Dynamic status bar icon color based on theme
                 val view = LocalView.current
                 if (!view.isInEditMode) {
                     SideEffect {
@@ -63,26 +66,22 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
                 val navController = rememberNavController()
 
-                // Re-check active workout on every nav change
+                // Re-check active workout on every nav change (for bottom bar)
                 val navEntry by navController.currentBackStackEntryAsState()
                 LaunchedEffect(navEntry?.id) {
                     hasActiveWorkout = sessionRepository.getActive() != null
                 }
 
-                // On first launch, navigate to active workout if one exists
-                LaunchedEffect(Unit) {
-                    if (tokenStore.isLoggedIn) {
-                        val active = sessionRepository.getActive()
-                        if (active != null) {
-                            navController.navigate(WorkoutRoute) {
-                                launchSingleTop = true
-                            }
+                // Navigate to active workout on first launch
+                LaunchedEffect(readyState.activeSessionId) {
+                    if (readyState.activeSessionId != null) {
+                        navController.navigate(WorkoutRoute) {
+                            launchSingleTop = true
                         }
                     }
-                    // Seed default exercises after first frame
-                    exerciseRepository.seedIfEmpty()
                 }
 
                 val currentRoute = navEntry?.destination?.route ?: ""
@@ -107,13 +106,11 @@ class MainActivity : ComponentActivity() {
                     LightweightNavGraph(
                         navController = navController,
                         modifier = Modifier.padding(contentPadding),
-                        isLoggedIn = tokenStore.isLoggedIn,
+                        isLoggedIn = readyState.isLoggedIn,
                         onThemeToggled = { isDark = tokenStore.isDarkTheme },
-                        onHomeDataReady = { isDataReady = true },
                     )
                 }
             }
         }
     }
-
 }

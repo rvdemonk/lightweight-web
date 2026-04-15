@@ -28,7 +28,6 @@ fun LightweightNavGraph(
     modifier: Modifier = Modifier,
     isLoggedIn: Boolean = false,
     onThemeToggled: () -> Unit = {},
-    onHomeDataReady: () -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -44,7 +43,6 @@ fun LightweightNavGraph(
                 onNavigateToWorkout = { navController.navigate(WorkoutRoute) },
                 onNavigateToTemplates = { navController.navigate(TemplatesRoute) },
                 onNavigateToSession = { id -> navController.navigate(SessionRoute(id)) },
-                onDataReady = onHomeDataReady,
             )
         }
 
@@ -96,7 +94,6 @@ fun LightweightNavGraph(
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToInvites = { /* TODO: wire invite management */ },
                 onThemeToggled = onThemeToggled,
             )
         }

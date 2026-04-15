@@ -66,17 +66,11 @@ fun HomeScreen(
     onNavigateToWorkout: () -> Unit = {},
     onNavigateToTemplates: () -> Unit = {},
     onNavigateToSession: (Long) -> Unit = {},
-    onDataReady: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.reload() }
-
-    // Dismiss splash screen once critical data has loaded
-    LaunchedEffect(state.loading) {
-        if (!state.loading) onDataReady()
-    }
 
     HomeContent(
         state = state,
@@ -105,6 +99,9 @@ private fun HomeContent(
     val isNewUser = !state.loading &&
         state.recentSessions.isEmpty() && state.heatmapData.isEmpty()
 
+    val contentVisible = remember { MutableTransitionState(false) }
+    contentVisible.targetState = !state.loading
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -112,54 +109,57 @@ private fun HomeContent(
             .padding(horizontal = PagePadding),
     ) {
         if (!showTemplates) {
-            val contentVisible = remember { MutableTransitionState(false) }
-            contentVisible.targetState = !state.loading
-
             AnimatedVisibility(
                 visibleState = contentVisible,
                 enter = fadeIn(tween(150)),
                 modifier = Modifier.weight(1f),
             ) {
-                if (isNewUser) {
-                    WelcomeContent(
-                        hasTemplates = state.templates.isNotEmpty(),
-                        onNavigateToTemplates = onNavigateToTemplates,
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (isNewUser) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            WelcomeContent(
+                                hasTemplates = state.templates.isNotEmpty(),
+                                onNavigateToTemplates = onNavigateToTemplates,
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.weight(1f)) {
+                            DashboardContent(
+                                state = state,
+                                onSessionTap = onSessionTap,
+                            )
+                        }
+                    }
+
+                    // Subtle separator
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            colors.textSecondary.copy(alpha = 0.12f),
+                                            Color.Transparent,
+                                        )
+                                    )
+                                ),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    HeroButton(
+                        text = "START WORKOUT",
+                        onClick = { showTemplates = true },
+                        enabled = !state.isCreatingSession,
                     )
-                } else {
-                    DashboardContent(
-                        state = state,
-                        onSessionTap = onSessionTap,
-                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
-
-            // Subtle separator
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    colors.textSecondary.copy(alpha = 0.12f),
-                                    Color.Transparent,
-                                )
-                            )
-                        ),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            HeroButton(
-                text = "START WORKOUT",
-                onClick = { showTemplates = true },
-                enabled = !state.isCreatingSession,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
         } else {
             TemplatePicker(
                 state = state,
