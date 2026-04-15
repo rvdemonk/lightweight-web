@@ -21,8 +21,6 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#ux` **Dial in EVA aesthetic** — some elements are overcooked. Review glow effects, angular borders, and monospace styling for places where the theme is more corny than cool.
 
-- [ ] `#feature` **Android native app** — port Lightweight to Tauri v2 / Android. Rust backend stays, native frontend. Invite links work via deep links / intent filters.
-
 - [ ] `#feature` **Training phase tracking** — user sets phase (cutting/maintaining/bulking). Adjust progressive overload feedback so weight decreases during a cut aren't flagged negatively. Use phases to segment training history.
 
 - [ ] `#feature` **User-selectable UI themes** — theme preference stored in DB so it syncs across devices (mobile and desktop browser match).
@@ -35,11 +33,7 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 
 - [ ] `#feature` **Weekly training report** — aggregated weekly insights. Possibly LLM-generated summaries of training trends, volume, PRs, and recommendations.
 
-- [ ] `#ux` **BriefingPage onboarding rework** — currently a marketing page. Needs to function as post-registration welcome for new users arriving via invite links. Show getting-started guidance, not feature marketing.
-
 - [ ] `#feature` **Email integration** — password reset, account recovery. Required before full public launch. Not needed for invite-gated beta.
-
-- [ ] `#ux` **Dial in EVA aesthetic** — some elements are overcooked. Review glow effects, angular borders, and monospace styling for places where the theme is more corny than cool.
 
 ---
 
@@ -63,6 +57,14 @@ Prioritized work items for Lightweight. Tags: `#bug`, `#tech-debt`, `#feature`, 
 ---
 
 ## Completed
+
+### v1.1.0 (Android)
+- [x] `#feature` Home screen dashboard redesign — mini heatmap, recent sessions, quick-start
+- [x] `#feature` Exercise library — 92 exercises with short names, muscle groups, equipment
+- [x] `#feature` Multi-user auth — invite code registration, real user IDs
+- [x] `#feature` Bidirectional sync — push-only client, atomic session sync endpoint
+- [x] `#feature` Geometric sync animation on first-login data import
+- [x] `#feature` Android release signing and Play Store submission readiness
 
 ### v1.0.0
 - [x] `#feature` Per-user invite link system — generate, share via QR/URL, one-time use, quota tracking

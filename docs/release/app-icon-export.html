@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>App Icon Export — 512x512</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  .icon {
+    width: 512px;
+    height: 512px;
+    background: #1a120a;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 60px rgba(212,118,44,0.1);
+  }
+  .icon svg {
+    filter: drop-shadow(0 0 12px rgba(212,118,44,0.5));
+  }
+  /* Crop guide — screenshot inside this border */
+  .guide {
+    position: absolute;
+    width: 512px;
+    height: 512px;
+    border: 1px dashed rgba(50,200,232,0.5);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <div class="guide"></div>
+  <div class="icon">
+    <svg width="340" height="340" viewBox="-1 -1 30 30" fill="none">
+      <rect x="1.5" y="1.5" width="25" height="25" rx="1" stroke="#d4762c" stroke-width="1.8"/>
+      <polygon points="2.5,2.5 26.5,8.2 8.2,26.5" stroke="#d4762c" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </div>
+</body>
+</html>

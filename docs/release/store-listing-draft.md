@@ -20,34 +20,38 @@ Log sets in two seconds. Track progressive overload. Lightweight.
 ## Full Description (4000 chars max)
 
 ```
-You can't optimise what you don't measure.
+"Each workout is like a brick in a building, and every time you go in there and do a half-ass workout, you're not laying a brick down." — Dorian Yates, 6x Mr. Olympia
 
-Lightweight is a resistance training logger built for lifters who care about one thing: progressive overload. No social feeds. No AI coaches. No motivational notifications. Just your numbers, tracked with precision.
+Dorian kept a training journal for every session of his career. Before every workout, he'd open it and know exactly what he had to beat.
 
-LOG A SET IN UNDER TWO SECONDS
-Weight. Reps. Done. The interface is built for one-handed use between sets. Every tap is deliberate. No confirmation dialogs. No animations that waste your rest period.
+Lightweight is that journal.
 
-TEMPLATES
-Build reusable workout templates. Name the session, pick your exercises, set target sets and rep ranges. Start a workout from a template or go freeform — add exercises on the fly.
+No social feeds. No AI coaches. No motivational notifications. Just your numbers.
 
-PROGRESSIVE OVERLOAD TRACKING
-Every set is measured against your targets. Hit your reps? Green. Fell short? Red. Your estimated one-rep max is calculated automatically using the Epley formula so you can track true strength progression over time, not just weight on the bar.
+LOG A SET IN TWO SECONDS
+Each exercise remembers your last weight and reps. Tap, adjust, done. One-handed, between sets, phone in your off hand.
 
-SESSION HISTORY
-Every completed session is logged with date, duration, total volume, and per-exercise breakdowns. Scroll back through weeks and months of training data.
+YOUR PROGRAM, YOUR WAY
+Build templates for your program. Stick to them or adapt on the fly. Or go completely freeform. Lightweight adapts.
+
+TRACK TRUE STRENGTH PROGRESSION
+Most apps track weight on the bar. That tells you nothing when you change rep ranges. Lightweight estimates your one-rep max from every set you log — so you can see whether you're actually getting stronger, regardless of whether you hit 3 reps or 12. Track true strength progression, not just numbers that go up.
+
+HISTORY
+Every session logged. Date, duration, total volume, per-exercise breakdowns. Scroll back through months of training.
 
 ANALYTICS
 — Activity heatmap: training frequency and intensity at a glance
-— Progression charts: e1RM trends per exercise over time
+— Strength trends: progression per exercise over time
 — Volume tracking: weekly sets, upper/lower split, per-muscle breakdown
-— Balance radar: see where your programming has gaps
+— Balance: see what muscles are lagging
 
 YOUR DATA
 Your training data is stored on a server you can trust — not sold, not mined, not shared. Export it anytime.
 
 Lightweight. Yeah buddy.
 ```
-1148 chars.
+1080 chars.
 
 ## Store Listing Fields
 

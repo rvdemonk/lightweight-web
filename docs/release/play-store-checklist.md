@@ -1,6 +1,7 @@
 ---
 Document Context:
   Created: 2026-04-14
+  Updated: 2026-04-15
   Source: Audit of Android app for Google Play closed testing submission
   Status: REFERENCE
   Purpose: Checklist of non-code tasks Lewis needs to complete for Play Store submission
@@ -15,31 +16,40 @@ Non-code items required for closed testing and eventual production launch. Code 
 ## Closed Testing (must complete before first upload)
 
 ### Privacy Policy
-- [ ] Write a privacy policy page covering: data collected (username, password hash, workout data), where stored (your server at 170.64.189.221), no third-party sharing, no analytics/tracking, contact info
-- [ ] Host as a static HTML page on the droplet (e.g. `https://lightweight.3rigby.xyz/privacy`)
+- [x] Write a privacy policy page covering: data collected (username, password hash, workout data), where stored (your server at 170.64.189.221), no third-party sharing, no analytics/tracking, contact info
+- [x] Host as a static HTML page on the droplet (`https://lightweight.3rigby.xyz/privacy.html`)
 - [ ] Enter the URL in Play Console under App content > Privacy policy
 
 ### Data Safety Form
 - [ ] Complete in Play Console under App content > Data safety
-- [ ] Declare: account credentials collected (username/password), workout data collected, data stored on your server, data not shared with third parties, no analytics SDKs, data deletion available (you can delete accounts via lw-admin or add a server endpoint)
-- [ ] If adding Google OAuth: also declare Google account info collected for authentication purposes
+- [x] Pre-draft answers ready (docs/release/data-safety-answers.md)
 
 ### Google Play Developer Account
-- [ ] Register at https://play.google.com/console ($25 USD one-time)
-- [ ] Complete identity verification (can take 1-3 days)
+- [x] Register at https://play.google.com/console ($25 USD one-time)
+- [x] Identity verification complete (individual, "clovis", Account ID 8023872526424149014)
 
 ### Store Listing (minimal for closed testing)
-- [ ] App name: "Lightweight"
-- [ ] Short description (80 chars max): e.g. "Frictionless workout tracking with progressive overload"
-- [ ] Full description (4000 chars max): what the app does, who it's for
-- [ ] App icon: 512x512 PNG (export from adaptive icon foreground on dark background)
-- [ ] Feature graphic: 1024x500 PNG (can be simple — dark background, geometric mark, wordmark)
-- [ ] 2-3 phone screenshots (take from your device during a workout session)
+- [x] App name: "Lightweight"
+- [x] Short description drafted (docs/release/store-listing-draft.md)
+- [x] Full description drafted (docs/release/store-listing-draft.md)
+- [x] App icon: 512x512 PNG (docs/release/app-icon-512.png)
+- [x] Feature graphic: 1024x500 PNG (docs/release/feature-graphic-1024x500.png)
+- [ ] 2-3 phone screenshots (take from device during a workout session)
 - [ ] App category: Health & Fitness
-- [ ] Contact email
+- [x] Contact email: 3rigby@proton.me
 
 ### Content Rating
 - [ ] Complete the IARC questionnaire in Play Console (takes ~5 minutes, mostly "no" answers for a workout tracker)
+
+### Build & Upload
+- [x] Release signing configured (keystore.properties, R8/minification)
+- [ ] Build signed AAB (`./gradlew bundleRelease`)
+- [ ] Upload AAB to Play Console closed testing track
+
+### Closed Testing Gate
+- [ ] Recruit 12 testers (must provide email addresses)
+- [ ] Testers must remain active for 14 continuous days
+- [ ] Only then can production or open testing be requested
 
 ## Production Launch (Phase 3, not needed for closed testing)
 

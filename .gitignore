@@ -22,7 +22,11 @@ frontend/dist/
 .env
 
 # Archive
-archive/
+/archive/
+
+# Temp/scratch files
+docs/release/.measure-temp.html
+docs/release/.screenshot-*
 
 # Local
 .claude/

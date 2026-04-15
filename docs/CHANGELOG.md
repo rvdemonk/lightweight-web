@@ -4,6 +4,23 @@ All notable changes to Lightweight.
 
 ---
 
+## v1.1.0 — 2026-04-15
+
+### Added
+- Home screen dashboard redesign — mini heatmap, recent sessions, quick-start workout
+- Exercise library — 92 exercises with short names, muscle groups, equipment categories
+- Multi-user auth with invite code registration and real user IDs
+- Bidirectional sync — push-only client with atomic session sync endpoint, manual and auto-sync
+- Geometric sync animation on first-login data import
+- Android release signing config (keystore, R8/minification)
+- WAL-safe backup protocol — server checkpoints WAL on graceful shutdown
+
+### Changed
+- Sync button copy refined, removed unused DataImportRepository dependency
+- Android app now ahead of web app in features
+
+---
+
 ## v1.0.0 — 2026-04-12
 
 ### Added

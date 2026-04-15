@@ -43,11 +43,10 @@ The Play Install Referrer API can silently pass a referrer string through the Pl
 - Server: invite validation (`GET /api/v1/auth/join/:code`)
 - Server: invite-based registration (`POST /api/v1/auth/join/:code`)
 - Web: `/join/:code` page with validation + registration form
-- Android: registration screen (currently open registration, invite code field removed)
+- Android: registration screen with invite code field
 
 ## What Needs Building
 
-- [ ] Android: re-add invite code field to registration screen (optional — blank = open registration, filled = invite registration)
 - [ ] Web: redesign `/join/:code` page as an invite landing page with copy-to-clipboard + Play Store link
 - [ ] Android: invite management screen (create invite, see list, share link)
 - [ ] Production (later): Install Referrer API integration for silent code injection

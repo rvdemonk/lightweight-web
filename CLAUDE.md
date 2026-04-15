@@ -44,7 +44,7 @@ Max 4px border-radius. Monospace for all numbers. 44px minimum touch targets. Da
 
 ## Product Direction
 
-Android native is the primary client, actively dogfooded. The web app becomes a read-only desktop dashboard for viewing lift metrics, progressions, and account data. The Rust/Axum API server is the backend and source of truth — the Android app currently syncs data down from the server but doesn't yet write back (next priority). Until write-back sync exists, workout data logged on-device is at risk if the app is uninstalled (debug → release signing key change forces uninstall).
+Android native is the primary client, actively dogfooded. Release-signed, bidirectional sync (push-only client, atomic server endpoint), ready for Play Store closed testing. The web app is a read-only desktop dashboard for lift metrics and account data — the Android app is now ahead of it in features. The Rust/Axum API server is the backend and source of truth. Google requires 12 testers active for 14 days on closed testing before production/open testing access is granted.
 
 ## Tools
 

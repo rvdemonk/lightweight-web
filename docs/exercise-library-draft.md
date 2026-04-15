@@ -178,8 +178,8 @@ Comprehensive exercise library for Lightweight. Each exercise that can be perfor
 ## Notes
 
 - The existing 17 seed exercises map into this library. Some names change for consistency (e.g., "DB Chest Flies" becomes "Dumbbell Chest Fly", "Barbell Bent Row" becomes "Barbell Bent Over Row").
-- `short_name` is a new field not currently in the schema. Adding it will require a migration on both the Rust backend (SQLite column) and the Android client (Room entity + DTO).
-- Equipment values are normalized to lowercase singular forms. The existing seed data uses "Barbell", "Dumbbells", "Bodyweight", "Machine" -- these should be normalized to the lowercase set defined above during migration.
+- `short_name` is implemented in the Android Room schema (v2→v3 migration). Not yet added to the Rust backend.
+- Equipment values are normalized to lowercase singular forms in Android. The Rust backend still uses the original casing — normalize during a future migration.
 - "Close Grip Bench Press" is listed under chest (primary mover is still pectorals, though triceps are heavily involved). Could be argued either way.
 - "Dip" is under chest; "Tricep Dip" is under triceps. The distinction is body lean angle, but since they're commonly thought of as different exercises, both are included.
 - "Conventional Deadlift" is under back; "Sumo Deadlift" is under glutes; "Romanian Deadlift" is under hamstrings. These reflect the primary emphasis of each variation.
