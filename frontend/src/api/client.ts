@@ -14,6 +14,20 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem('lw_token');
+  localStorage.removeItem('lw_user_id');
+}
+
+function setUserId(id: number) {
+  localStorage.setItem('lw_user_id', String(id));
+}
+
+export function getUserId(): number | null {
+  const v = localStorage.getItem('lw_user_id');
+  return v ? Number(v) : null;
+}
+
+export function isAdmin(): boolean {
+  return getUserId() === 1;
 }
 
 export function isLoggedIn(): boolean {
@@ -75,23 +89,39 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   // Auth
   login: (username: string, password: string) =>
-    request<{ token: string }>('/auth/login', {
+    request<{ token: string; user_id: number }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
-    }),
-  register: (username: string, password: string, invite_code?: string) =>
-    request<{ token: string }>('/auth/register', {
+    }).then(r => { setUserId(r.user_id); return r; }),
+  register: (username: string, password: string, invite_code?: string, email?: string) =>
+    request<{ token: string; user_id: number }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password, invite_code }),
-    }),
+      body: JSON.stringify({ username, password, invite_code, email }),
+    }).then(r => { setUserId(r.user_id); return r; }),
   checkAuth: () => request<void>('/auth/check'),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   validateJoinCode: (code: string) =>
     request<{ valid: boolean; invited_by: string | null }>(`/auth/join/${code}`),
   joinWithCode: (code: string, username: string, password: string) =>
-    request<{ token: string }>(`/auth/join/${code}`, {
+    request<{ token: string; user_id: number }>(`/auth/join/${code}`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
+    }).then(r => { setUserId(r.user_id); return r; }),
+
+  // Config
+  getConfig: () =>
+    request<{ google_client_id: string }>('/config'),
+
+  // Beta
+  betaSignup: (id_token: string, platform: string, referrer?: string) =>
+    request<{ token: string; user_id: number; email: string; platform: string }>('/beta/signup', {
+      method: 'POST',
+      body: JSON.stringify({ id_token, platform, referrer }),
+    }),
+  betaRegister: (username: string, password: string, platform: string, email?: string, referrer?: string) =>
+    request<{ token: string; user_id: number }>('/beta/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, email, platform, referrer }),
     }),
 
   // Invites
@@ -250,4 +280,12 @@ export const api = {
     request<import('./types').Session | null>(`/templates/${templateId}/previous`),
   sessionExercisePrevious: (sessionId: number) =>
     request<import('./types').ExercisePreviousSets[]>(`/sessions/${sessionId}/exercise-previous`),
+
+  // Admin
+  adminOverview: () => request<import('./types').AdminOverview>('/admin/overview'),
+  adminUsers: () => request<import('./types').AdminUser[]>('/admin/users'),
+  adminBeta: () => request<import('./types').AdminBetaSignup[]>('/admin/beta'),
+  adminInvites: () => request<import('./types').AdminInvite[]>('/admin/invites'),
+  adminActivity: (days?: number) =>
+    request<import('./types').AdminActivity[]>(`/admin/activity${days ? `?days=${days}` : ''}`),
 };

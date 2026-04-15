@@ -206,6 +206,41 @@ pub fn all_invites(conn: &Connection) -> Result<Vec<InviteRow>, String> {
     rows.collect::<Result<Vec<_>, _>>().map_err(map_err)
 }
 
+pub struct BetaRow {
+    pub email: String,
+    pub platform: String,
+    pub referrer: Option<String>,
+    pub created_at: String,
+    pub status: String,
+    pub username: Option<String>,
+}
+
+pub fn beta_signups(conn: &Connection) -> Result<Vec<BetaRow>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT b.email, b.platform, b.referrer, b.created_at, b.status, u.username
+             FROM beta_signups b
+             JOIN users u ON u.id = b.user_id
+             ORDER BY b.created_at DESC",
+        )
+        .map_err(map_err)?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(BetaRow {
+                email: row.get(0)?,
+                platform: row.get(1)?,
+                referrer: row.get(2)?,
+                created_at: row.get(3)?,
+                status: row.get(4)?,
+                username: row.get(5)?,
+            })
+        })
+        .map_err(map_err)?;
+
+    rows.collect::<Result<Vec<_>, _>>().map_err(map_err)
+}
+
 pub fn recent_activity(conn: &Connection, days: u32) -> Result<Vec<WorkoutRow>, String> {
     let mut stmt = conn
         .prepare(

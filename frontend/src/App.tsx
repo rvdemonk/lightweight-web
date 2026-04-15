@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { isLoggedIn } from './api/client';
+import { isLoggedIn, isAdmin } from './api/client';
 import { Layout } from './components/Layout';
 import { WhatsNew } from './components/WhatsNew';
 import { LoginPage } from './pages/LoginPage';
@@ -12,10 +12,12 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SessionDetailPage } from './pages/SessionDetailPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BriefingPage } from './pages/BriefingPage';
+import { BetaPage } from './pages/BetaPage';
 import { JoinPage } from './pages/JoinPage';
 import { InvitesPage } from './pages/InvitesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { WhatsNewPage } from './pages/WhatsNewPage';
+import { AdminPage } from './pages/AdminPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn()) {
@@ -30,6 +32,7 @@ export function App() {
     <BrowserRouter>
       {loggedIn && <WhatsNew />}
       <Routes>
+        <Route path="/beta" element={<BetaPage />} />
         <Route path="/primer" element={<BriefingPage />} />
         <Route path="/join/:code" element={<JoinPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -44,6 +47,7 @@ export function App() {
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/settings/invites" element={<ProtectedRoute><InvitesPage /></ProtectedRoute>} />
         <Route path="/whats-new" element={<ProtectedRoute><WhatsNewPage /></ProtectedRoute>} />
+        {isAdmin() && <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />}
       </Routes>
     </BrowserRouter>
   );

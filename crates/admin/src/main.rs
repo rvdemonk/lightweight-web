@@ -30,6 +30,8 @@ enum Commands {
         #[arg(long, default_value = "7")]
         days: u32,
     },
+    /// Beta signups
+    Beta,
 }
 
 fn open_db(cli: &Cli) -> Result<Connection, String> {
@@ -66,6 +68,7 @@ fn main() {
         Commands::Users => run_users(&conn),
         Commands::Invites => run_invites(&conn),
         Commands::Activity { days } => run_activity(&conn, days),
+        Commands::Beta => run_beta(&conn),
     };
 
     if let Err(e) = result {
@@ -98,5 +101,11 @@ fn run_invites(conn: &Connection) -> Result<(), String> {
 fn run_activity(conn: &Connection, days: u32) -> Result<(), String> {
     let workouts = queries::recent_activity(conn, days)?;
     display::activity(&workouts, days);
+    Ok(())
+}
+
+fn run_beta(conn: &Connection) -> Result<(), String> {
+    let signups = queries::beta_signups(conn)?;
+    display::beta(&signups);
     Ok(())
 }

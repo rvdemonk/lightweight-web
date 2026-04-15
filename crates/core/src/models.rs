@@ -276,6 +276,7 @@ pub struct RegisterRequest {
     pub username: String,
     pub password: String,
     pub invite_code: Option<String>,
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -317,6 +318,44 @@ pub struct InviteValidation {
 pub struct JoinRequest {
     pub username: String,
     pub password: String,
+}
+
+// ── Beta ──
+
+#[derive(Debug, Deserialize)]
+pub struct BetaSignupRequest {
+    pub id_token: String,
+    pub platform: String,
+    pub referrer: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BetaRegisterRequest {
+    pub username: String,
+    pub password: String,
+    pub email: Option<String>,
+    pub platform: String,
+    pub referrer: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BetaSignupResponse {
+    pub token: String,
+    pub user_id: i64,
+    pub email: String,
+    pub platform: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BetaSignup {
+    pub id: i64,
+    pub email: String,
+    pub platform: String,
+    pub referrer: Option<String>,
+    pub created_at: String,
+    pub status: String,
+    pub username: Option<String>,
+    pub google_id: Option<String>,
 }
 
 // ── Query params ──

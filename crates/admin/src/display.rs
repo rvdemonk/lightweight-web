@@ -1,4 +1,6 @@
-use crate::queries::*;
+use crate::queries::{
+    BetaRow, InviteDistRow, InviteRow, OverviewStats, Registration, UserRow, WorkoutRow,
+};
 
 pub fn overview(stats: &OverviewStats, registrations: &[Registration], workouts: &[WorkoutRow]) {
     println!("LIGHTWEIGHT ADMIN");
@@ -106,6 +108,32 @@ pub fn invites(dist: &[InviteDistRow], all: &[InviteRow]) {
             claimed_by,
             format_date(&inv.created_at),
             claimed_at,
+        );
+    }
+}
+
+pub fn beta(signups: &[BetaRow]) {
+    println!("BETA SIGNUPS");
+    if signups.is_empty() {
+        println!("  (none)");
+        return;
+    }
+    println!(
+        "  {:<28} {:<12} {:<10} {:<10} {:<12} {:<10}",
+        "EMAIL", "USER", "PLATFORM", "STATUS", "DATE", "REFERRER"
+    );
+    println!("  {}", "─".repeat(84));
+    for s in signups {
+        let referrer = s.referrer.as_deref().unwrap_or("—");
+        let user = s.username.as_deref().unwrap_or("—");
+        println!(
+            "  {:<28} {:<12} {:<10} {:<10} {:<12} {:<10}",
+            s.email,
+            user,
+            s.platform,
+            s.status,
+            format_date(&s.created_at),
+            referrer,
         );
     }
 }

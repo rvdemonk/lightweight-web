@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { APP_VERSION } from '../version';
 import { useTheme } from '../hooks/useTheme';
-import { api } from '../api/client';
+import { api, isAdmin } from '../api/client';
 import { Timer } from './Timer';
 
 const PAGE_TITLES: Record<string, string> = {
@@ -15,6 +15,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'SETTINGS',
   '/settings/invites': 'INVITES',
   '/whats-new': 'CHANGELOG',
+  '/admin': 'ADMIN',
 };
 
 function getPageTitle(pathname: string): string {
@@ -373,6 +374,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {[
               { path: '/settings', label: 'SETTINGS', icon: '⚙' },
               { path: '/settings/invites', label: 'INVITES', icon: '✉' },
+              ...(isAdmin() ? [{ path: '/admin', label: 'ADMIN', icon: '◆' }] : []),
             ].map(item => {
               const active = location.pathname === item.path;
               return (

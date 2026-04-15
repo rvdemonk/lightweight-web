@@ -211,6 +211,60 @@ export interface ExportMeta {
   last_session: string | null;
 }
 
+// ── Admin ──
+
+export interface AdminOverview {
+  total_users: number;
+  total_beta_signups: number;
+  invites_created: number;
+  invites_claimed: number;
+  active_auth_sessions: number;
+  recent_registrations: AdminRegistration[];
+}
+
+export interface AdminRegistration {
+  username: string;
+  created_at: string;
+  invited_by: string | null;
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string | null;
+  created_at: string;
+  invited_by: string | null;
+  auth_sessions: number;
+  workout_count: number;
+  last_workout: string | null;
+}
+
+export interface AdminBetaSignup {
+  id: number;
+  email: string;
+  username: string | null;
+  platform: string;
+  referrer: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface AdminInvite {
+  code_short: string;
+  creator: string;
+  claimed_by: string | null;
+  created_at: string;
+  claimed_at: string | null;
+}
+
+export interface AdminActivity {
+  date: string;
+  username: string;
+  workout_name: string;
+  duration_min: number | null;
+  set_count: number;
+}
+
 // ── Invites ──
 
 export interface Invite {

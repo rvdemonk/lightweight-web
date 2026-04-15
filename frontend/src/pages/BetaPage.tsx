@@ -46,21 +46,12 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
   const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const [googleReady, setGoogleReady] = useState(false);
-  const [clientId, setClientId] = useState('');
-  const buttonRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    api.getConfig().then(config => {
-      if (config.google_client_id) setClientId(config.google_client_id);
-    }).catch(() => {});
-  }, []);
-
-  const handleCredentialResponse = useCallback(async (response: { credential: string }) => {
+  const handleCredential = useCallback(async (credential: string) => {
     setState('loading');
     setError('');
     try {
-      const result = await api.betaSignup(response.credential, 'android', referrer || undefined);
+      const result = await api.betaSignup(credential, 'android', referrer || undefined);
       setToken(result.token);
       setEmail(result.email);
       setState('success');
@@ -70,35 +61,7 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
     }
   }, [referrer]);
 
-  useEffect(() => {
-    if (!clientId) return;
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      const google = (window as any).google;
-      if (google?.accounts?.id) {
-        google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse,
-        });
-        setGoogleReady(true);
-      }
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [clientId, handleCredentialResponse]);
-
-  useEffect(() => {
-    if (!googleReady || !buttonRef.current) return;
-    const google = (window as any).google;
-    google.accounts.id.renderButton(buttonRef.current, {
-      theme: 'filled_black',
-      size: 'large',
-      width: 400,
-      text: 'signin_with',
-    });
-  }, [googleReady]);
+  const { buttonRef, googleReady } = useGoogleSignIn(handleCredential);
 
   if (state === 'success') {
     return (
@@ -167,7 +130,7 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
           <div ref={buttonRef} style={{
             display: 'flex',
             justifyContent: 'center',
-            transform: 'scale(1.15)',
+            transform: 'scale(1.08)',
             transformOrigin: 'center',
           }} />
         )}
@@ -199,7 +162,55 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
   );
 }
 
-// ── Non-Android flow: username/password registration ──
+// ── Google Sign-In hook (shared by both flows) ──
+
+function useGoogleSignIn(onSuccess: (credential: string) => void) {
+  const [googleReady, setGoogleReady] = useState(false);
+  const [clientId, setClientId] = useState('');
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const callbackRef = useRef(onSuccess);
+  callbackRef.current = onSuccess;
+
+  useEffect(() => {
+    api.getConfig().then(config => {
+      if (config.google_client_id) setClientId(config.google_client_id);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!clientId) return;
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = () => {
+      const google = (window as any).google;
+      if (google?.accounts?.id) {
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (resp: { credential: string }) => callbackRef.current(resp.credential),
+        });
+        setGoogleReady(true);
+      }
+    };
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [clientId]);
+
+  useEffect(() => {
+    if (!googleReady || !buttonRef.current) return;
+    const google = (window as any).google;
+    google.accounts.id.renderButton(buttonRef.current, {
+      theme: 'filled_black',
+      size: 'large',
+      width: 320,
+      text: 'signin_with',
+    });
+  }, [googleReady]);
+
+  return { buttonRef, googleReady };
+}
+
+// ── Non-Android flow: username/password + optional Google Sign-In ──
 
 function RegisterFlow({ referrer }: { referrer: string | null }) {
   const navigate = useNavigate();
@@ -209,13 +220,28 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setError('');
+    setLoading(true);
+    try {
+      const device = /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' : 'desktop';
+      const result = await api.betaSignup(credential, device, referrer || undefined);
+      setToken(result.token);
+      navigate('/');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.status === 401 ? 'GOOGLE SIGN-IN FAILED' : 'SIGNUP FAILED — TRY AGAIN');
+    }
+  }, [referrer, navigate]);
+
+  const { buttonRef, googleReady } = useGoogleSignIn(handleGoogleCredential);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const device = /android/i.test(navigator.userAgent) ? 'android'
-        : /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' : 'desktop';
+      const device = /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' : 'desktop';
       const { token } = await api.betaRegister(username, password, device, email || undefined, referrer || undefined);
       setToken(token);
       navigate('/primer');
@@ -279,7 +305,7 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
         {error && (
           <div style={{
             color: 'var(--accent-red)',
-            fontSize: 12,
+            fontSize: 13,
             marginBottom: 8,
             textShadow: 'var(--glow-red-text)',
             letterSpacing: '0.5px',
@@ -297,6 +323,36 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
           {loading ? 'Creating account...' : 'Join Beta'}
         </button>
       </form>
+
+      {/* OR divider */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        margin: '20px 0',
+        width: '100%',
+      }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+        <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
+
+      {/* Google Sign-In */}
+      <div style={{ width: '100%' }}>
+        {loading ? (
+          <div style={{
+            fontSize: 14,
+            fontFamily: 'var(--font-body)',
+            color: 'var(--text-secondary)',
+            textAlign: 'center',
+            padding: '12px 0',
+          }}>
+            Signing in...
+          </div>
+        ) : (
+          <div ref={buttonRef} style={{ display: 'flex', justifyContent: 'center' }} />
+        )}
+      </div>
     </>
   );
 }

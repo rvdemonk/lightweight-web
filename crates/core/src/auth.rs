@@ -88,6 +88,7 @@ pub fn register(
     password: &str,
     invite_code: Option<&str>,
     required_invite_code: Option<&str>,
+    email: Option<&str>,
 ) -> Result<AuthResponse, AppError> {
     // Validate invite code if required
     if let Some(required) = required_invite_code {
@@ -113,10 +114,9 @@ pub fn register(
         return Err(AppError::UsernameTaken);
     }
 
-    // Insert user (token column no longer used)
     conn.execute(
-        "INSERT INTO users (username, password_hash) VALUES (?1, ?2)",
-        rusqlite::params![username, hash],
+        "INSERT INTO users (username, password_hash, email) VALUES (?1, ?2, ?3)",
+        rusqlite::params![username, hash, email],
     )?;
     let user_id = conn.last_insert_rowid();
 

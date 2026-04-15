@@ -1,4 +1,6 @@
+mod admin;
 mod analytics;
+mod beta;
 mod exercises;
 mod export;
 mod history;
@@ -17,7 +19,14 @@ pub fn public_routes() -> Router<Arc<AppState>> {
         .route("/auth/login", post(auth_login))
         .route("/auth/register", post(auth_register))
         .route("/auth/google", post(auth_google))
+        .route("/config", get(get_config))
         .merge(invites::public_routes())
+        .merge(beta::public_routes())
+}
+
+async fn get_config() -> Json<serde_json::Value> {
+    let google_client_id = std::env::var("LW_GOOGLE_CLIENT_ID").unwrap_or_default();
+    Json(serde_json::json!({ "google_client_id": google_client_id }))
 }
 
 pub fn protected_routes() -> Router<Arc<AppState>> {
@@ -32,6 +41,7 @@ pub fn protected_routes() -> Router<Arc<AppState>> {
         .merge(preferences::routes())
         .merge(export::routes())
         .merge(invites::routes())
+        .merge(admin::routes())
 }
 
 // ── Auth handlers ──
@@ -51,6 +61,7 @@ async fn auth_register(
         &body.password,
         body.invite_code.as_deref(),
         invite_code.as_deref(),
+        body.email.as_deref(),
     )
     .map(|r| (StatusCode::CREATED, Json(r)))
     .map_err(|e| match e {
