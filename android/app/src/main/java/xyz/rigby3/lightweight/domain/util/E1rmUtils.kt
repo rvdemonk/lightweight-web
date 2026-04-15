@@ -106,6 +106,7 @@ enum class PRBadge { ABSOLUTE, SET }
 
 /**
  * Check if a logged set is a PR compared to historical bests.
+ * Returns null when no historical data exists (first session of an exercise is calibration, not a PR).
  */
 fun getPRBadge(
     weightKg: Double?,
@@ -116,14 +117,17 @@ fun getPRBadge(
 ): PRBadge? {
     if (prData == null || weightKg == null || weightKg <= 0 || reps == null || reps <= 0) return null
 
+    // No historical data → first session is calibration, not a PR
+    if (prData.bestE1rmEver == null) return null
+
     val e1rm = calcE1rm(weightKg, reps, rir)
 
-    // Absolute PR: beats all-time best (or first ever set)
-    if (prData.bestE1rmEver == null || e1rm > prData.bestE1rmEver) return PRBadge.ABSOLUTE
+    // Absolute PR: strictly beats all-time best
+    if (e1rm > prData.bestE1rmEver) return PRBadge.ABSOLUTE
 
-    // Set position PR: beats best at this set number (or first at this position)
+    // Set position PR: strictly beats best at this set number
     val positionBest = prData.bestE1rmByPosition[setNumber]
-    if (positionBest == null || e1rm > positionBest) return PRBadge.SET
+    if (positionBest != null && e1rm > positionBest) return PRBadge.SET
 
     return null
 }

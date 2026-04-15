@@ -92,7 +92,8 @@ private fun HomeContent(
     val colors = LightweightTheme.colors
     var showTemplates by remember { mutableStateOf(false) }
 
-    val isNewUser = state.recentSessions.isEmpty() && state.heatmapData.isEmpty()
+    val isNewUser = !state.loading &&
+        state.recentSessions.isEmpty() && state.heatmapData.isEmpty()
 
     Column(
         modifier = Modifier
@@ -101,7 +102,9 @@ private fun HomeContent(
             .padding(horizontal = PagePadding),
     ) {
         if (!showTemplates) {
-            if (isNewUser) {
+            if (state.loading) {
+                Spacer(modifier = Modifier.weight(1f))
+            } else if (isNewUser) {
                 WelcomeContent(
                     hasTemplates = state.templates.isNotEmpty(),
                     onNavigateToTemplates = onNavigateToTemplates,
@@ -174,7 +177,7 @@ private fun WelcomeContent(
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
-            text = "SYSTEM INITIALISED",
+            text = "READY",
             style = typography.heroTitle,
             color = colors.textPrimary,
         )
@@ -182,7 +185,7 @@ private fun WelcomeContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Ready for first session",
+            text = "Set up your first template to begin",
             style = typography.body,
             color = colors.textSecondary,
         )
@@ -273,6 +276,7 @@ private fun DashboardContent(
     onSessionTap: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = LightweightTheme.colors
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
     ) {
@@ -300,10 +304,16 @@ private fun DashboardContent(
         } else {
             SectionLabel("12-WEEK ACTIVITY")
             Spacer(modifier = Modifier.height(8.dp))
-            MiniHeatmap(
-                data = state.heatmapData,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(CardRadius))
+                    .background(colors.bgSurface)
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                MiniHeatmap(data = state.heatmapData)
+            }
         }
 
         if (state.recentSessions.isNotEmpty()) {
@@ -711,7 +721,7 @@ private fun TemplatePicker(
                 )
                 Text(
                     text = "Start without a template",
-                    style = typography.data,
+                    style = typography.body,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp),
                 )

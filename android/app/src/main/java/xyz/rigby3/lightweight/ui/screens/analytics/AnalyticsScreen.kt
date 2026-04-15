@@ -155,6 +155,9 @@ private fun ProgressionTab(
     var showPicker by remember { mutableStateOf(false) }
     var showComparePicker by remember { mutableStateOf(false) }
 
+    // Any exercise with 2+ sessions means there's enough data for progression controls
+    val hasProgressionData = state.exercises.any { it.sessionCount >= 2 }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -165,92 +168,100 @@ private fun ProgressionTab(
         // Heading
         Text("ESTIMATED 1RM", style = typo.heroTitle, color = colors.textPrimary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
 
-        // Slot 1: Selector (always present, content varies by mode)
-        if (state.progressionMode == ProgressionMode.Single) {
-            SelectorButton(
-                text = state.selectedExerciseName.ifEmpty { "SELECT EXERCISE" },
-                hasValue = state.selectedExerciseName.isNotEmpty(),
-                onClick = { showPicker = true },
-            ) {
-                state.e1rmTrend?.let { trend ->
-                    val (text, color) = when (trend) {
-                        Trend.Up -> "UP" to chartColors.positive
-                        Trend.Down -> "DOWN" to chartColors.negative
-                        Trend.Flat -> "FLAT" to colors.textSecondary
-                    }
-                    Text(text, fontFamily = DataFamily, fontSize = 11.sp, fontWeight = FontWeight.W700, color = color)
-                }
-            }
+        if (!hasProgressionData) {
+            InsufficientDataMessage("Log 2+ sessions of an exercise to see progression")
         } else {
-            val selectedCount = state.comparisonExerciseIds.size
-            SelectorButton(
-                text = if (selectedCount > 0) "$selectedCount EXERCISES SELECTED" else "SELECT EXERCISES",
-                hasValue = selectedCount > 0,
-                onClick = { showComparePicker = true },
-            )
-        }
-
-        // Slot 2: Stats / legend area (fixed height — prevents bounce)
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
+            // Slot 1: Selector (content varies by mode)
             if (state.progressionMode == ProgressionMode.Single) {
-                state.exerciseStats?.let { stats ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        StatCell("CURRENT", "${"%.1f".format(stats.currentE1rm)}", "kg", chartColors.primary)
-                        StatCell("ALL-TIME BEST", "${"%.1f".format(stats.allTimeBest)}", "kg", chartColors.secondary, stats.bestSetSpec)
-                        stats.delta30d?.let { d ->
-                            val sign = if (d >= 0) "+" else ""
-                            StatCell("30D", "$sign${"%.1f".format(d)}%", null, if (d >= 0) chartColors.positive else chartColors.negative)
+                SelectorButton(
+                    text = state.selectedExerciseName.ifEmpty { "SELECT EXERCISE" },
+                    hasValue = state.selectedExerciseName.isNotEmpty(),
+                    onClick = { showPicker = true },
+                ) {
+                    state.e1rmTrend?.let { trend ->
+                        val (text, color) = when (trend) {
+                            Trend.Up -> "UP" to chartColors.positive
+                            Trend.Down -> "DOWN" to chartColors.negative
+                            Trend.Flat -> "FLAT" to colors.textSecondary
                         }
+                        Text(text, fontFamily = DataFamily, fontSize = 11.sp, fontWeight = FontWeight.W700, color = color)
                     }
                 }
             } else {
-                // Compare mode: chart has inline end-labels, keep slot for spacing consistency
-                val count = state.comparisonExerciseIds.size
-                if (count > 0) {
-                    Text(
-                        "% IMPROVEMENT FROM FIRST SESSION",
-                        fontFamily = DataFamily,
-                        fontSize = 10.sp,
-                        color = colors.textSecondary,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
+                val selectedCount = state.comparisonExerciseIds.size
+                SelectorButton(
+                    text = if (selectedCount > 0) "$selectedCount EXERCISES SELECTED" else "SELECT EXERCISES",
+                    hasValue = selectedCount > 0,
+                    onClick = { showComparePicker = true },
+                )
+            }
+
+            // Slot 2: Stats / legend area (fixed height — prevents bounce)
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp), contentAlignment = Alignment.Center) {
+                if (state.progressionMode == ProgressionMode.Single) {
+                    state.exerciseStats?.let { stats ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                            StatCell("CURRENT", "${"%.1f".format(stats.currentE1rm)}", "kg", chartColors.primary)
+                            StatCell("ALL-TIME BEST", "${"%.1f".format(stats.allTimeBest)}", "kg", chartColors.secondary, stats.bestSetSpec)
+                            stats.delta30d?.let { d ->
+                                val sign = if (d >= 0) "+" else ""
+                                StatCell("30D", "$sign${"%.1f".format(d)}%", null, if (d >= 0) chartColors.positive else chartColors.negative)
+                            }
+                        }
+                    }
+                } else {
+                    // Compare mode: chart has inline end-labels, keep slot for spacing consistency
+                    val count = state.comparisonExerciseIds.size
+                    if (count > 0) {
+                        Text(
+                            "% IMPROVEMENT FROM FIRST SESSION",
+                            fontFamily = DataFamily,
+                            fontSize = 10.sp,
+                            color = colors.textSecondary,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
-        }
 
-        // Slot 3: Chart (always present, type varies by mode)
-        if (state.progressionMode == ProgressionMode.Single) {
-            if (state.e1rmHistory.isNotEmpty()) {
-                E1rmLineChart(dataPoints = state.e1rmHistory, rollingBest = state.e1rmRollingBest, colors = chartColors, textStyles = chartTextStyles)
-            }
-        } else {
-            if (state.comparisonData.isNotEmpty()) {
-                E1rmComparisonChart(series = state.comparisonData, colors = chartColors, textStyles = chartTextStyles)
-            }
-        }
-
-        // Mode toggle below chart
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
-            ProgressionMode.entries.forEach { mode ->
-                val isSelected = mode == state.progressionMode
-                Box(
-                    modifier = Modifier
-                        .background(if (isSelected) colors.bgElevated else colors.bgSurface, RoundedCornerShape(CardRadius))
-                        .border(1.dp, if (isSelected) colors.borderActive else colors.borderSubtle, RoundedCornerShape(CardRadius))
-                        .clickable { onModeChanged(mode) }
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
-                ) {
-                    Text(mode.name.uppercase(), style = typo.label, color = if (isSelected) colors.textPrimary else colors.textSecondary)
+            // Slot 3: Chart (requires 2+ sessions for meaningful progression data)
+            if (state.progressionMode == ProgressionMode.Single) {
+                if (state.e1rmHistory.size >= 2) {
+                    E1rmLineChart(dataPoints = state.e1rmHistory, rollingBest = state.e1rmRollingBest, colors = chartColors, textStyles = chartTextStyles)
+                } else if (state.progressionLoaded && state.selectedExerciseId != null) {
+                    InsufficientDataMessage("Log 2+ sessions of this exercise to see progression")
+                }
+            } else {
+                if (state.comparisonData.any { it.points.size >= 2 }) {
+                    E1rmComparisonChart(series = state.comparisonData, colors = chartColors, textStyles = chartTextStyles)
+                } else if (state.progressionLoaded && state.comparisonExerciseIds.isNotEmpty()) {
+                    InsufficientDataMessage("Need 2+ sessions per exercise for comparison")
                 }
             }
-        }
 
-        // Movers
-        state.movers?.let { movers ->
-            Spacer(Modifier.height(8.dp))
-            Text("E1RM MOVERS (30D)", style = typo.label, color = colors.textSecondary)
-            E1rmMovers(movers = movers, colors = chartColors)
+            // Mode toggle below chart
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                ProgressionMode.entries.forEach { mode ->
+                    val isSelected = mode == state.progressionMode
+                    Box(
+                        modifier = Modifier
+                            .background(if (isSelected) colors.bgElevated else colors.bgSurface, RoundedCornerShape(CardRadius))
+                            .border(1.dp, if (isSelected) colors.borderActive else colors.borderSubtle, RoundedCornerShape(CardRadius))
+                            .clickable { onModeChanged(mode) }
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                    ) {
+                        Text(mode.name.uppercase(), style = typo.label, color = if (isSelected) colors.textPrimary else colors.textSecondary)
+                    }
+                }
+            }
+
+            // Movers
+            state.movers?.let { movers ->
+                Spacer(Modifier.height(8.dp))
+                Text("E1RM MOVERS (30D)", style = typo.label, color = colors.textSecondary)
+                E1rmMovers(movers = movers, colors = chartColors)
+            }
         }
 
         Spacer(Modifier.height(24.dp))
@@ -307,61 +318,59 @@ private fun VolumeTab(
         // Volume heading
         Text("WEEKLY VOLUME", style = typo.heroTitle, color = colors.textPrimary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
 
-        // Volume chart
-        if (state.weeklyVolume.isNotEmpty()) {
+        // Volume chart (requires 2+ weeks for meaningful trends)
+        val distinctWeeks = state.weeklyVolume.map { it.week }.distinct().size
+        if (distinctWeeks >= 2) {
             VolumeBarChart(data = state.weeklyVolume, mode = state.volumeMode, colors = chartColors, textStyles = chartTextStyles)
-        } else if (state.volumeLoaded) {
-            Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                Text("NO DATA", style = typo.label, color = colors.textSecondary)
-            }
-        }
 
-        // Mode selector below chart
-        SelectorButton(
-            text = state.volumeMode.name.uppercase(),
-            hasValue = true,
-            onClick = { /* cycle through modes */ onVolumeModeChanged(
-                when (state.volumeMode) {
-                    VolumeMode.Total -> VolumeMode.Split
-                    VolumeMode.Split -> VolumeMode.Muscle
-                    VolumeMode.Muscle -> VolumeMode.Total
-                }
-            ) },
-        )
-
-        // Legend — fixed height container, content changes but space is reserved
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
-            when (state.volumeMode) {
-                VolumeMode.Split -> {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
-                        LegendItem("Upper", ChartPalette.UpperColor)
-                        LegendItem("Lower", ChartPalette.LowerColor)
-                        LegendItem("Core", ChartPalette.CoreColor)
+            // Mode selector below chart
+            SelectorButton(
+                text = state.volumeMode.name.uppercase(),
+                hasValue = true,
+                onClick = { onVolumeModeChanged(
+                    when (state.volumeMode) {
+                        VolumeMode.Total -> VolumeMode.Split
+                        VolumeMode.Split -> VolumeMode.Muscle
+                        VolumeMode.Muscle -> VolumeMode.Total
                     }
-                }
-                VolumeMode.Muscle -> {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ChartPalette.muscleGroupColors.forEach { (name, color) ->
-                            LegendItem(name, color)
+                ) },
+            )
+
+            // Legend — fixed height container, content changes but space is reserved
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+                when (state.volumeMode) {
+                    VolumeMode.Split -> {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
+                            LegendItem("Upper", ChartPalette.UpperColor)
+                            LegendItem("Lower", ChartPalette.LowerColor)
+                            LegendItem("Core", ChartPalette.CoreColor)
                         }
                     }
-                }
-                VolumeMode.Total -> {
-                    // Empty but space reserved
+                    VolumeMode.Muscle -> {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ChartPalette.muscleGroupColors.forEach { (name, color) ->
+                                LegendItem(name, color)
+                            }
+                        }
+                    }
+                    VolumeMode.Total -> {
+                        // Empty but space reserved
+                    }
                 }
             }
+        } else if (state.volumeLoaded) {
+            InsufficientDataMessage("Keep training for 2+ weeks to see volume trends")
         }
 
         // Frequency heading
         Text("SESSION FREQUENCY", style = typo.heroTitle, color = colors.textPrimary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
 
         // Frequency chart
-        if (state.weeklyFrequency.isNotEmpty()) {
+        val distinctFreqWeeks = state.weeklyFrequency.map { it.week }.distinct().size
+        if (distinctFreqWeeks >= 2) {
             FrequencyChart(data = state.weeklyFrequency, colors = chartColors, textStyles = chartTextStyles)
         } else if (state.volumeLoaded) {
-            Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                Text("NO DATA", style = typo.label, color = colors.textSecondary)
-            }
+            InsufficientDataMessage("Keep training for 2+ weeks to see frequency trends")
         }
 
         Spacer(Modifier.height(24.dp))
@@ -402,6 +411,27 @@ private fun LegendItem(name: String, color: androidx.compose.ui.graphics.Color) 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(1.dp)).background(color))
         Text(name, fontFamily = DataFamily, fontSize = 10.sp, color = textColor)
+    }
+}
+
+@Composable
+private fun InsufficientDataMessage(message: String) {
+    val colors = LightweightTheme.colors
+    val typo = LightweightTheme.typography
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .background(colors.bgSurface, RoundedCornerShape(CardRadius))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = message,
+            style = typo.body,
+            color = colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

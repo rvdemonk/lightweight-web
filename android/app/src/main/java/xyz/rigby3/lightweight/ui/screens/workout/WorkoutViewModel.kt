@@ -351,15 +351,31 @@ class WorkoutViewModel @Inject constructor(
     ): Map<Long, SetPRData> {
         val result = mutableMapOf<Long, SetPRData>()
         for (exercise in session.exercises) {
-            val pr = prDataMap[exercise.exerciseId] ?: continue
+            val historicalPr = prDataMap[exercise.exerciseId] ?: ExercisePRData(null, emptyMap())
             val absoluteIds = mutableSetOf<Long>()
             val setIds = mutableSetOf<Long>()
+
+            // Accumulate PR data as we evaluate each set, so later sets
+            // are compared against both historical AND earlier session sets
+            var runningBestEver = historicalPr.bestE1rmEver
+            val runningBestByPosition = historicalPr.bestE1rmByPosition.toMutableMap()
+
             for (set in exercise.sets) {
-                when (getPRBadge(set.weightKg, set.reps, set.rir, set.setNumber, pr)) {
+                val accumulated = ExercisePRData(runningBestEver, runningBestByPosition.toMap())
+                when (getPRBadge(set.weightKg, set.reps, set.rir, set.setNumber, accumulated)) {
                     PRBadge.ABSOLUTE -> absoluteIds.add(set.id)
                     PRBadge.SET -> setIds.add(set.id)
                     null -> {}
                 }
+
+                // Update running bests with this set's e1rm
+                val w = set.weightKg ?: continue
+                val r = set.reps ?: continue
+                if (w <= 0 || r <= 0) continue
+                val e1rm = calcE1rm(w, r, set.rir)
+                if (runningBestEver == null || e1rm > runningBestEver) runningBestEver = e1rm
+                val posBest = runningBestByPosition[set.setNumber]
+                if (posBest == null || e1rm > posBest) runningBestByPosition[set.setNumber] = e1rm
             }
             if (absoluteIds.isNotEmpty() || setIds.isNotEmpty()) {
                 result[exercise.exerciseId] = SetPRData(absoluteIds, setIds)

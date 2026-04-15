@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.rigby3.lightweight.domain.model.TemplateExercise
@@ -65,17 +66,17 @@ fun ProgressionTargets(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     text = "SET $nextSetNumber",
-                    style = typography.data.copy(fontSize = 12.sp),
+                    style = typography.data.copy(fontSize = 14.sp, fontWeight = FontWeight.W700),
                     color = colors.accentCyan,
                 )
                 Text(
                     text = "${setAtWeight.repsNeeded}R × ${formatWeight(baseWeight)}KG",
-                    style = typography.data.copy(fontSize = 12.sp),
+                    style = typography.data.copy(fontSize = 14.sp, fontWeight = FontWeight.W700),
                     color = targetColor(setAtWeight, repMin, repMax, colors),
                 )
             }
@@ -87,17 +88,17 @@ fun ProgressionTargets(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     text = "PR",
-                    style = typography.data.copy(fontSize = 12.sp),
+                    style = typography.data.copy(fontSize = 14.sp, fontWeight = FontWeight.W700),
                     color = colors.accentPrimary,
                 )
                 Text(
                     text = "${prAtWeight!!.repsNeeded}R × ${formatWeight(baseWeight)}KG",
-                    style = typography.data.copy(fontSize = 12.sp),
+                    style = typography.data.copy(fontSize = 14.sp, fontWeight = FontWeight.W700),
                     color = targetColor(prAtWeight, repMin, repMax, colors),
                 )
             }

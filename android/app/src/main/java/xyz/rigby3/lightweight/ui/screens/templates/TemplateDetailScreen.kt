@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,9 +21,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -75,6 +73,7 @@ fun TemplateDetailScreen(
         TemplateDetailContent(
             state = state,
             onNameChange = viewModel::updateName,
+            onToggleExpanded = viewModel::toggleExpanded,
             onUpdateSets = viewModel::updateExerciseSets,
             onUpdateRepsMin = viewModel::updateExerciseRepsMin,
             onUpdateRepsMax = viewModel::updateExerciseRepsMax,
@@ -92,6 +91,7 @@ fun TemplateDetailScreen(
 private fun TemplateDetailContent(
     state: TemplateEditState,
     onNameChange: (String) -> Unit,
+    onToggleExpanded: (Int) -> Unit,
     onUpdateSets: (Int, Int) -> Unit,
     onUpdateRepsMin: (Int, Int) -> Unit,
     onUpdateRepsMax: (Int, Int) -> Unit,
@@ -133,9 +133,6 @@ private fun TemplateDetailContent(
         )
     }
 
-    // Track which exercise card is expanded (-1 = none)
-    var expandedIndex by remember { mutableIntStateOf(-1) }
-
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -155,13 +152,11 @@ private fun TemplateDetailContent(
 
         // Exercise cards — collapsible
         itemsIndexed(state.exercises) { index, exercise ->
-            val isExpanded = expandedIndex == index
+            val isExpanded = state.expandedIndex == index
             ExerciseEditCard(
                 exercise = exercise,
                 expanded = isExpanded,
-                onToggle = {
-                    expandedIndex = if (isExpanded) -1 else index
-                },
+                onToggle = { onToggleExpanded(index) },
                 onUpdateSets = { sets -> onUpdateSets(index, sets) },
                 onUpdateRepsMin = { reps -> onUpdateRepsMin(index, reps) },
                 onUpdateRepsMax = { reps -> onUpdateRepsMax(index, reps) },
@@ -220,9 +215,11 @@ private fun ExerciseEditCard(
 
     LwCard(expanded = expanded, onClick = onToggle) {
         Column {
-            // Header row: exercise name + remove button
+            // Header row: exercise name + remove button (fixed height for no shift)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = MinTouchTarget),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

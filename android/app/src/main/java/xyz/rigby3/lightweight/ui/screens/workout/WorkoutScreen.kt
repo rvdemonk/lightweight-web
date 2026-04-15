@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -280,10 +281,11 @@ private fun ExerciseCard(
         // Expanded card — only title is clickable to collapse
         LwCard(expanded = true) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Exercise name + target spec
+                // Exercise name + target spec (fixed height for no shift)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .defaultMinSize(minHeight = 44.dp)
                         .pointerInput(Unit) { detectTapGestures { onClick() } },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -358,7 +360,9 @@ private fun ExerciseCard(
         // Collapsed card
         LwCard(expanded = false, onClick = onClick) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 44.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {

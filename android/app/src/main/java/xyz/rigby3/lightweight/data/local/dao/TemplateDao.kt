@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import xyz.rigby3.lightweight.data.local.entity.TemplateEntity
@@ -58,4 +59,27 @@ interface TemplateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExercises(exercises: List<TemplateExerciseEntity>)
+
+    @Transaction
+    suspend fun insertWithExercises(
+        template: TemplateEntity,
+        exercises: List<TemplateExerciseEntity>,
+    ): Long {
+        val id = insert(template)
+        insertExercises(exercises.map { it.copy(templateId = id) })
+        return id
+    }
+
+    @Transaction
+    suspend fun updateWithVersioning(
+        snapshot: TemplateSnapshotEntity,
+        template: TemplateEntity,
+        templateId: Long,
+        exercises: List<TemplateExerciseEntity>,
+    ) {
+        insertSnapshot(snapshot)
+        update(template)
+        deleteExercises(templateId)
+        insertExercises(exercises)
+    }
 }

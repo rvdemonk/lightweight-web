@@ -56,39 +56,32 @@ class TemplateRepository @Inject constructor(
 
         // Snapshot current state
         val snapshotJson = serializeExercises(oldExercises)
-        templateDao.insertSnapshot(
-            TemplateSnapshotEntity(
+        val snapshot = TemplateSnapshotEntity(
+            templateId = templateId,
+            version = existing.version,
+            snapshotJson = snapshotJson,
+            createdAt = java.time.Instant.now().toString(),
+        )
+
+        val updatedTemplate = existing.copy(
+            name = name,
+            notes = notes,
+            version = existing.version + 1,
+            updatedAt = java.time.Instant.now().toString(),
+        )
+
+        val exerciseEntities = exercises.mapIndexed { i, ex ->
+            TemplateExerciseEntity(
                 templateId = templateId,
-                version = existing.version,
-                snapshotJson = snapshotJson,
-                createdAt = java.time.Instant.now().toString(),
-            )
-        )
-
-        // Update template
-        templateDao.update(
-            existing.copy(
-                name = name,
-                notes = notes,
-                version = existing.version + 1,
-                updatedAt = java.time.Instant.now().toString(),
-            )
-        )
-
-        // Replace exercises
-        templateDao.deleteExercises(templateId)
-        exercises.forEachIndexed { i, ex ->
-            templateDao.insertExercise(
-                TemplateExerciseEntity(
-                    templateId = templateId,
-                    exerciseId = ex.exerciseId,
-                    position = i + 1,
-                    targetSets = ex.targetSets,
-                    targetRepsMin = ex.targetRepsMin,
-                    targetRepsMax = ex.targetRepsMax,
-                )
+                exerciseId = ex.exerciseId,
+                position = i + 1,
+                targetSets = ex.targetSets,
+                targetRepsMin = ex.targetRepsMin,
+                targetRepsMax = ex.targetRepsMax,
             )
         }
+
+        templateDao.updateWithVersioning(snapshot, updatedTemplate, templateId, exerciseEntities)
     }
 
     suspend fun createNew(
@@ -97,29 +90,25 @@ class TemplateRepository @Inject constructor(
         exercises: List<EditableTemplateExercise>,
     ): Long {
         val now = java.time.Instant.now().toString()
-        val templateId = templateDao.insert(
-            TemplateEntity(
-                userId = userId,
-                name = name,
-                notes = notes,
-                createdAt = now,
-                updatedAt = now,
-                version = 1,
-            )
+        val template = TemplateEntity(
+            userId = userId,
+            name = name,
+            notes = notes,
+            createdAt = now,
+            updatedAt = now,
+            version = 1,
         )
-        exercises.forEachIndexed { i, ex ->
-            templateDao.insertExercise(
-                TemplateExerciseEntity(
-                    templateId = templateId,
-                    exerciseId = ex.exerciseId,
-                    position = i + 1,
-                    targetSets = ex.targetSets,
-                    targetRepsMin = ex.targetRepsMin,
-                    targetRepsMax = ex.targetRepsMax,
-                )
+        val exerciseEntities = exercises.mapIndexed { i, ex ->
+            TemplateExerciseEntity(
+                templateId = 0, // placeholder, replaced in insertWithExercises
+                exerciseId = ex.exerciseId,
+                position = i + 1,
+                targetSets = ex.targetSets,
+                targetRepsMin = ex.targetRepsMin,
+                targetRepsMax = ex.targetRepsMax,
             )
         }
-        return templateId
+        return templateDao.insertWithExercises(template, exerciseEntities)
     }
 
     private fun serializeExercises(exercises: List<TemplateExerciseEntity>): String {

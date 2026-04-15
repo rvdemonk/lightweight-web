@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -89,10 +90,13 @@ fun ExercisePicker(
                 modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(
                     autoCorrectEnabled = false,
-                    capitalization = KeyboardCapitalization.Characters,
+                    capitalization = KeyboardCapitalization.None,
                 ),
             )
-            IconButton(onClick = onClose, modifier = Modifier.size(MinTouchTarget)) {
+            IconButton(
+                onClick = { if (query.isNotEmpty()) { query = ""; showCreateForm = false } else onClose() },
+                modifier = Modifier.size(MinTouchTarget),
+            ) {
                 Icon(Icons.Filled.Close, "Close", tint = colors.textSecondary)
             }
         }
@@ -106,27 +110,31 @@ fun ExercisePicker(
         ) {
             items(filtered, key = { it.id }) { exercise ->
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = MinTouchTarget),
                     shape = RoundedCornerShape(2.dp),
                     color = colors.bgSurface,
                     border = BorderStroke(1.dp, colors.borderSubtle),
                     onClick = { onSelect(exercise) },
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
                             text = exercise.name.uppercase(),
                             style = typography.cardTitle,
                             color = colors.textPrimary,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
-                        val detail = listOfNotNull(exercise.muscleGroup, exercise.equipment).joinToString(" · ")
-                        if (detail.isNotBlank()) {
+                        if (!exercise.muscleGroup.isNullOrBlank()) {
                             Text(
-                                text = "  ·  $detail",
+                                text = exercise.muscleGroup.lowercase(),
                                 style = typography.data,
                                 color = colors.textSecondary,
+                                modifier = Modifier.padding(start = 12.dp),
                             )
                         }
                     }

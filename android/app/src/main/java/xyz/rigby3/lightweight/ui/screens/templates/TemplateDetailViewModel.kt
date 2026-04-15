@@ -30,6 +30,7 @@ data class TemplateEditState(
     val isSaving: Boolean = false,
     val isLoading: Boolean = true,
     val showArchiveConfirm: Boolean = false,
+    val expandedIndex: Int = -1,
 )
 
 sealed interface TemplateDetailEvent {
@@ -104,12 +105,14 @@ class TemplateDetailViewModel @Inject constructor(
 
     fun addExercise(exercise: Exercise) {
         _state.update {
+            val newExercises = it.exercises + EditableTemplateExercise(
+                exerciseId = exercise.id,
+                exerciseName = exercise.name,
+            )
             it.copy(
-                exercises = it.exercises + EditableTemplateExercise(
-                    exerciseId = exercise.id,
-                    exerciseName = exercise.name,
-                ),
+                exercises = newExercises,
                 showExercisePicker = false,
+                expandedIndex = newExercises.lastIndex,
             )
         }
     }
@@ -127,15 +130,23 @@ class TemplateDetailViewModel @Inject constructor(
             )
             val allExercises = exerciseRepository.getAll().first().map { it.toDomain() }
             _state.update {
+                val newExercises = it.exercises + EditableTemplateExercise(
+                    exerciseId = id,
+                    exerciseName = name,
+                )
                 it.copy(
-                    exercises = it.exercises + EditableTemplateExercise(
-                        exerciseId = id,
-                        exerciseName = name,
-                    ),
+                    exercises = newExercises,
                     showExercisePicker = false,
                     allExercises = allExercises,
+                    expandedIndex = newExercises.lastIndex,
                 )
             }
+        }
+    }
+
+    fun toggleExpanded(index: Int) {
+        _state.update {
+            it.copy(expandedIndex = if (it.expandedIndex == index) -1 else index)
         }
     }
 
