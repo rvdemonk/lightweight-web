@@ -96,6 +96,8 @@ data class SetDto(
 @Serializable
 data class SyncSessionDto(
     val name: String? = null,
+    @SerialName("template_id") val templateId: Long? = null,
+    @SerialName("template_version") val templateVersion: Int? = null,
     @SerialName("started_at") val startedAt: String,
     @SerialName("ended_at") val endedAt: String? = null,
     @SerialName("paused_duration") val pausedDuration: Long? = null,

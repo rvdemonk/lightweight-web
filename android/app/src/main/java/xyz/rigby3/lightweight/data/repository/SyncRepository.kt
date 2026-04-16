@@ -62,6 +62,8 @@ class SyncRepository @Inject constructor(
 
             SyncSessionDto(
                 name = session.name,
+                templateId = session.templateId,
+                templateVersion = session.templateVersion,
                 startedAt = session.startedAt,
                 endedAt = session.endedAt,
                 pausedDuration = session.pausedDuration.toLong(),

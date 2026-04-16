@@ -121,7 +121,10 @@ private fun SessionCard(
     val colors = LightweightTheme.colors
     val typography = LightweightTheme.typography
 
-    val title = (summary.templateName ?: "FREEFORM").uppercase()
+    // Fall back to session.name (not a hardcoded "FREEFORM") so that sessions
+    // which lost their template_id on an older sync still show their title —
+    // matching SessionScreen and web. A true freeform session has name="Freeform".
+    val title = (summary.templateName ?: summary.name).uppercase()
     val isActive = summary.status == "active" || summary.status == "paused"
 
     val badgeText: String

@@ -826,11 +826,27 @@ pub fn sync_sessions(db: &DbPool, user_id: i64, input: Vec<SyncSession>) -> Resu
         let status = session.status.as_deref().unwrap_or("completed");
         let paused_duration = session.paused_duration.unwrap_or(0);
 
+        // Validate template_id belongs to this user — null out if not, so we don't
+        // attach a session to someone else's template or a deleted one.
+        let template_id = match session.template_id {
+            Some(tid) => {
+                let owned: bool = conn.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM templates WHERE id = ?1 AND user_id = ?2)",
+                    rusqlite::params![tid, user_id],
+                    |row| row.get(0),
+                )?;
+                if owned { Some(tid) } else { None }
+            }
+            None => None,
+        };
+        let template_version = template_id.and(session.template_version);
+
         conn.execute(
-            "INSERT INTO sessions (user_id, name, started_at, ended_at, status, notes, paused_duration)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO sessions (user_id, name, template_id, template_version, started_at, ended_at, status, notes, paused_duration)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![
-                user_id, session.name, session.started_at, session.ended_at,
+                user_id, session.name, template_id, template_version,
+                session.started_at, session.ended_at,
                 status, session.notes, paused_duration
             ],
         )?;

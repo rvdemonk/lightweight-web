@@ -198,6 +198,8 @@ pub struct UpdateSet {
 #[derive(Debug, Deserialize)]
 pub struct SyncSession {
     pub name: Option<String>,
+    pub template_id: Option<i64>,
+    pub template_version: Option<i64>,
     pub started_at: String,
     pub ended_at: Option<String>,
     pub paused_duration: Option<i64>,
