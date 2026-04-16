@@ -340,6 +340,19 @@ pub struct BetaRegisterRequest {
     pub referrer: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct BetaJoinRequest {
+    pub email: String,
+    pub platform: String,
+    pub referrer: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BetaJoinResponse {
+    pub email: String,
+    pub platform: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct BetaSignupResponse {
     pub token: String,
