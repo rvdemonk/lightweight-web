@@ -68,6 +68,7 @@ fun SettingsScreen(
         viewModel.events.collect { event ->
             when (event) {
                 SettingsEvent.LoggedOut -> onLogout()
+                SettingsEvent.SessionExpired -> onLogout()
             }
         }
     }

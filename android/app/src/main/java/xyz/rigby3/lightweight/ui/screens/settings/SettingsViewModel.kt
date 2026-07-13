@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import xyz.rigby3.lightweight.data.local.TokenStore
 import xyz.rigby3.lightweight.data.repository.AuthRepository
 import xyz.rigby3.lightweight.data.repository.DataImportRepository
@@ -38,6 +39,7 @@ sealed interface ImportStatus {
 
 sealed interface SettingsEvent {
     data object LoggedOut : SettingsEvent
+    data object SessionExpired : SettingsEvent
 }
 
 @HiltViewModel
@@ -103,9 +105,24 @@ class SettingsViewModel @Inject constructor(
                 val msg = if (parts.isEmpty()) "Synced — all up to date"
                           else parts.joinToString(", ").replaceFirstChar { it.uppercase() }
                 _state.update { it.copy(importStatus = ImportStatus.Success(msg)) }
+            } catch (e: HttpException) {
+                if (e.code() == 401) {
+                    // Token rejected by the server (expired or revoked). Clear it locally
+                    // and route to login so a fresh token is issued — instead of silently
+                    // carrying a dead token and reporting false success on every sync.
+                    tokenStore.clear()
+                    _state.update {
+                        it.copy(importStatus = ImportStatus.Error("Session expired — please log in again"))
+                    }
+                    _events.emit(SettingsEvent.SessionExpired)
+                } else {
+                    _state.update {
+                        it.copy(importStatus = ImportStatus.Error("Sync failed — server error (${e.code()})"))
+                    }
+                }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(importStatus = ImportStatus.Error(e.message ?: "Sync failed"))
+                    it.copy(importStatus = ImportStatus.Error(e.message ?: "Sync failed — check your connection"))
                 }
             }
         }

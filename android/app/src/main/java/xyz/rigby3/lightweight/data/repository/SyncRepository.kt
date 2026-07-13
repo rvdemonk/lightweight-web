@@ -13,7 +13,6 @@ import javax.inject.Singleton
 data class SyncResult(
     val pushed: Int,
     val skipped: Int = 0,
-    val errors: List<String> = emptyList(),
 )
 
 @Singleton
@@ -73,26 +72,26 @@ class SyncRepository @Inject constructor(
             )
         }
 
-        return try {
-            val result = api.syncSessions(token, payloads)
+        val result = api.syncSessions(token, payloads)
 
-            // Mark all local sessions as synced
-            for (session in unsynced) {
-                sessionDao.markSynced(session.id)
-            }
-
-            val pushed = result.pushed.size
-            val skipped = result.skipped.toInt()
-            Log.i("Sync", "Pushed $pushed, skipped $skipped (already on server)")
-            if (result.exercisesCreated.isNotEmpty()) {
-                Log.i("Sync", "Created exercises: ${result.exercisesCreated.joinToString()}")
-            }
-
-            SyncResult(pushed = pushed, skipped = skipped)
-        } catch (e: Exception) {
-            Log.w("Sync", "Sync failed: ${e.message}")
-            SyncResult(pushed = 0, errors = listOf(e.message ?: "Unknown error"))
+        // Mark local sessions as synced — only reached if the push above succeeded.
+        // Do NOT catch-and-swallow here: if syncSessions throws (no network, or a 401
+        // on an expired/revoked token), the exception must propagate so the caller can
+        // surface it. Previously this was caught and turned into SyncResult(pushed = 0),
+        // which the UI rendered as "Synced — all up to date" — a silent false success
+        // that hid an expired token for two months.
+        for (session in unsynced) {
+            sessionDao.markSynced(session.id)
         }
+
+        val pushed = result.pushed.size
+        val skipped = result.skipped.toInt()
+        Log.i("Sync", "Pushed $pushed, skipped $skipped (already on server)")
+        if (result.exercisesCreated.isNotEmpty()) {
+            Log.i("Sync", "Created exercises: ${result.exercisesCreated.joinToString()}")
+        }
+
+        return SyncResult(pushed = pushed, skipped = skipped)
     }
 
     /**
