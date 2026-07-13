@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.play.publisher)
 }
 
 val keystoreProperties = Properties().apply {
@@ -31,8 +32,8 @@ android {
         applicationId = "xyz.rigby3.lightweight"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
@@ -70,6 +71,12 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+play {
+    serviceAccountCredentials.set(file("play-service-account.json"))
+    track.set("internal")
+    defaultToAppBundles.set(true)
 }
 
 dependencies {
