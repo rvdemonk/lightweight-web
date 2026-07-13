@@ -13,7 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/history': 'HISTORY',
   '/analytics': 'ANALYTICS',
   '/settings': 'SETTINGS',
-  '/settings/invites': 'INVITES',
+  '/settings/invites': 'INVITE A FRIEND',
   '/whats-new': 'CHANGELOG',
   '/admin': 'ADMIN',
 };
@@ -403,7 +403,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {[
               { path: '/settings', label: 'SETTINGS', icon: '⚙' },
-              { path: '/settings/invites', label: 'INVITES', icon: '✉' },
+              { path: '/settings/invites', label: 'INVITE A FRIEND', icon: '✉' },
             ].map(item => {
               const active = location.pathname === item.path;
               return (

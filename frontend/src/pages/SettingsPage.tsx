@@ -215,6 +215,18 @@ export function SettingsPage() {
         </div>
       )}
 
+      {/* Invite */}
+      <div style={{ marginBottom: 24 }}>
+        <div className="label" style={{ marginBottom: 12 }}>INVITE A FRIEND</div>
+        <Link to="/settings/invites" style={{ textDecoration: 'none' }}>
+          <SettingsRow
+            label="INVITE A FRIEND"
+            description="Copy invite link to share"
+            right={<span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)', letterSpacing: '1px' }}>→</span>}
+          />
+        </Link>
+      </div>
+
       <div className="nerv-divider" style={{ marginBottom: 24 }}>
         <span>CONFIGURATION</span>
       </div>
@@ -250,21 +262,6 @@ export function SettingsPage() {
         />
       </div>
 
-      {/* Invites */}
-      <div style={{ marginBottom: 24 }}>
-        <div className="label" style={{ marginBottom: 12 }}>INVITES</div>
-        <Link to="/settings/invites" style={{ textDecoration: 'none' }}>
-          <SettingsRow
-            label="MANAGE INVITES"
-            description={inviteData
-              ? `${inviteData.quota - inviteData.invites.length} of ${inviteData.quota} remaining`
-              : 'Invite others to Lightweight'
-            }
-            right={<span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)', letterSpacing: '1px' }}>→</span>}
-          />
-        </Link>
-      </div>
-
       {/* About */}
       <div style={{ marginBottom: 24 }}>
         <div className="label" style={{ marginBottom: 12 }}>ABOUT</div>
@@ -273,6 +270,7 @@ export function SettingsPage() {
             label="CHANGELOG"
             description="View all version updates"
             right={<span style={{ fontFamily: 'var(--font-data)', fontSize: 12, color: 'var(--text-secondary)', letterSpacing: '1px' }}>v{APP_VERSION} →</span>}
+            style={{ color: 'var(--text-primary)' }}
           />
         </Link>
       </div>
