@@ -1,76 +1,52 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { Lockup } from '../components/Lockup';
 
 const isAndroidUA = /android/i.test(navigator.userAgent);
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-const PLAY_STORE_LINK = 'https://play.google.com/store/apps/details?id=xyz.rigby3.lightweight';
-const PLAY_STORE_TEST_LINK = 'https://play.google.com/apps/testing/xyz.rigby3.lightweight';
 
-function Mark({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" style={{ display: 'block' }}>
-      <rect x="1.5" y="1.5" width="25" height="25" rx="1"
-        stroke="var(--accent-primary)" strokeWidth={1.5} />
-      <polygon points="1.5,1.5 26.5,8.2 8.2,26.5"
-        stroke="var(--accent-primary)" strokeWidth={1.5}
-        strokeLinejoin="round" fill="none" />
-    </svg>
-  );
-}
-
-function Lockup({ size = 40 }: { size?: number }) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: size * 0.35,
-      filter: 'drop-shadow(0 0 6px rgba(212,118,44,0.4)) drop-shadow(0 0 16px rgba(212,118,44,0.1))',
-    }}>
-      <Mark size={size} />
-      <span style={{
-        fontSize: size * 1.1,
-        fontWeight: 600,
-        fontFamily: 'var(--font-display)',
-        color: 'var(--accent-primary)',
-        letterSpacing: '0.06em',
-        lineHeight: 1,
-      }}>
-        LIGHTWEIGHT
-      </span>
-    </div>
-  );
-}
-
-
-// ── Android flow: Google Sign-In to collect Play Store email ──
+// ── Android flow: email input to collect Play Store email ──
 
 function AndroidFlow({ referrer }: { referrer: string | null }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const handleCredential = useCallback(async (credential: string) => {
-    setState('loading');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
     setError('');
+    setLoading(true);
     try {
-      const result = await api.betaSignup(credential, 'android', referrer || undefined);
-      setToken(result.token);
-      setEmail(result.email);
-      setState('success');
+      await api.betaJoin(trimmed, 'android', referrer || undefined);
+      setSuccess(true);
     } catch (err: any) {
-      setState('error');
-      setError(err?.status === 401 ? 'GOOGLE SIGN-IN FAILED' : 'SIGNUP FAILED — TRY AGAIN');
+      if (err?.status === 409) {
+        setSuccess(true);
+      } else {
+        setLoading(false);
+        setError('SIGNUP FAILED — TRY AGAIN');
+      }
     }
-  }, [referrer]);
+  };
 
-  const { buttonRef, googleReady } = useGoogleSignIn(handleCredential);
-
-  if (state === 'success') {
+  if (success) {
     return (
       <>
+        <div style={{
+          fontSize: 40,
+          textAlign: 'center',
+          marginBottom: 16,
+          color: 'var(--accent-green)',
+          textShadow: 'var(--glow-green-text)',
+        }}>
+          ✓
+        </div>
         <div style={{
           fontSize: 18,
           fontFamily: 'var(--font-body)',
@@ -90,30 +66,16 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
           color: 'var(--text-primary)',
           textAlign: 'center',
           lineHeight: 1.6,
-          marginBottom: 28,
         }}>
-          Signed in as{' '}
+          You'll receive a download link at{' '}
           <span style={{
             fontFamily: 'var(--font-data)',
             color: 'var(--accent-cyan)',
             textShadow: 'var(--glow-cyan-text)',
             fontSize: 13,
-          }}>{email}</span>
+          }}>{email.trim()}</span>
+          {' '}within 24 hours.
         </div>
-        <a
-          href={PLAY_STORE_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-primary btn-full"
-          style={{
-            ['--btn-cut' as string]: '10px',
-            textDecoration: 'none',
-            display: 'block',
-            textAlign: 'center',
-          }}
-        >
-          Install from Google Play
-        </a>
       </>
     );
   }
@@ -123,63 +85,53 @@ function AndroidFlow({ referrer }: { referrer: string | null }) {
       <div style={{
         fontSize: 16,
         fontFamily: 'var(--font-body)',
-        color: 'var(--text-primary)',
+        fontWeight: 600,
+        color: 'var(--accent-primary)',
         textAlign: 'center',
-        lineHeight: 1.6,
-        marginBottom: 32,
+        letterSpacing: '1px',
+        textTransform: 'uppercase',
+        marginBottom: 24,
       }}>
-        Join beta with your Google account.
+        Join the beta
       </div>
 
-      <div style={{ width: '100%' }}>
-        {state === 'loading' ? (
-          <div style={{
-            fontSize: 14,
-            fontFamily: 'var(--font-body)',
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            textAlign: 'center',
-            padding: '16px 0',
-          }}>
-            Signing in...
-          </div>
-        ) : (
-          <div ref={buttonRef} style={{
-            display: 'flex',
-            justifyContent: 'center',
-            transform: googleReady ? 'scale(1.08)' : undefined,
-            transformOrigin: 'center',
-            visibility: googleReady ? 'visible' : 'hidden',
-            height: 48,
-            overflow: 'hidden',
-          }} />
-        )}
-        {!googleReady && state !== 'loading' && (
-          <div style={{
-            fontSize: 14,
-            fontFamily: 'var(--font-body)',
-            color: 'var(--text-secondary)',
-            textAlign: 'center',
-            padding: '16px 0',
-          }}>
-            Loading...
-          </div>
-        )}
-      </div>
+      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 320, margin: '0 auto' }}>
+        <input
+          type="email"
+          placeholder="GOOGLE PLAY EMAIL"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+          style={{
+            width: '100%',
+            marginBottom: 16,
+            borderColor: error ? 'var(--accent-red)' : undefined,
+            boxShadow: error ? 'var(--error-shadow)' : undefined,
+          }}
+        />
 
-      {error && (
-        <div style={{
-          color: 'var(--accent-red)',
-          fontSize: 13,
-          marginTop: 16,
-          textShadow: 'var(--glow-red-text)',
-          letterSpacing: '0.5px',
-        }}>
-          {error}
-        </div>
-      )}
+        {error && (
+          <div style={{
+            color: 'var(--accent-red)',
+            fontSize: 13,
+            marginBottom: 12,
+            textShadow: 'var(--glow-red-text)',
+            letterSpacing: '0.5px',
+          }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="btn btn-primary btn-full"
+          style={{ ['--btn-cut' as string]: '10px' }}
+          disabled={loading}
+        >
+          {loading ? 'Joining...' : 'Join Beta'}
+        </button>
+      </form>
     </>
   );
 }
@@ -317,24 +269,9 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
             fontFamily: 'var(--font-body)',
             color: 'var(--text-secondary)',
             lineHeight: 1.5,
-            marginBottom: 20,
           }}>
-            Install Lightweight on your Android device via Google Play
+            You'll receive a Google Play download link via email.
           </div>
-          <a
-            href={PLAY_STORE_TEST_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary btn-full"
-            style={{
-              ['--btn-cut' as string]: '10px',
-              textDecoration: 'none',
-              display: 'block',
-              textAlign: 'center',
-            }}
-          >
-            Get the Android App
-          </a>
         </div>
 
         {/* Web/iPhone card */}
@@ -386,12 +323,14 @@ function RegisterFlow({ referrer }: { referrer: string | null }) {
       <div style={{
         fontSize: 16,
         fontFamily: 'var(--font-body)',
-        color: 'var(--text-primary)',
+        fontWeight: 600,
+        color: 'var(--accent-primary)',
         textAlign: 'center',
-        lineHeight: 1.6,
-        marginBottom: 32,
+        letterSpacing: '1px',
+        textTransform: 'uppercase',
+        marginBottom: 24,
       }}>
-        Sign up to join the Lightweight beta
+        Join the beta
       </div>
 
       {/* Google Sign-In — golden path */}
@@ -511,36 +450,60 @@ export function BetaPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Lockup */}
-        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
-          <Lockup size={42} />
+        <div style={{ maxWidth: 320, margin: '0 auto 12px' }}>
+          <Lockup />
         </div>
 
-        {/* Closed Beta */}
+        {/* Subtitle */}
         <div style={{
-          fontSize: 13,
-          fontFamily: 'var(--font-body)',
+          fontFamily: 'var(--font-display)',
           fontWeight: 500,
+          fontSize: 14,
           color: 'var(--accent-cyan)',
           textShadow: 'var(--glow-cyan-text)',
-          letterSpacing: '2px',
-          marginBottom: 32,
+          letterSpacing: '0.08em',
+          marginBottom: 24,
           textTransform: 'uppercase',
           textAlign: 'center',
         }}>
           Closed Beta
         </div>
 
+        {/* Feature list */}
+        <div style={{
+          fontFamily: 'var(--font-body)',
+          fontWeight: 400,
+          fontSize: 14,
+          color: 'var(--text-secondary)',
+          textAlign: 'center',
+          lineHeight: 2.2,
+          marginBottom: 32,
+        }}>
+          Log sets in seconds<br />
+          Your custom program<br />
+          Track true strength progression<br />
+          Analytics to fuel your growth<br />
+          You own your data
+        </div>
+
         {/* Referrer */}
         {referrer && (
           <div style={{
-            fontSize: 11,
-            fontFamily: 'var(--font-data)',
+            fontSize: 14,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 500,
             color: 'var(--text-secondary)',
-            letterSpacing: '1px',
+            letterSpacing: '0.5px',
             marginBottom: 24,
+            textAlign: 'center',
+            textTransform: 'uppercase',
           }}>
-            REFERRED BY{' '}
-            <span style={{ color: 'var(--accent-cyan)', textShadow: 'var(--glow-cyan-text)' }}>
+            Invited by{' '}
+            <span style={{
+              color: 'var(--accent-cyan)',
+              textShadow: 'var(--glow-cyan-text)',
+              fontWeight: 600,
+            }}>
               {referrer.toUpperCase()}
             </span>
           </div>

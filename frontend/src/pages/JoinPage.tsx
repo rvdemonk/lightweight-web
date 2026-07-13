@@ -1,16 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Navigate, Link } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
-import { APP_VERSION } from '../version';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
+import { Lockup } from '../components/Lockup';
 
-const fieldLabelStyle = {
-  fontSize: 10,
-  color: 'var(--text-secondary)',
-  letterSpacing: '1px',
-  textTransform: 'uppercase' as const,
-};
-
-function errorMessage(status: number, body?: string): string {
+function errorMessage(status: number): string {
   switch (status) {
     case 403: return 'INVITE LINK INVALID';
     case 409: return 'USERNAME TAKEN';
@@ -28,6 +22,7 @@ export function JoinPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!code) return;
@@ -39,6 +34,21 @@ export function JoinPage() {
     });
   }, [code]);
 
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setError('');
+    setLoading(true);
+    try {
+      const resp = await api.googleAuth(credential);
+      setToken(resp.token);
+      navigate('/');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.status === 401 ? 'GOOGLE SIGN-IN FAILED' : 'REGISTRATION FAILED');
+    }
+  }, [navigate]);
+
+  const { buttonRef, googleReady } = useGoogleSignIn(handleGoogleCredential);
+
   if (isLoggedIn()) {
     return <Navigate to="/" replace />;
   }
@@ -47,18 +57,20 @@ export function JoinPage() {
     e.preventDefault();
     if (!code) return;
     setError('');
+    setLoading(true);
 
     try {
       const { token } = await api.joinWithCode(code, username, password);
       setToken(token);
       navigate('/primer');
     } catch (err: any) {
+      setLoading(false);
       const status = err?.status || 0;
       setError(errorMessage(status));
     }
   };
 
-  const inputStyle = (hasError: boolean) => ({
+  const inputStyle = (hasError: boolean): React.CSSProperties => ({
     width: '100%',
     marginBottom: 12,
     borderColor: hasError ? 'var(--accent-red)' : undefined,
@@ -76,25 +88,19 @@ export function JoinPage() {
         minHeight: '100dvh',
         background: 'var(--bg-primary)',
       }}>
-        <div style={{
-          fontSize: 40,
-          fontWeight: 600,
-          fontFamily: 'var(--font-display)',
-          color: 'var(--accent-primary)',
-          letterSpacing: '4px',
-          textShadow: 'var(--glow-primary-text)',
-        }}>
-          LIGHTWEIGHT
+        <div style={{ maxWidth: 320, width: '100%', padding: '0 24px' }}>
+          <Lockup />
         </div>
         <div style={{
           fontSize: 13,
           fontFamily: 'var(--font-display)',
-          fontWeight: 400,
+          fontWeight: 500,
           color: 'var(--text-secondary)',
-          letterSpacing: '2px',
-          marginTop: 16,
+          letterSpacing: '0.08em',
+          marginTop: 24,
+          textTransform: 'uppercase',
         }}>
-          VALIDATING INVITE...
+          Validating invite...
         </div>
       </div>
     );
@@ -112,16 +118,8 @@ export function JoinPage() {
         padding: '0 24px',
         background: 'var(--bg-primary)',
       }}>
-        <div style={{
-          fontSize: 40,
-          fontWeight: 600,
-          fontFamily: 'var(--font-display)',
-          color: 'var(--accent-primary)',
-          letterSpacing: '4px',
-          textShadow: 'var(--glow-primary-text)',
-          marginBottom: 32,
-        }}>
-          LIGHTWEIGHT
+        <div style={{ maxWidth: 320, width: '100%', marginBottom: 32 }}>
+          <Lockup />
         </div>
         <div style={{
           fontSize: 14,
@@ -129,22 +127,23 @@ export function JoinPage() {
           fontWeight: 500,
           color: 'var(--accent-red)',
           textShadow: 'var(--glow-red-text)',
-          letterSpacing: '1px',
+          letterSpacing: '0.04em',
           marginBottom: 24,
+          textTransform: 'uppercase',
           textAlign: 'center',
         }}>
-          INVITE LINK INVALID OR ALREADY USED
+          Invite link invalid or already used
         </div>
-        <Link to="/primer" style={{
+        <Link to="/beta" style={{
           fontSize: 13,
-          fontFamily: 'var(--font-display)',
+          fontFamily: 'var(--font-body)',
           fontWeight: 500,
           color: 'var(--accent-cyan)',
           textShadow: 'var(--glow-cyan-text)',
-          letterSpacing: '1px',
+          letterSpacing: '0.5px',
           textDecoration: 'none',
         }}>
-          LEARN MORE ABOUT LIGHTWEIGHT
+          Join the beta instead
         </Link>
       </div>
     );
@@ -161,106 +160,128 @@ export function JoinPage() {
       padding: '0 24px 24px',
       background: 'var(--bg-primary)',
     }}>
-      {/* Wordmark */}
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <div style={{
-          fontSize: 40,
-          fontWeight: 600,
-          fontFamily: 'var(--font-display)',
-          color: 'var(--accent-primary)',
-          letterSpacing: '4px',
-          textShadow: 'var(--glow-primary-text)',
-        }}>
-          LIGHTWEIGHT
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        {/* Lockup */}
+        <div style={{ maxWidth: 320, margin: '0 auto 24px' }}>
+          <Lockup />
         </div>
-        <div style={{
-          fontSize: 12,
-          fontFamily: 'var(--font-display)',
-          fontWeight: 400,
-          color: 'var(--text-secondary)',
-          letterSpacing: '2px',
-          marginTop: 8,
-        }}>
-          v{APP_VERSION}
-        </div>
-      </div>
 
-      {/* Attribution */}
-      {invitedBy && (
-        <div style={{
-          fontSize: 11,
-          fontFamily: 'var(--font-data)',
-          color: 'var(--text-secondary)',
-          letterSpacing: '1px',
-          marginBottom: 24,
-        }}>
-          INVITED BY <span style={{ color: 'var(--accent-cyan)', textShadow: 'var(--glow-cyan-text)' }}>{invitedBy.toUpperCase()}</span>
-        </div>
-      )}
-
-      {/* Registration form */}
-      <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 320 }}>
-        <div style={{ marginBottom: 4 }}>
-          <span style={fieldLabelStyle}>USERNAME</span>
-        </div>
-        <input
-          type="text"
-          placeholder="username"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          autoComplete="username"
-          style={inputStyle(!!error)}
-          autoFocus
-        />
-
-        <div style={{ marginBottom: 4 }}>
-          <span style={fieldLabelStyle}>PASSWORD</span>
-        </div>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          autoComplete="new-password"
-          style={inputStyle(!!error)}
-        />
-
-        {error && (
+        {/* Invited by */}
+        {invitedBy && (
           <div style={{
-            color: 'var(--accent-red)',
-            fontSize: 12,
-            marginBottom: 8,
-            textShadow: 'var(--glow-red-text)',
+            fontSize: 15,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 500,
+            color: 'var(--text-secondary)',
             letterSpacing: '0.5px',
+            marginBottom: 32,
+            textAlign: 'center',
+            textTransform: 'uppercase',
           }}>
-            {error}
+            Invited by{' '}
+            <span style={{
+              color: 'var(--accent-cyan)',
+              textShadow: 'var(--glow-cyan-text)',
+              fontWeight: 600,
+            }}>
+              {invitedBy.toUpperCase()}
+            </span>
           </div>
         )}
 
-        <button type="submit" className="btn btn-primary btn-full" style={{
-          ['--btn-cut' as string]: '10px',
-        }}>
-          Register
-        </button>
+        {/* Google Sign-In */}
+        <div style={{ width: '100%', marginBottom: 4 }}>
+          {loading ? (
+            <div style={{
+              fontSize: 14,
+              fontFamily: 'var(--font-body)',
+              color: 'var(--text-secondary)',
+              textAlign: 'center',
+              padding: '12px 0',
+            }}>
+              Signing in...
+            </div>
+          ) : (
+            <div ref={buttonRef} style={{
+              display: 'flex',
+              justifyContent: 'center',
+              height: 44,
+              overflow: 'hidden',
+              visibility: googleReady ? 'visible' : 'hidden',
+            }} />
+          )}
+        </div>
 
-        {/* Divider */}
+        {/* OR divider */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          margin: '16px 0',
+          margin: '16px auto',
+          width: '100%',
+          maxWidth: 320,
         }}>
           <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
           <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
           <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
         </div>
 
-        <Link to="/login" style={{ textDecoration: 'none', display: 'block' }}>
-          <button type="button" className="btn btn-secondary btn-full" style={{ fontSize: 13 }}>
-            Login
+        {/* Username/password form */}
+        <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 320, margin: '0 auto' }}>
+          <input
+            type="text"
+            placeholder="USERNAME"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            autoComplete="username"
+            style={inputStyle(!!error)}
+          />
+          <input
+            type="password"
+            placeholder="PASSWORD"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoComplete="new-password"
+            style={inputStyle(!!error)}
+          />
+
+          {error && (
+            <div style={{
+              color: 'var(--accent-red)',
+              fontSize: 13,
+              marginBottom: 8,
+              textShadow: 'var(--glow-red-text)',
+              letterSpacing: '0.5px',
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="btn btn-primary btn-full" style={{
+            ['--btn-cut' as string]: '10px',
+          }} disabled={loading}>
+            Register
           </button>
-        </Link>
-      </form>
+
+          {/* Login link */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            margin: '16px 0',
+          }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)', letterSpacing: '1px' }}>OR</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+          </div>
+
+          <Link to="/login" style={{ textDecoration: 'none', display: 'block' }}>
+            <button type="button" className="btn btn-secondary btn-full" style={{ fontSize: 13 }}>
+              Login
+            </button>
+          </Link>
+        </form>
+      </div>
     </div>
   );
 }

@@ -2,41 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { api, setToken, isLoggedIn } from '../api/client';
 import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
-
-function Mark({ size = 32 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" style={{ display: 'block' }}>
-      <rect x="1.5" y="1.5" width="25" height="25" rx="1"
-        stroke="var(--accent-primary)" strokeWidth={1.5} />
-      <polygon points="1.5,1.5 26.5,8.2 8.2,26.5"
-        stroke="var(--accent-primary)" strokeWidth={1.5}
-        strokeLinejoin="round" fill="none" />
-    </svg>
-  );
-}
-
-function Lockup({ size = 40 }: { size?: number }) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: size * 0.35,
-      filter: 'drop-shadow(0 0 6px rgba(212,118,44,0.4)) drop-shadow(0 0 16px rgba(212,118,44,0.1))',
-    }}>
-      <Mark size={size} />
-      <span style={{
-        fontSize: size * 1.1,
-        fontWeight: 600,
-        fontFamily: 'var(--font-display)',
-        color: 'var(--accent-primary)',
-        letterSpacing: '0.06em',
-        lineHeight: 1,
-      }}>
-        LIGHTWEIGHT
-      </span>
-    </div>
-  );
-}
+import { Lockup } from '../components/Lockup';
 
 function errorMessage(status: number): string {
   switch (status) {
@@ -123,8 +89,8 @@ export function LoginPage() {
     }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         {/* Lockup */}
-        <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
-          <Lockup size={42} />
+        <div style={{ marginBottom: 40, maxWidth: 320, margin: '0 auto 40px' }}>
+          <Lockup />
         </div>
 
         {/* Google Sign-In */}
