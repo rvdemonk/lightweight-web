@@ -21,6 +21,7 @@ data class SettingsState(
     val username: String? = null,
     val displayName: String? = null,
     val email: String? = null,
+    val joinedAt: String? = null,
     val isDarkTheme: Boolean = true,
     val importStatus: ImportStatus = ImportStatus.Idle,
     val autoSyncEnabled: Boolean = false,
@@ -58,6 +59,21 @@ class SettingsViewModel @Inject constructor(
         )
     )
     val state: StateFlow<SettingsState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            try {
+                val me = authRepository.me()
+                _state.update {
+                    it.copy(
+                        username = me.username ?: it.username,
+                        email = me.email ?: it.email,
+                        joinedAt = me.createdAt,
+                    )
+                }
+            } catch (_: Exception) { /* best effort */ }
+        }
+    }
 
     private val _events = MutableSharedFlow<SettingsEvent>()
     val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()

@@ -11,6 +11,7 @@ import xyz.rigby3.lightweight.data.remote.dto.GoogleAuthRequest
 import xyz.rigby3.lightweight.data.remote.dto.ExerciseDto
 import xyz.rigby3.lightweight.data.remote.dto.JoinRequest
 import xyz.rigby3.lightweight.data.remote.dto.LoginRequest
+import xyz.rigby3.lightweight.data.remote.dto.MeResponse
 import xyz.rigby3.lightweight.data.remote.dto.RegisterRequest
 import xyz.rigby3.lightweight.data.remote.dto.SessionDto
 import xyz.rigby3.lightweight.data.remote.dto.SessionSummaryDto
@@ -32,6 +33,9 @@ interface LightweightApi {
 
     @POST("/api/v1/auth/google")
     suspend fun googleAuth(@Body request: GoogleAuthRequest): AuthResponse
+
+    @GET("/api/v1/auth/me")
+    suspend fun me(@Header("Authorization") token: String): MeResponse
 
     @POST("/api/v1/auth/logout")
     suspend fun logout(@Header("Authorization") token: String)
