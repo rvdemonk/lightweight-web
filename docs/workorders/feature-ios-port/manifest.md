@@ -2,6 +2,26 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-14 (night, session 2) — Phase 1 COMPLETE: calc truth, one policy across four languages
+
+**Design pivot recorded first (Lewis):** NERV aesthetic doesn't fit Liquid Glass — "we cannot fight the material." New Phase-4 brief: **neoindustrial liquid glassmorphism**; iOS nativity + UX principles first, aesthetic bends decided last; **no monospace fonts** (the MVP's monospace set rows get replaced in Phase 4). Spec amended in two places.
+
+**Raw-reps e1RM is now the policy everywhere** (was: iOS only):
+- `crates/calc`: RIR removed from `e1rm()`/`SetData`/`TimedSet`; `reps_to_beat` added (ported from iOS `Calc.repsToBeat`, strict-beat + float-edge guard + >30 suppression) so Rust is the ground truth for the full shared surface.
+- `crates/core/analytics.rs`: both inline SQL e1RM expressions dropped `COALESCE(st.rir,0)`; all `e1rm()` call sites updated; `rir` kept ONLY as display context (E1rmDataPoint → chart tooltip).
+- `frontend/utils/e1rm.ts`: raw-reps `calcE1rm`; new `repsToBeat` (progressionTargets refactored onto it); **getPRBadge drift fixed** — no PR on empty history (calibration semantics, matching `detect_prs`); RIR dropped from badge math.
+- MCP/CLI inherit via the HTTP API — no inline math there (verified).
+
+**Cross-language vectors live:** `crates/calc/vectors/calc_vectors.json` (e1rm/best/reps_to_beat/round/pct_change; includes the 11×65-beats-12×62.5 grinder case and Lewis's live 12.5×11 PR). Generated from Rust (`GEN_VECTORS=1 cargo test -p lightweight-calc vectors_match`), verified by a drift-detecting Rust test, run by TS (new vitest setup, `npm test`) and Swift (**new `LightweightTests` target**, vectors bundled as a resource; `xcodebuild test` green on sim). Gotcha banked: serde_json needs the `float_roundtrip` feature or parsed vectors drift 1 ULP.
+
+**Name-resolution: read before changing, as the spec warned — no change needed.** `resolve_exercise` was already case-insensitive + fuzzy-all-words + ambiguity-refusing (that's how "Pull Up"→"PULL-UPS" unified). Pinned with 6 regression tests in `sessions.rs` (case-insensitive exact, the Pull-Up fuzzy case, ambiguity→error, user scoping, archived exclusion) instead of touching working logic.
+
+**Provenance check:** PR displays already carry date + "kg × reps" detail server→AnalyticsPage; requirement was already satisfied. Verified rather than built.
+
+**Verified:** `cargo test --workspace` 8/8 suites (119 calc, 6 core) · frontend `npm run build` + 6 vitest tests · iOS 5 XCTests on sim. Zero grep hits for RIR-folding math outside `android/` (retiring by intent).
+
+**Next:** template start flow + template PUSH on iOS (spec hard requirement) · dashboard/home content · Phase 4 design under the new brief.
+
 ## 2026-07-14 (night) — FIRST REAL WORKOUT LOGGED ON iOS. Done-condition substantially met.
 
 Lewis trained arms/shoulders/core (3:31–5:00pm) logging live on the iPhone. Session 98 synced to prod: 4 exercises, 11 sets, 1-based positions, ISO ms+Z timestamps, bodyweight sets null-weighted, RIR optional — **zero new exercise rows created** (all four movements resolved onto existing lineages, incl. the formerly-split HANGING LEG RAISE). Server now 81 sessions. Fresh backup: `backups/2026-07-14/lightweight.db.post-first-ios-sync`. **First e1RM PR computed by the iOS app: INCLINE DUMBBELL CURL 12.5×11 → 17.1 (prev 16.7), held 4 sets.**

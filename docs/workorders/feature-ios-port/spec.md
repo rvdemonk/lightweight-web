@@ -43,7 +43,8 @@ On Lewis's iPhone: the app pulls his **complete** history from the server on fir
 - **The quadruplicate-calculator problem (found 2026-07-13):** e1RM logic exists in `crates/calc` (Rust), `android/domain/calc` (Kotlin), `frontend/utils/e1rm.ts` (TS), and inline SQL in `AnalyticsDao.getStrengthTrend` — and they had already drifted (SQL ignores RIR; frontend awards PR on empty history, Kotlin treats it as calibration). The iOS port must not naively add a fifth. **Decision: Swift port validated by cross-language test vectors** (JSON cases generated from `crates/calc`, run by every implementation's test suite). uniffi rejected *for now* — toolchain weight isn't justified by ~200 lines of pure functions; revisit only if analytics deepen (animise fusion).
 - **e1RM policy decision (2026-07-13): raw reps only.** `effective_reps = reps + RIR` let a subjective RIR guess outrank an actual grinder (12×62.5 @RIR1 = 89.6 beat 11×65 @RIR0 = 88.8 on incline bench). PRs, nudges, and progression targets use `weight × (1 + reps/30)`; RIR stays logged as context only.
 - **Duplicate exercise lineages (found 2026-07-13):** freeform logging re-created 5 exercises by name — Romanian Deadlift (14/283), Hanging Leg Raise (16/301), Standing Calf Raise (17/297), Ab Rollout (218/303), Dumbbell Chest Fly (219/226) — splitting their PR history in two. Merge is part of data repair; name-resolution must be hardened (case/whitespace-insensitive) so it can't recur.
-- **iOS platform baseline:** iOS 26 minimum deployment, SwiftUI (`@Observable`, `NavigationStack`), Swift 6 strict concurrency. Liquid Glass per Apple guidance: functional layer only (controls/nav/transient UI, never content), `GlassEffectContainer` for multiple glass elements, tint = semantic meaning not decoration. Design intent for Phase 4: dark angular NGE content plane, glass instrument plane above it.
+- **iOS platform baseline:** iOS 26 minimum deployment, SwiftUI (`@Observable`, `NavigationStack`), Swift 6 strict concurrency. Liquid Glass per Apple guidance: functional layer only (controls/nav/transient UI, never content), `GlassEffectContainer` for multiple glass elements, tint = semantic meaning not decoration.
+- **Design direction (revised 2026-07-14, supersedes "NGE × Liquid Glass"):** the NERV aesthetic doesn't fit Liquid Glass — monospace telemetry and hard angular chrome fight glass materiality. New brief: **neoindustrial liquid glassmorphism**. Guiding principles in order: (1) iOS nativity, (2) good UX design principles; only once those hold do we decide where to *bend* for aesthetics. **No monospace fonts** (the MVP's monospace set rows are to be replaced in Phase 4).
 
 ## Approach — phases (fixed in the 2026-07-13 planning session)
 
@@ -53,7 +54,7 @@ On Lewis's iPhone: the app pulls his **complete** history from the server on fir
    - **Merge the 5 duplicate exercise lineages** (see "The invisible") — repoint `session_exercises`/`template_exercises` rows to the canonical id, delete the orphan. Must land before iOS's first pull or the split baptises into the new client.
    - Outcome: server becomes a faithful mirror; verify row-counts against `backups/android/2026-07-13/`.
 
-**Phase 1 — Calc truth** (before any Swift, so the port reproduces the *fixed* policy):
+**Phase 1 — Calc truth** ✅ **DONE 2026-07-14** (see manifest — name-resolution hardening proved already-present; pinned with regression tests instead):
    - Switch e1RM for PRs/nudges/targets to raw reps (drop RIR from `effective_reps`) in `crates/calc`, server SQL, and frontend. **Skip Android** — it's retiring.
    - Generate cross-language test vectors (JSON) from `crates/calc`; wire into Rust + TS test suites (Swift joins in Phase 2).
    - PR displays show provenance (date + set) so a surprising PR source is inspectable.
@@ -69,7 +70,7 @@ On Lewis's iPhone: the app pulls his **complete** history from the server on fir
 
 **Phase 3 — Core loop screens** (functional, unstyled): home, template start, between-sets logging with PR nudges from the fixed calc.
 
-**Phase 4 — Design**: NGE × Liquid Glass reinterpretation (see platform baseline in "The invisible"). Android styling does not survive the transition by intent — this is the fun part, done against a working prototype.
+**Phase 4 — Design**: neoindustrial liquid glassmorphism (see revised design direction in "The invisible" — supersedes the earlier "NGE × Liquid Glass" framing). iOS nativity and UX first; aesthetic bends decided last. Android styling does not survive the transition by intent — this is the fun part, done against a working prototype.
 
 ## Key references (from the 2026-07-07→13 session)
 
