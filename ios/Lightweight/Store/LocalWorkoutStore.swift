@@ -206,16 +206,21 @@ extension AppDatabase {
         return try blocks.map { block in
             let prev = try previousPerformance(exerciseId: block.se.exerciseId, excludingSessionId: sessionId)
             let best = try allTimeBestE1rm(exerciseId: block.se.exerciseId, excludingSessionId: sessionId)
+            let sets: [ActiveWorkout.LoggedSet] = block.sets.map {
+                .init(id: $0.id, setNumber: $0.setNumber, weightKg: $0.weightKg,
+                      reps: $0.reps, rir: $0.rir)
+            }
+            // Live best must fold in this session's already-logged sets, or a
+            // resumed workout's PR targets forget the PR you just set.
+            let liveBest = (([best] + sets.map(\.e1rm)).compactMap { $0 }).max()
             return ActiveWorkout.Exercise(
                 sessionExerciseId: block.se.id, exerciseId: block.se.exerciseId,
                 name: block.name, position: block.se.position,
-                sets: block.sets.map {
-                    .init(id: $0.id, setNumber: $0.setNumber, weightKg: $0.weightKg,
-                          reps: $0.reps, rir: $0.rir)
-                },
+                sets: sets,
                 previous: prev?.sets ?? [],
                 previousLabel: prev.map { ServerDate.dayLabel($0.startedAt) },
-                allTimeBestE1rm: best)
+                allTimeBestE1rm: liveBest,
+                baselineBestE1rm: best)
         }
     }
 
@@ -276,6 +281,10 @@ extension AppDatabase {
                 equipment: "Barbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
             try ExerciseRecord(id: 2, name: "PULL UP", muscleGroup: "Back",
                 equipment: "Bodyweight", notes: nil, archived: false, createdAt: iso(90)).insert(db)
+            try ExerciseRecord(id: 3, name: "SEATED DUMBBELL PRESS", muscleGroup: "Shoulders",
+                equipment: "Dumbbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
+            try ExerciseRecord(id: 4, name: "CABLE FLY", muscleGroup: "Chest",
+                equipment: "Cable", notes: nil, archived: false, createdAt: iso(90)).insert(db)
             // Prior completed session (server-origin) with sets on exercise 1.
             try SessionRecord(id: 1, templateId: nil, name: "Freeform", startedAt: iso(4),
                 endedAt: iso(4), pausedDuration: 0, notes: nil, status: "completed",
@@ -285,6 +294,9 @@ extension AppDatabase {
                 setType: "working", rir: 1, completedAt: iso(4)).insert(db)
             try SetRecord(id: 2, sessionExerciseId: 1, setNumber: 2, weightKg: 62.5, reps: 7,
                 setType: "working", rir: 0, completedAt: iso(4)).insert(db)
+            try SessionExerciseRecord(id: 2, sessionId: 1, exerciseId: 3, position: 2, notes: nil).insert(db)
+            try SetRecord(id: 3, sessionExerciseId: 2, setNumber: 1, weightKg: 22.5, reps: 10,
+                setType: "working", rir: 1, completedAt: iso(4)).insert(db)
         }
     }
 
@@ -298,6 +310,10 @@ extension AppDatabase {
             rir: 1, completedAt: ISO8601.now())
         _ = try addLocalSet(sessionExerciseId: seId, setNumber: 2, weightKg: 65, reps: 7,
             rir: 0, completedAt: ISO8601.now())
+        // Untouched exercises so the accordion's collapsed rows are visible,
+        // including a bodyweight one (PULL UP) for the BW entry path.
+        _ = try addSessionExercise(sessionId: sid, exerciseId: 3, position: 2)
+        _ = try addSessionExercise(sessionId: sid, exerciseId: 2, position: 3)
     }
     #endif
 

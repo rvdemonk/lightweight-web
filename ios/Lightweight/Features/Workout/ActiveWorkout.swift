@@ -17,7 +17,8 @@ final class ActiveWorkout {
         var sets: [LoggedSet]
         var previous: [SetRecord]      // most-recent prior session's sets (local + pulled)
         var previousLabel: String?     // day label of that prior session
-        var allTimeBestE1rm: Double?   // context: current best for this lift
+        var allTimeBestE1rm: Double?   // context: current best for this lift (live, folds this session)
+        var baselineBestE1rm: Double?  // best BEFORE this session — PR badges compare against this
         var id: Int64 { sessionExerciseId }
     }
 
@@ -68,7 +69,7 @@ final class ActiveWorkout {
             sessionExerciseId: seId, exerciseId: exerciseId, name: name, position: position,
             sets: [], previous: prev?.sets ?? [],
             previousLabel: prev.map { ServerDate.dayLabel($0.startedAt) },
-            allTimeBestE1rm: best))
+            allTimeBestE1rm: best, baselineBestE1rm: best))
     }
 
     func logSet(exerciseIndex: Int, weightKg: Double?, reps: Int, rir: Int?) throws {

@@ -2,6 +2,21 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-15 (morning) — Phase 4 opened: tokens + type scale settled with Lewis
+
+Interactive design session, decisions banked (all four Lewis-confirmed):
+- **Typeface: SF Pro only.** Condensed bold caps (`Font.width(.condensed)`) for exercise names/headers — the neoindustrial survival route, native Barlow-Condensed flavor with Dynamic Type intact. `.monospacedDigit()` (tabular figures) on every number so steppers/timers don't jitter — this is NOT a monospace font and doesn't violate the ban.
+- **Accent: amber stays** (#e8a832), the single brand color. Green = PR only, red = destructive only. **Cyan is dead** — reference data is `.secondary`, data hierarchy comes from weight/size not hue.
+- **Both color modes, dark-first** dogfooding. System backgrounds so glass adapts.
+- **17pt floor holds for data/numbers/tappables; 13pt tracked-uppercase metadata labels are the sole exception** ("LAST SESSION", "PR TARGET" furniture).
+- Web brand's 4px-max-radius is dead on iOS: chrome = capsule/containerConcentric, content cards 12pt; angularity survives in layout, not corners.
+
+**Shipped:** `ios/Lightweight/Design/Theme.swift` — all tokens + rationale + `.metaLabel()` modifier; xcodegen re-run, builds clean.
+
+**Active-workout imperatives inventoried (Lewis's list + session additions):** steppers (±1 rep, ±1.25kg, tap-to-type, auto-prefill from previous set), last-session sets (w/ RIR display TBD), bidirectional PR goals (weight→reps-to-beat AND reps→weight, same Epley inverted), logged sets per exercise, accordion exercise list (one expanded = working; collapsed rows dense; multi-expand for supersets; content layer, NEVER glass in scroll rows), toolbar `+` add-exercise, workout timer + **rest timer** (time since last set), template progress bar, end vs discard w/ confirmation, PR-confirmed celebration at log moment, edit/delete logged set, `.tabViewBottomAccessory` for the Spotify-style active-workout bar (native iOS 26 API — Android nav-hack dies). Parked: rep-target color bar (incoherence across weight changes), plate math, warm-up marking, notes. Standalone e1RM calculator wanted as a utility sheet off the dashboard, not the active screen.
+
+**Next:** rebuild ActiveWorkoutView as the reference screen against Theme.swift — build → screenshot → Lewis reacts (he runs the sim). Only after the reference screen is settled does the rollout to remaining screens get conducted.
+
 ## 2026-07-14 (night, session 2) — Phase 1 COMPLETE: calc truth, one policy across four languages
 
 **Design pivot recorded first (Lewis):** NERV aesthetic doesn't fit Liquid Glass — "we cannot fight the material." New Phase-4 brief: **neoindustrial liquid glassmorphism**; iOS nativity + UX principles first, aesthetic bends decided last; **no monospace fonts** (the MVP's monospace set rows get replaced in Phase 4). Spec amended in two places.

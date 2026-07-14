@@ -36,6 +36,22 @@ enum Calc {
         return reps <= 30 ? reps : nil
     }
 
+    /// The inverse goal direction: smallest plate-step weight whose e1RM at
+    /// `reps` STRICTLY beats `target`. Same Epley inverted — lets a lifter fix
+    /// the rep count ("I want 12 today") and read off the weight.
+    /// Swift-only for now (design-session addition 2026-07-15); backport to
+    /// crates/calc + vectors when it proves itself on screen.
+    static func weightToBeat(target: Double, reps: Int, step: Double = 1.25) -> Double? {
+        guard reps > 0, reps <= 30, target > 0, step > 0 else { return nil }
+        let raw = target / (1.0 + Double(reps) / 30.0)
+        var w = max(step, (raw / step).rounded(.down) * step)
+        // Walk up to strictness (a tie is not a PR); float-safe, bounded.
+        while let e = e1rm(weightKg: w, reps: reps), e <= target {
+            w += step
+        }
+        return w
+    }
+
     #if DEBUG
     /// Cheap self-check, run once at launch in debug builds. Not a substitute
     /// for the Phase-1 cross-language vectors — just catches gross regressions.
