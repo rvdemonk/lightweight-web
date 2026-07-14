@@ -2,6 +2,18 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-14 (night) — FIRST REAL WORKOUT LOGGED ON iOS. Done-condition substantially met.
+
+Lewis trained arms/shoulders/core (3:31–5:00pm) logging live on the iPhone. Session 98 synced to prod: 4 exercises, 11 sets, 1-based positions, ISO ms+Z timestamps, bodyweight sets null-weighted, RIR optional — **zero new exercise rows created** (all four movements resolved onto existing lineages, incl. the formerly-split HANGING LEG RAISE). Server now 81 sessions. Fresh backup: `backups/2026-07-14/lightweight.db.post-first-ios-sync`. **First e1RM PR computed by the iOS app: INCLINE DUMBBELL CURL 12.5×11 → 17.1 (prev 16.7), held 4 sets.**
+
+**Done-condition scorecard:** full-history pull ✓ (80/80, row-counts matched) · offline log ✓ · sync to server ✓ (round-trips via GET /sessions) · browser dashboard eyeball — Lewis to confirm visually, data verified server-side. Template-linkage intact ✓ (Phase 0 + no lineage splits from today's freeform).
+
+**Also shipped late-day (commit 978e61b, supervisor-built after worker takeover — worker went dark post-release; lesson: a "released" worker may not resume on a new task, verify disk activity within minutes):** PR/SPR targets in the active workout — header shows combos strictly beating the all-time e1RM at current weight and +2.5kg; entry row shows live SPR (rep record at that exact weight, current session included) and PR rep targets. `Calc.repsToBeat` with strict-beat float guard, >30-rep targets suppressed. Font floor: all text ≥17pt (gym legibility). Verified on-sim against real data, math hand-checked.
+
+**Ops notes:** Mac disk hit 100% (9.8GB iOS 26 DeviceSupport symbol cache) — DerivedData + SPM caches purged to recover; GRDB re-resolved. Debugger attach on the new iPhone is unreliable (watchdog SIGKILL) — scheme now recommended to run with "Debug executable" OFF for dogfooding. Sim container wiped post-testing (junk-session prod-push hazard with a live keychain token).
+
+**Next session:** Phase 1 (calc truth: raw-reps in crates/calc + SQL + frontend, cross-language vectors — iOS currently the only policy-correct client) · template start flow + template PUSH (spec hard requirement, unblocked) · dashboard/home content · then Phase 4 design (NGE × Liquid Glass; guide at ~/code/pum/docs/design/ios26-liquid-glass-guide.md). Watch-item: an exercise add may have silently failed at 3:33pm (try? on addExercise path) — unreproduced, keep an eye out.
+
 ## 2026-07-14 (evening) — Today-slice SHIPPED: freeform logging + write-safe sync, conducted
 
 First conducted build (1 Opus worker, 2 checkpoints + 1 refinement, supervisor-verified). Delivered inside the ~75-min window so Lewis could train on iOS same-day.
