@@ -9,7 +9,6 @@ pub struct TimedSet {
     pub set_number: i32,
     pub weight_kg: f64,
     pub reps: i64,
-    pub rir: Option<i64>,
     pub date: String,
 }
 
@@ -30,7 +29,7 @@ pub fn detect_prs(sets: &[TimedSet], cutoff_date: &str) -> Vec<DayPR> {
     let mut day_prs: HashMap<String, (bool, bool)> = HashMap::new();
 
     for s in sets {
-        let e = e1rm::e1rm(s.weight_kg, s.reps, s.rir);
+        let e = e1rm::e1rm(s.weight_kg, s.reps);
 
         let abs_best = best_absolute.entry(s.exercise_id).or_insert(0.0);
         let pos_map = best_by_pos.entry(s.exercise_id).or_default();
@@ -73,7 +72,7 @@ pub fn historical_bests(sets: &[TimedSet]) -> (Option<f64>, HashMap<i32, f64>) {
     let mut best_by_position: HashMap<i32, f64> = HashMap::new();
 
     for s in sets {
-        let e = e1rm::e1rm(s.weight_kg, s.reps, s.rir);
+        let e = e1rm::e1rm(s.weight_kg, s.reps);
 
         if best_ever.is_none() || e > best_ever.unwrap() {
             best_ever = Some(e);
@@ -104,25 +103,6 @@ mod tests {
             set_number,
             weight_kg: weight,
             reps,
-            rir: None,
-            date: date.to_string(),
-        }
-    }
-
-    fn make_set_with_rir(
-        exercise_id: i64,
-        set_number: i32,
-        weight: f64,
-        reps: i64,
-        rir: Option<i64>,
-        date: &str,
-    ) -> TimedSet {
-        TimedSet {
-            exercise_id,
-            set_number,
-            weight_kg: weight,
-            reps,
-            rir,
             date: date.to_string(),
         }
     }
@@ -270,16 +250,16 @@ mod tests {
     }
 
     #[test]
-    fn detect_prs_rir_affects_e1rm() {
-        // Without RIR: 80 * (1 + 5/30) = 93.333
-        // With RIR=3:  80 * (1 + 8/30) = 101.333 (higher e1RM)
+    fn detect_prs_ignores_rir_grinder_wins() {
+        // Raw-reps policy: the actual grinder (11×65 = 88.83) is a PR over
+        // 12×62.5 (87.5) — under the old RIR-folding policy the reverse held.
         let sets = vec![
-            make_set(1, 1, 80.0, 5, "2026-01-01"),
-            // Same weight/reps but with RIR => higher e1RM => should be a PR
-            make_set_with_rir(1, 1, 80.0, 5, Some(3), "2026-01-08"),
+            make_set(1, 1, 62.5, 12, "2026-01-01"),
+            make_set(1, 1, 65.0, 11, "2026-01-08"),
         ];
         let prs = detect_prs(&sets, "2026-01-01");
         assert_eq!(prs.len(), 1);
+        assert_eq!(prs[0].date, "2026-01-08");
         assert!(prs[0].has_absolute_pr);
     }
 
@@ -422,12 +402,12 @@ mod tests {
     }
 
     #[test]
-    fn historical_bests_with_rir() {
-        // 80kg x 5 reps, RIR 3 => effective 8 reps => 80*(1+8/30) = 101.333 => 101.3
-        let sets = vec![make_set_with_rir(1, 1, 80.0, 5, Some(3), "2026-01-01")];
+    fn historical_bests_raw_reps_only() {
+        // 80kg x 5 => 80*(1+5/30) = 93.333 => 93.3 (RIR no longer exists as input)
+        let sets = vec![make_set(1, 1, 80.0, 5, "2026-01-01")];
         let (best, by_pos) = historical_bests(&sets);
-        assert_eq!(best, Some(101.3));
-        assert_eq!(*by_pos.get(&1).unwrap(), 101.3);
+        assert_eq!(best, Some(93.3));
+        assert_eq!(*by_pos.get(&1).unwrap(), 93.3);
     }
 
     #[test]

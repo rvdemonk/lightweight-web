@@ -1127,3 +1127,114 @@ fn get_session_exercises(conn: &rusqlite::Connection, session_id: i64) -> Result
 
     Ok(exercises)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression tests for sync-time exercise name resolution.
+    ///
+    /// Context (Phase 0/1 of the iOS port, 2026-07-13→14): duplicate exercise
+    /// lineages on Android came from the *client* creating exercises locally
+    /// without resolving; the server-side resolver below was already lenient
+    /// enough to unify them on arrival (including "Pull Up" → "PULL-UPS").
+    /// These tests pin that behaviour so it can't silently regress — they do
+    /// not change the resolver.
+    fn test_db() -> crate::db::DbPool {
+        let db = crate::db::init_memory_db().expect("in-memory db with migrations");
+        {
+            let conn = db.lock().unwrap();
+            conn.execute(
+                "INSERT INTO users (id, username, password_hash) VALUES (42, 'testuser', 'x')",
+                [],
+            )
+            .unwrap();
+            for name in [
+                "PULL-UPS",
+                "ROMANIAN DEADLIFT",
+                "INCLINE DUMBBELL CURL",
+                "SEATED INCLINE DB CURLS",
+                "HANGING LEG RAISE",
+            ] {
+                conn.execute(
+                    "INSERT INTO exercises (user_id, name) VALUES (42, ?1)",
+                    [name],
+                )
+                .unwrap();
+            }
+        }
+        db
+    }
+
+    fn resolve(db: &crate::db::DbPool, name: &str) -> Result<Option<(i64, String)>, AppError> {
+        let conn = db.lock().unwrap();
+        let mut warnings = Vec::new();
+        resolve_exercise(&conn, 42, name, &mut warnings)
+    }
+
+    #[test]
+    fn exact_match_is_case_insensitive() {
+        let db = test_db();
+        let hit = resolve(&db, "romanian deadlift").unwrap().unwrap();
+        assert_eq!(hit.1, "ROMANIAN DEADLIFT");
+        let hit = resolve(&db, "Hanging Leg Raise").unwrap().unwrap();
+        assert_eq!(hit.1, "HANGING LEG RAISE");
+    }
+
+    #[test]
+    fn fuzzy_unifies_pull_up_variant() {
+        // The 6th split found in Phase 0: phone "Pull Up" vs server "PULL-UPS".
+        let db = test_db();
+        let hit = resolve(&db, "Pull Up").unwrap().unwrap();
+        assert_eq!(hit.1, "PULL-UPS");
+    }
+
+    #[test]
+    fn ambiguous_fuzzy_match_is_an_error_not_a_guess() {
+        // "incline curl" hits both INCLINE DUMBBELL CURL and SEATED INCLINE DB
+        // CURLS — the resolver must refuse rather than pick silently.
+        let db = test_db();
+        let result = resolve(&db, "incline curl");
+        assert!(matches!(result, Err(AppError::BadRequest(_))));
+    }
+
+    #[test]
+    fn no_match_returns_none() {
+        let db = test_db();
+        assert!(resolve(&db, "Zercher Squat").unwrap().is_none());
+    }
+
+    #[test]
+    fn other_users_exercises_are_invisible() {
+        let db = test_db();
+        {
+            let conn = db.lock().unwrap();
+            conn.execute(
+                "INSERT INTO users (id, username, password_hash) VALUES (7, 'other', 'x')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO exercises (user_id, name) VALUES (7, 'FRONT SQUAT')",
+                [],
+            )
+            .unwrap();
+        }
+        assert!(resolve(&db, "Front Squat").unwrap().is_none());
+    }
+
+    #[test]
+    fn archived_exercises_do_not_resolve() {
+        let db = test_db();
+        {
+            let conn = db.lock().unwrap();
+            conn.execute(
+                "UPDATE exercises SET archived = 1 WHERE name = 'PULL-UPS' AND user_id = 42",
+                [],
+            )
+            .unwrap();
+        }
+        assert!(resolve(&db, "PULL-UPS").unwrap().is_none());
+        assert!(resolve(&db, "Pull Up").unwrap().is_none());
+    }
+}

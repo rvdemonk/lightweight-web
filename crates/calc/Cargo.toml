@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+# float_roundtrip: the vectors file demands bit-exact f64 parse round-trips;
+# serde_json's default fast float parser can be 1 ULP off.
+serde_json = { version = "1", features = ["float_roundtrip"] }

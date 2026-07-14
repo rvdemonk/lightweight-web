@@ -1,8 +1,25 @@
 import type { ExercisePRData } from '../api/types';
 
-export function calcE1rm(weightKg: number, reps: number, rir?: number | null): number {
-  const effectiveReps = reps + (rir ?? 0);
-  return weightKg * (1 + effectiveReps / 30);
+// e1RM policy (decision 2026-07-13): RAW REPS ONLY.
+// RIR is logged as context but NEVER folded into reps — a subjective
+// "one left in the tank" must not outrank an actual grinder in PR math.
+// Ground truth: crates/calc; conformance proven by the shared vectors
+// (crates/calc/vectors/calc_vectors.json, run in e1rm.test.ts).
+export function calcE1rm(weightKg: number, reps: number): number {
+  return weightKg * (1 + reps / 30);
+}
+
+// Smallest rep count at weightKg whose e1RM STRICTLY beats target (a tie is
+// not a PR). null when inputs are invalid or the answer exceeds 30 reps —
+// Epley is meaningless out there; pick a heavier weight.
+// Semantics pinned to crates/calc reps_to_beat / iOS Calc.repsToBeat.
+export function repsToBeat(target: number, weightKg: number): number | null {
+  if (weightKg <= 0 || target <= 0) return null;
+  let reps = Math.max(1, Math.floor(30 * (target / weightKg - 1)) + 1);
+  // Float-edge guard: when the target sits exactly on an integer rep count,
+  // the formula lands ON it — strictness demands one more.
+  if (calcE1rm(weightKg, reps) <= target) reps += 1;
+  return reps <= 30 ? reps : null;
 }
 
 export type PRBadge = 'absolute' | 'set' | null;
@@ -46,17 +63,14 @@ export function progressionTargets(opts: ProgressionOptions): ProgressionTarget[
     const weight = currentWeight + step * increment;
     if (weight <= 0) continue;
 
-    // reps to strictly beat: e1rm > targetE1rm
-    // weight * (1 + reps/30) > targetE1rm
-    // reps > (targetE1rm/weight - 1) * 30
-    const exactRepsToBeat = (targetE1rm / weight - 1) * 30;
-    const repsNeeded = Math.max(1, Math.ceil(exactRepsToBeat + 0.001)); // +epsilon to ensure strictly greater
+    // reps to strictly beat: shared strict-beat semantics (crates/calc)
+    const repsNeeded = repsToBeat(targetE1rm, weight);
 
     // reps to match (equal or exceed)
     const exactRepsToMatch = (targetE1rm / weight - 1) * 30;
     const repsToMatch = Math.max(1, Math.ceil(exactRepsToMatch));
 
-    if (repsNeeded > maxReps) continue;
+    if (repsNeeded === null || repsNeeded > maxReps) continue;
 
     results.push({
       weight,
@@ -97,19 +111,22 @@ export function absoluteProgressionTargets(
 }
 
 export function getPRBadge(
-  set: { weight_kg: number | null; reps: number; rir?: number | null; set_number: number; set_type?: string },
+  set: { weight_kg: number | null; reps: number; set_number: number; set_type?: string },
   prData: ExercisePRData | undefined,
 ): PRBadge {
   if (!prData || !set.weight_kg || set.weight_kg <= 0 || set.reps <= 0) return null;
   if (set.set_type && set.set_type !== 'working') return null;
 
-  const e1rm = calcE1rm(set.weight_kg, set.reps, set.rir);
+  const e1rm = calcE1rm(set.weight_kg, set.reps);
 
-  const isAbsolutePR = prData.best_e1rm_ever === null || e1rm > prData.best_e1rm_ever;
+  // Calibration semantics (aligned with crates/calc detect_prs, 2026-07-14):
+  // no prior history means nothing to beat — first sessions calibrate, they
+  // don't award PRs.
+  const isAbsolutePR = prData.best_e1rm_ever !== null && e1rm > prData.best_e1rm_ever;
   if (isAbsolutePR) return 'absolute';
 
   const positionBest = prData.best_e1rm_by_position[set.set_number];
-  const isSetPR = positionBest === undefined || e1rm > positionBest;
+  const isSetPR = positionBest !== undefined && e1rm > positionBest;
   if (isSetPR) return 'set';
 
   return null;

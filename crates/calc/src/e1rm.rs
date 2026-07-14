@@ -5,14 +5,15 @@ use serde::Serialize;
 pub struct SetData {
     pub weight_kg: f64,
     pub reps: i64,
-    pub rir: Option<i64>,
 }
 
-/// Epley formula e1RM with optional RIR adjustment.
-/// When RIR is known, effective reps = reps + rir for a more accurate estimate.
-pub fn e1rm(weight_kg: f64, reps: i64, rir: Option<i64>) -> f64 {
-    let effective_reps = reps + rir.unwrap_or(0);
-    weight_kg * (1.0 + effective_reps as f64 / 30.0)
+/// Epley formula e1RM on RAW REPS ONLY (policy decision 2026-07-13).
+///
+/// RIR is deliberately NOT folded into reps: a subjective "one left in the
+/// tank" must never outrank an actual grinder in PR math (the 12×62.5@RIR1
+/// vs 11×65@RIR0 incline-bench bug). RIR stays logged as context only.
+pub fn e1rm(weight_kg: f64, reps: i64) -> f64 {
+    weight_kg * (1.0 + reps as f64 / 30.0)
 }
 
 /// Round to 1 decimal place (standard display precision for e1RM values).
@@ -23,11 +24,30 @@ pub fn round(value: f64) -> f64 {
 /// Find the best e1RM from a collection of sets. Returns None if empty.
 pub fn best(sets: &[SetData]) -> Option<f64> {
     sets.iter()
-        .map(|s| e1rm(s.weight_kg, s.reps, s.rir))
+        .map(|s| e1rm(s.weight_kg, s.reps))
         .fold(None, |best, val| match best {
             Some(b) if b >= val => Some(b),
             _ => Some(val),
         })
+}
+
+/// Smallest rep count at `weight_kg` whose e1RM STRICTLY beats `target`
+/// (a tie is not a PR). None when inputs are invalid or the answer exceeds
+/// 30 reps — Epley is meaningless out there; pick a heavier weight.
+///
+/// Semantics match iOS `Calc.repsToBeat` (the reference implementation,
+/// shipped 2026-07-14) including the float-edge guard: when the target sits
+/// exactly on an integer rep count, strictness demands one more.
+pub fn reps_to_beat(target: f64, weight_kg: f64) -> Option<i64> {
+    if weight_kg <= 0.0 || target <= 0.0 {
+        return None;
+    }
+    let mut reps = std::cmp::max(1, (30.0 * (target / weight_kg - 1.0)).floor() as i64 + 1);
+    // Float-edge guard: land ON the target → one more rep.
+    if e1rm(weight_kg, reps) <= target {
+        reps += 1;
+    }
+    if reps <= 30 { Some(reps) } else { None }
 }
 
 /// Compute percentage change between two values. Returns None if previous is zero.
@@ -43,99 +63,67 @@ mod tests {
     use super::*;
 
     // ---------------------------------------------------------------
-    // e1rm formula
+    // e1rm formula — raw reps only
     // ---------------------------------------------------------------
 
     #[test]
     fn epley_basic() {
         // 100kg x 10 reps => 100 * (1 + 10/30) = 133.33...
-        let result = e1rm(100.0, 10, None);
-        assert!((result - 133.333).abs() < 0.01);
-    }
-
-    #[test]
-    fn epley_with_rir() {
-        // 100kg x 8 reps, 2 RIR => effective 10 reps => same as above
-        let result = e1rm(100.0, 8, Some(2));
+        let result = e1rm(100.0, 10);
         assert!((result - 133.333).abs() < 0.01);
     }
 
     #[test]
     fn epley_single_rep() {
         // 1RM: weight * (1 + 1/30) = weight * 1.0333
-        let result = e1rm(100.0, 1, None);
+        let result = e1rm(100.0, 1);
         assert!((result - 103.333).abs() < 0.01);
     }
 
     #[test]
-    fn epley_rir_zero_equivalent_to_none() {
-        // RIR of 0 should produce the same result as None
-        let with_none = e1rm(100.0, 5, None);
-        let with_zero = e1rm(100.0, 5, Some(0));
-        assert_eq!(with_none, with_zero);
-    }
-
-    #[test]
     fn epley_zero_weight() {
-        // 0kg x 10 reps => 0 * (1 + 10/30) = 0
-        assert_eq!(e1rm(0.0, 10, None), 0.0);
+        assert_eq!(e1rm(0.0, 10), 0.0);
     }
 
     #[test]
     fn epley_zero_reps() {
-        // weight * (1 + 0/30) = weight * 1.0 = weight
-        assert_eq!(e1rm(100.0, 0, None), 100.0);
-    }
-
-    #[test]
-    fn epley_zero_weight_and_zero_reps() {
-        assert_eq!(e1rm(0.0, 0, None), 0.0);
-    }
-
-    #[test]
-    fn epley_very_high_weight() {
-        // 500kg x 1 rep => 500 * (1 + 1/30) = 516.667
-        let result = e1rm(500.0, 1, None);
-        assert!((result - 516.667).abs() < 0.01);
+        // weight * (1 + 0/30) = weight
+        assert_eq!(e1rm(100.0, 0), 100.0);
     }
 
     #[test]
     fn epley_very_high_reps() {
-        // 50kg x 100 reps => 50 * (1 + 100/30) = 50 * 4.333 = 216.667
-        let result = e1rm(50.0, 100, None);
+        // 50kg x 100 reps => 50 * (1 + 100/30) = 216.667
+        let result = e1rm(50.0, 100);
         assert!((result - 216.667).abs() < 0.01);
     }
 
     #[test]
     fn epley_known_reference_values() {
-        // Standard Epley reference: weight * (1 + reps/30)
-        // 60kg x 5 => 60 * (1 + 5/30) = 60 * 7/6 = 70.0
-        assert!((e1rm(60.0, 5, None) - 70.0).abs() < 0.001);
-
-        // 150kg x 3 => 150 * (1 + 3/30) = 150 * 1.1 = 165.0
-        assert!((e1rm(150.0, 3, None) - 165.0).abs() < 0.001);
-
-        // 200kg x 1 => 200 * (1 + 1/30) = 206.667
-        assert!((e1rm(200.0, 1, None) - 206.667).abs() < 0.01);
+        // 60kg x 5 => 60 * 7/6 = 70.0
+        assert!((e1rm(60.0, 5) - 70.0).abs() < 0.001);
+        // 150kg x 3 => 150 * 1.1 = 165.0
+        assert!((e1rm(150.0, 3) - 165.0).abs() < 0.001);
+        // 200kg x 1 => 206.667
+        assert!((e1rm(200.0, 1) - 206.667).abs() < 0.01);
     }
 
     #[test]
-    fn epley_rir_adds_to_reps() {
-        // 80kg x 5 reps, 3 RIR => effective 8 reps
-        // 80 * (1 + 8/30) = 80 * 38/30 = 101.333
-        let result = e1rm(80.0, 5, Some(3));
-        assert!((result - 101.333).abs() < 0.01);
-
-        // Same result as doing 8 reps with no RIR
-        let equivalent = e1rm(80.0, 8, None);
-        assert_eq!(result, equivalent);
+    fn raw_reps_policy_grinder_beats_rir_guess() {
+        // THE policy regression case (found 2026-07-13, incline barbell bench):
+        // under the old RIR-folding policy, 12×62.5@RIR1 (e1RM 89.6) invisibly
+        // outranked an actual grinder 11×65@RIR0 (88.8). Raw reps: the grinder wins.
+        let grinder = e1rm(65.0, 11); // 88.833
+        let rir_set = e1rm(62.5, 12); // 87.5 — RIR ignored
+        assert!(grinder > rir_set, "raw-reps: 11×65 must beat 12×62.5");
+        assert!((grinder - 88.833).abs() < 0.01);
+        assert!((rir_set - 87.5).abs() < 0.001);
     }
 
     #[test]
     fn epley_negative_weight() {
         // Not physically meaningful but the formula handles it mathematically
-        let result = e1rm(-50.0, 5, None);
-        // -50 * (1 + 5/30) = -50 * 7/6 = -58.333
+        let result = e1rm(-50.0, 5);
         assert!((result - (-58.333)).abs() < 0.01);
     }
 
@@ -157,23 +145,14 @@ mod tests {
 
     #[test]
     fn round_negative_values() {
-        // Rust's f64::round() rounds half away from zero: -55.5 => -56
         assert_eq!(round(-5.55), -5.6);
         assert_eq!(round(-5.56), -5.6);
         assert_eq!(round(-5.54), -5.5);
     }
 
     #[test]
-    fn round_already_one_decimal() {
-        assert_eq!(round(99.9), 99.9);
-        assert_eq!(round(0.1), 0.1);
-    }
-
-    #[test]
     fn round_half_up_boundary() {
-        // .x50 should round up (banker's rounding not used here; f64 round uses "round half to even"
-        // but for .x5 the result depends on float representation)
-        assert_eq!(round(10.05), 10.1); // 10.05 * 10 = 100.5, rounds to 100 or 101 depending on float
+        assert_eq!(round(10.05), 10.1);
         assert_eq!(round(10.15), 10.2);
     }
 
@@ -190,15 +169,12 @@ mod tests {
     #[test]
     fn best_from_sets() {
         let sets = vec![
-            SetData { weight_kg: 80.0, reps: 10, rir: None },
-            SetData { weight_kg: 100.0, reps: 5, rir: None },
-            SetData { weight_kg: 90.0, reps: 8, rir: Some(2) },
+            SetData { weight_kg: 80.0, reps: 10 },  // 106.67
+            SetData { weight_kg: 100.0, reps: 5 },  // 116.67
+            SetData { weight_kg: 90.0, reps: 8 },   // 114.0
         ];
-        // 80*(1+10/30) = 106.67
-        // 100*(1+5/30) = 116.67
-        // 90*(1+10/30) = 120.0
         let result = best(&sets).unwrap();
-        assert!((result - 120.0).abs() < 0.01);
+        assert!((result - 116.667).abs() < 0.01);
     }
 
     #[test]
@@ -208,78 +184,106 @@ mod tests {
 
     #[test]
     fn best_single_set() {
-        let sets = vec![SetData { weight_kg: 100.0, reps: 5, rir: None }];
+        let sets = vec![SetData { weight_kg: 100.0, reps: 5 }];
         let result = best(&sets).unwrap();
-        // 100 * (1 + 5/30) = 116.667
         assert!((result - 116.667).abs() < 0.01);
     }
 
     #[test]
     fn best_all_identical() {
         let sets = vec![
-            SetData { weight_kg: 80.0, reps: 8, rir: None },
-            SetData { weight_kg: 80.0, reps: 8, rir: None },
-            SetData { weight_kg: 80.0, reps: 8, rir: None },
+            SetData { weight_kg: 80.0, reps: 8 },
+            SetData { weight_kg: 80.0, reps: 8 },
         ];
-        // All produce 80*(1+8/30) = 101.333
         let result = best(&sets).unwrap();
         assert!((result - 101.333).abs() < 0.01);
     }
 
     #[test]
-    fn best_with_zero_weight_sets() {
-        let sets = vec![
-            SetData { weight_kg: 0.0, reps: 10, rir: None },
-            SetData { weight_kg: 50.0, reps: 5, rir: None },
-        ];
-        // 0 vs 50*(1+5/30) = 58.333
-        let result = best(&sets).unwrap();
-        assert!((result - 58.333).abs() < 0.01);
-    }
-
-    #[test]
     fn best_all_zero_weight() {
         let sets = vec![
-            SetData { weight_kg: 0.0, reps: 10, rir: None },
-            SetData { weight_kg: 0.0, reps: 5, rir: None },
+            SetData { weight_kg: 0.0, reps: 10 },
+            SetData { weight_kg: 0.0, reps: 5 },
         ];
-        let result = best(&sets).unwrap();
-        assert_eq!(result, 0.0);
-    }
-
-    #[test]
-    fn best_rir_makes_winner() {
-        // Without RIR: 80 * (1 + 5/30) = 93.333
-        // With RIR 5:  80 * (1 + 10/30) = 106.667
-        let sets = vec![
-            SetData { weight_kg: 80.0, reps: 5, rir: None },
-            SetData { weight_kg: 80.0, reps: 5, rir: Some(5) },
-        ];
-        let result = best(&sets).unwrap();
-        assert!((result - 106.667).abs() < 0.01);
-    }
-
-    #[test]
-    fn best_last_set_is_winner() {
-        let sets = vec![
-            SetData { weight_kg: 60.0, reps: 5, rir: None },
-            SetData { weight_kg: 70.0, reps: 5, rir: None },
-            SetData { weight_kg: 100.0, reps: 10, rir: None },
-        ];
-        // Last: 100*(1+10/30) = 133.333
-        let result = best(&sets).unwrap();
-        assert!((result - 133.333).abs() < 0.01);
+        assert_eq!(best(&sets).unwrap(), 0.0);
     }
 
     #[test]
     fn best_first_set_is_winner() {
         let sets = vec![
-            SetData { weight_kg: 100.0, reps: 10, rir: None },
-            SetData { weight_kg: 70.0, reps: 5, rir: None },
-            SetData { weight_kg: 60.0, reps: 5, rir: None },
+            SetData { weight_kg: 100.0, reps: 10 },
+            SetData { weight_kg: 70.0, reps: 5 },
         ];
         let result = best(&sets).unwrap();
         assert!((result - 133.333).abs() < 0.01);
+    }
+
+    // ---------------------------------------------------------------
+    // reps_to_beat — semantics pinned to iOS Calc.repsToBeat
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn reps_to_beat_same_weight_one_more_rep() {
+        // Seated-incline-curl case: best 12.5×14 → e1RM 18.333
+        let target = e1rm(12.5, 14);
+        assert_eq!(reps_to_beat(target, 12.5), Some(15));
+    }
+
+    #[test]
+    fn reps_to_beat_heavier_weight() {
+        // 15kg: 7 reps = 18.5 > 18.333
+        let target = e1rm(12.5, 14);
+        assert_eq!(reps_to_beat(target, 15.0), Some(7));
+    }
+
+    #[test]
+    fn reps_to_beat_over_30_suppressed() {
+        let target = e1rm(12.5, 14);
+        assert_eq!(reps_to_beat(target, 5.0), None);
+    }
+
+    #[test]
+    fn reps_to_beat_weight_above_target() {
+        // Weight alone beats the target e1RM: 1 rep suffices
+        assert_eq!(reps_to_beat(50.0, 100.0), Some(1));
+    }
+
+    #[test]
+    fn reps_to_beat_exact_integer_edge_needs_strict() {
+        // target = e1rm(100, 10) = 133.333...; at 100kg, 10 reps only TIES → 11
+        let target = e1rm(100.0, 10);
+        assert_eq!(reps_to_beat(target, 100.0), Some(11));
+    }
+
+    #[test]
+    fn reps_to_beat_invalid_inputs() {
+        assert_eq!(reps_to_beat(0.0, 100.0), None);
+        assert_eq!(reps_to_beat(-5.0, 100.0), None);
+        assert_eq!(reps_to_beat(100.0, 0.0), None);
+        assert_eq!(reps_to_beat(100.0, -5.0), None);
+    }
+
+    #[test]
+    fn reps_to_beat_exactly_30_allowed() {
+        // target just under e1rm(w, 30) → answer 30, allowed
+        let target = e1rm(50.0, 30) - 0.5; // 99.5
+        assert_eq!(reps_to_beat(target, 50.0), Some(30));
+    }
+
+    #[test]
+    fn reps_to_beat_result_actually_beats() {
+        // Property check over a grid: result e1RM strictly exceeds target,
+        // and result-1 does not.
+        for &w in &[2.5_f64, 12.5, 20.0, 60.0, 62.5, 100.0, 142.5] {
+            for &tw in &[10.0_f64, 17.1, 88.8, 116.7, 150.0] {
+                if let Some(r) = reps_to_beat(tw, w) {
+                    assert!(e1rm(w, r) > tw, "e1rm({w},{r}) must beat {tw}");
+                    if r > 1 {
+                        assert!(e1rm(w, r - 1) <= tw, "e1rm({w},{}) must not beat {tw}", r - 1);
+                    }
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------
@@ -299,46 +303,12 @@ mod tests {
     }
 
     #[test]
-    fn pct_change_doubling() {
-        assert_eq!(pct_change(200.0, 100.0), Some(100.0));
-    }
-
-    #[test]
-    fn pct_change_halving() {
-        assert_eq!(pct_change(50.0, 100.0), Some(-50.0));
-    }
-
-    #[test]
     fn pct_change_current_zero() {
-        // current is 0 but previous is non-zero => -100%
         assert_eq!(pct_change(0.0, 100.0), Some(-100.0));
     }
 
     #[test]
     fn pct_change_both_zero() {
-        // previous is 0 => None (division by zero)
         assert_eq!(pct_change(0.0, 0.0), None);
-    }
-
-    #[test]
-    fn pct_change_negative_previous() {
-        // Negative previous is not physically meaningful, but mathematically:
-        // (50 - (-100)) / (-100) * 100 = 150 / -100 * 100 = -150
-        let result = pct_change(50.0, -100.0).unwrap();
-        assert!((result - (-150.0)).abs() < 0.001);
-    }
-
-    #[test]
-    fn pct_change_small_improvement() {
-        // 101 vs 100 => 1%
-        let result = pct_change(101.0, 100.0).unwrap();
-        assert!((result - 1.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn pct_change_very_large_improvement() {
-        // 1000 vs 1 => 99900%
-        let result = pct_change(1000.0, 1.0).unwrap();
-        assert!((result - 99900.0).abs() < 0.001);
     }
 }

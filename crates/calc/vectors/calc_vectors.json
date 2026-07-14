@@ -1,0 +1,256 @@
+{
+  "policy": "e1rm = weight_kg * (1 + reps/30); RAW REPS ONLY — RIR is context, never folded into PR/nudge/target math (decision 2026-07-13). reps_to_beat: smallest reps at weight whose e1RM STRICTLY beats target; null when invalid or > 30 reps.",
+  "tolerance": 1e-9,
+  "e1rm": [
+    {
+      "weight_kg": 65.0,
+      "reps": 11,
+      "expected": 88.83333333333333
+    },
+    {
+      "weight_kg": 62.5,
+      "reps": 12,
+      "expected": 87.5
+    },
+    {
+      "weight_kg": 12.5,
+      "reps": 11,
+      "expected": 17.083333333333332
+    },
+    {
+      "weight_kg": 12.5,
+      "reps": 14,
+      "expected": 18.333333333333336
+    },
+    {
+      "weight_kg": 100.0,
+      "reps": 1,
+      "expected": 103.33333333333334
+    },
+    {
+      "weight_kg": 100.0,
+      "reps": 5,
+      "expected": 116.66666666666667
+    },
+    {
+      "weight_kg": 100.0,
+      "reps": 10,
+      "expected": 133.33333333333331
+    },
+    {
+      "weight_kg": 60.0,
+      "reps": 5,
+      "expected": 70.0
+    },
+    {
+      "weight_kg": 150.0,
+      "reps": 3,
+      "expected": 165.0
+    },
+    {
+      "weight_kg": 200.0,
+      "reps": 1,
+      "expected": 206.66666666666669
+    },
+    {
+      "weight_kg": 2.5,
+      "reps": 30,
+      "expected": 5.0
+    },
+    {
+      "weight_kg": 142.5,
+      "reps": 8,
+      "expected": 180.5
+    },
+    {
+      "weight_kg": 0.5,
+      "reps": 1,
+      "expected": 0.5166666666666667
+    },
+    {
+      "weight_kg": 50.0,
+      "reps": 100,
+      "expected": 216.66666666666669
+    }
+  ],
+  "best": [
+    {
+      "sets": [
+        [
+          80.0,
+          10
+        ],
+        [
+          100.0,
+          5
+        ],
+        [
+          90.0,
+          8
+        ]
+      ],
+      "expected": 116.66666666666667
+    },
+    {
+      "sets": [
+        [
+          65.0,
+          11
+        ],
+        [
+          62.5,
+          12
+        ]
+      ],
+      "expected": 88.83333333333333
+    },
+    {
+      "sets": [
+        [
+          100.0,
+          5
+        ]
+      ],
+      "expected": 116.66666666666667
+    },
+    {
+      "sets": [],
+      "expected": null
+    },
+    {
+      "sets": [
+        [
+          80.0,
+          8
+        ],
+        [
+          80.0,
+          8
+        ]
+      ],
+      "expected": 101.33333333333333
+    }
+  ],
+  "reps_to_beat": [
+    {
+      "target": 18.333333333333336,
+      "weight_kg": 12.5,
+      "expected": 15
+    },
+    {
+      "target": 18.333333333333336,
+      "weight_kg": 15.0,
+      "expected": 7
+    },
+    {
+      "target": 18.333333333333336,
+      "weight_kg": 5.0,
+      "expected": null
+    },
+    {
+      "target": 17.083333333333332,
+      "weight_kg": 12.5,
+      "expected": 12
+    },
+    {
+      "target": 17.083333333333332,
+      "weight_kg": 15.0,
+      "expected": 5
+    },
+    {
+      "target": 133.33333333333331,
+      "weight_kg": 100.0,
+      "expected": 11
+    },
+    {
+      "target": 50.0,
+      "weight_kg": 100.0,
+      "expected": 1
+    },
+    {
+      "target": 0.0,
+      "weight_kg": 100.0,
+      "expected": null
+    },
+    {
+      "target": 100.0,
+      "weight_kg": 0.0,
+      "expected": null
+    },
+    {
+      "target": 99.5,
+      "weight_kg": 50.0,
+      "expected": 30
+    },
+    {
+      "target": 100.5,
+      "weight_kg": 50.0,
+      "expected": null
+    }
+  ],
+  "round": [
+    {
+      "value": 133.333,
+      "expected": 133.3
+    },
+    {
+      "value": 133.35,
+      "expected": 133.4
+    },
+    {
+      "value": 100.0,
+      "expected": 100.0
+    },
+    {
+      "value": 0.0,
+      "expected": 0.0
+    },
+    {
+      "value": 10.05,
+      "expected": 10.1
+    },
+    {
+      "value": 10.15,
+      "expected": 10.2
+    },
+    {
+      "value": 9999.99,
+      "expected": 10000.0
+    },
+    {
+      "value": 88.83333333333333,
+      "expected": 88.8
+    },
+    {
+      "value": 17.083333333333332,
+      "expected": 17.1
+    }
+  ],
+  "pct_change": [
+    {
+      "current": 110.0,
+      "previous": 100.0,
+      "expected": 10.0
+    },
+    {
+      "current": 90.0,
+      "previous": 100.0,
+      "expected": -10.0
+    },
+    {
+      "current": 100.0,
+      "previous": 100.0,
+      "expected": 0.0
+    },
+    {
+      "current": 0.0,
+      "previous": 100.0,
+      "expected": -100.0
+    },
+    {
+      "current": 100.0,
+      "previous": 0.0,
+      "expected": null
+    }
+  ]
+}

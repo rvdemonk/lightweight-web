@@ -19,6 +19,21 @@ settings:
     DEVELOPMENT_TEAM: R8V99ZD5X9
 
 targets:
+  LightweightTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LightweightTests
+      # Shared cross-language vectors, ground truth generated from crates/calc.
+      # Regenerate: GEN_VECTORS=1 cargo test -p lightweight-calc vectors_match
+      - path: ../crates/calc/vectors/calc_vectors.json
+        buildPhase: resources
+    dependencies:
+      - target: Lightweight
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
   Lightweight:
     type: application
     platform: iOS
@@ -41,3 +56,15 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         UIUserInterfaceStyle: Dark
+
+schemes:
+  Lightweight:
+    build:
+      targets:
+        Lightweight: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LightweightTests

@@ -4,8 +4,9 @@
 //   e1rm = weight × (1 + reps/30)   (Epley)
 // RIR is logged as context but NEVER folded into reps — a subjective
 // "one left in the tank" must not outrank an actual grinder in PR math.
-// Cross-language test vectors (generated from crates/calc) join in Phase 1;
-// the inline checks below are a cheap guard until then.
+// Conformance is proven by the shared cross-language vectors generated from
+// crates/calc (LightweightTests/CalcVectorTests.swift, Phase 1). The inline
+// checks below remain as a cheap launch-time guard in debug builds.
 
 import Foundation
 

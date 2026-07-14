@@ -76,8 +76,9 @@ pub struct ExercisePRs {
 }
 
 /// Returns best e1RM per session for each exercise the user has performed.
-/// Epley formula: e1rm = weight * (1 + reps / 30)
-/// When RIR is recorded, effective reps = reps + rir for a more accurate estimate.
+/// Epley formula: e1rm = weight * (1 + reps / 30) — RAW REPS ONLY.
+/// RIR is carried through as display context but never folded into the estimate
+/// (policy decision 2026-07-13).
 /// Optional since/until filter output to a date range (YYYY-MM-DD).
 pub fn e1rm_progression(
     db: &DbPool,
@@ -139,7 +140,7 @@ pub fn e1rm_progression(
     let mut pr_reps: Option<(i64, String, f64)> = None;             // (reps, date, weight)
 
     for (date, weight, reps, rir) in filtered_sets {
-        let e = e1rm::e1rm(*weight, *reps, *rir);
+        let e = e1rm::e1rm(*weight, *reps);
 
         let entry = best_by_date.entry(date.clone()).or_insert(E1rmDataPoint {
             date: date.clone(),
@@ -195,8 +196,8 @@ pub fn e1rm_progression(
         let mut at_weight: Option<(f64, String, i64)> = None;
         let mut at_reps: Option<(i64, String, f64)> = None;
 
-        for (date, weight, reps, rir) in &all_sets {
-            let e = e1rm::e1rm(*weight, *reps, *rir);
+        for (date, weight, reps, _rir) in &all_sets {
+            let e = e1rm::e1rm(*weight, *reps);
 
             if at_e1rm.is_none() || e > at_e1rm.as_ref().unwrap().0 {
                 at_e1rm = Some((e, date.clone(), *weight, *reps));
@@ -309,7 +310,7 @@ fn best_e1rm_in_range(
     to_offset: &str,
 ) -> Result<Option<f64>, AppError> {
     let mut stmt = conn.prepare(
-        "SELECT st.weight_kg, st.reps, st.rir
+        "SELECT st.weight_kg, st.reps
          FROM sets st
          JOIN session_exercises se ON se.id = st.session_exercise_id
          JOIN sessions s ON s.id = se.session_id
@@ -323,16 +324,16 @@ fn best_e1rm_in_range(
            AND date(s.started_at) < date('now', ?4)"
     )?;
 
-    let sets: Vec<(f64, i64, Option<i64>)> = stmt.query_map(
+    let sets: Vec<(f64, i64)> = stmt.query_map(
         rusqlite::params![user_id, exercise_id, from_offset, to_offset],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        |row| Ok((row.get(0)?, row.get(1)?)),
     )?
         .filter_map(|r| r.ok())
         .collect();
 
     let set_data: Vec<e1rm::SetData> = sets
         .into_iter()
-        .map(|(weight, reps, rir)| e1rm::SetData { weight_kg: weight, reps, rir })
+        .map(|(weight, reps)| e1rm::SetData { weight_kg: weight, reps })
         .collect();
 
     Ok(e1rm::best(&set_data))
@@ -657,8 +658,7 @@ pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, A
                 se.exercise_id,
                 st.set_number,
                 st.weight_kg,
-                st.reps,
-                st.rir
+                st.reps
          FROM sets st
          JOIN session_exercises se ON se.id = st.session_exercise_id
          JOIN sessions s ON s.id = se.session_id
@@ -671,9 +671,9 @@ pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, A
          ORDER BY st.completed_at, st.id"
     )?;
 
-    let sets: Vec<(String, i64, i32, f64, i64, Option<i64>)> = stmt.query_map(
+    let sets: Vec<(String, i64, i32, f64, i64)> = stmt.query_map(
         rusqlite::params![user_id],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
     )?
         .filter_map(|r| r.ok())
         .collect();
@@ -687,12 +687,11 @@ pub fn heatmap_prs(db: &DbPool, user_id: i64, days: i64) -> Result<Vec<DayPR>, A
 
     let timed_sets: Vec<pr::TimedSet> = sets
         .into_iter()
-        .map(|(date, exercise_id, set_number, weight, reps, rir)| pr::TimedSet {
+        .map(|(date, exercise_id, set_number, weight, reps)| pr::TimedSet {
             exercise_id,
             set_number,
             weight_kg: weight,
             reps,
-            rir,
             date,
         })
         .collect();
@@ -821,7 +820,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
         ),
         latest_e1rm AS (
             SELECT se.exercise_id,
-                   MAX(st.weight_kg * (1.0 + (st.reps + COALESCE(st.rir, 0)) / 30.0)) as best_e1rm
+                   MAX(st.weight_kg * (1.0 + st.reps / 30.0)) as best_e1rm
             FROM sets st
             JOIN session_exercises se ON se.id = st.session_exercise_id
             JOIN sessions s ON s.id = se.session_id
@@ -871,7 +870,7 @@ pub fn summary(db: &DbPool, user_id: i64) -> Result<Vec<AnalyticsSummary>, AppEr
     let mut trend_stmt = conn.prepare(
         "WITH ranked AS (
             SELECT se.exercise_id,
-                   MAX(st.weight_kg * (1.0 + (st.reps + COALESCE(st.rir, 0)) / 30.0)) as best_e1rm,
+                   MAX(st.weight_kg * (1.0 + st.reps / 30.0)) as best_e1rm,
                    DENSE_RANK() OVER (PARTITION BY se.exercise_id ORDER BY date(s.started_at) DESC) as rn
             FROM sets st
             JOIN session_exercises se ON se.id = st.session_exercise_id
@@ -956,7 +955,7 @@ pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<Exe
 
     for exercise_id in exercise_ids {
         let mut stmt = conn.prepare(
-            "SELECT st.set_number, st.weight_kg, st.reps, st.rir
+            "SELECT st.set_number, st.weight_kg, st.reps
              FROM sets st
              JOIN session_exercises se ON se.id = st.session_exercise_id
              JOIN sessions s ON s.id = se.session_id
@@ -972,15 +971,14 @@ pub fn session_prs(db: &DbPool, user_id: i64, session_id: i64) -> Result<Vec<Exe
 
         let sets: Vec<pr::TimedSet> = stmt.query_map(
             rusqlite::params![user_id, exercise_id, session_id],
-            |row| Ok((row.get::<_, i32>(0)?, row.get::<_, f64>(1)?, row.get::<_, i64>(2)?, row.get::<_, Option<i64>>(3)?)),
+            |row| Ok((row.get::<_, i32>(0)?, row.get::<_, f64>(1)?, row.get::<_, i64>(2)?)),
         )?
             .filter_map(|r| r.ok())
-            .map(|(set_number, weight, reps, rir)| pr::TimedSet {
+            .map(|(set_number, weight, reps)| pr::TimedSet {
                 exercise_id,
                 set_number,
                 weight_kg: weight,
                 reps,
-                rir,
                 date: String::new(),
             })
             .collect();
