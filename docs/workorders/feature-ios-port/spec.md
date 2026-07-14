@@ -8,7 +8,7 @@ verifier: On the incoming iPhone — full workout history pulls from the server,
 
 # iOS Port — Native Swift Client
 
-> **Status of this spec:** intent + constraints are sharp; the **technical plan (local store, model layer, sync layer, screen inventory) is deliberately deferred to a fresh session** — this file is the compass so that session starts hot. Do the discussion loop there before scaffolding Swift.
+> **Status of this spec:** planning session ran 2026-07-13 (see manifest). Phases fixed, calc policy decided, data-repair scope extended. **Local store decided 2026-07-14: GRDB** — schema fidelity with the server contract, diffable against the golden backup. Project scaffolded in `ios/` (xcodegen; see `ios/README.md`).
 
 ## Intent — what & why
 
@@ -40,18 +40,36 @@ On Lewis's iPhone: the app pulls his **complete** history from the server on fir
 - **The phone is the golden source, not the server.** (See manifest 2026-07-13.) Phone DB is complete and backed up; the server is *nearly* faithful but has a known small gap.
 - **Structural finding — templates don't sync.** The Android sync protocol pushes *sessions only*, not template definitions. Templates created on the phone (Upper X id 9, Lower X id 10) never reached the server, so their sessions' `template_id` got nulled server-side. **The iOS client MUST push template definitions, not just sessions**, or this gap reappears on iOS. This is a real requirement, not a nice-to-have.
 - **Design lesson banked from the sync-bug investigation (2026-07-07→13):** never render a sync *failure* as success; treat 401 as "re-auth", not silence. The Android bug (expired token → silent false "Synced — all up to date" for two months) is a **spec requirement** for the iOS sync layer.
+- **The quadruplicate-calculator problem (found 2026-07-13):** e1RM logic exists in `crates/calc` (Rust), `android/domain/calc` (Kotlin), `frontend/utils/e1rm.ts` (TS), and inline SQL in `AnalyticsDao.getStrengthTrend` — and they had already drifted (SQL ignores RIR; frontend awards PR on empty history, Kotlin treats it as calibration). The iOS port must not naively add a fifth. **Decision: Swift port validated by cross-language test vectors** (JSON cases generated from `crates/calc`, run by every implementation's test suite). uniffi rejected *for now* — toolchain weight isn't justified by ~200 lines of pure functions; revisit only if analytics deepen (animise fusion).
+- **e1RM policy decision (2026-07-13): raw reps only.** `effective_reps = reps + RIR` let a subjective RIR guess outrank an actual grinder (12×62.5 @RIR1 = 89.6 beat 11×65 @RIR0 = 88.8 on incline bench). PRs, nudges, and progression targets use `weight × (1 + reps/30)`; RIR stays logged as context only.
+- **Duplicate exercise lineages (found 2026-07-13):** freeform logging re-created 5 exercises by name — Romanian Deadlift (14/283), Hanging Leg Raise (16/301), Standing Calf Raise (17/297), Ab Rollout (218/303), Dumbbell Chest Fly (219/226) — splitting their PR history in two. Merge is part of data repair; name-resolution must be hardened (case/whitespace-insensitive) so it can't recur.
+- **iOS platform baseline:** iOS 26 minimum deployment, SwiftUI (`@Observable`, `NavigationStack`), Swift 6 strict concurrency. Liquid Glass per Apple guidance: functional layer only (controls/nav/transient UI, never content), `GlassEffectContainer` for multiple glass elements, tint = semantic meaning not decoration. Design intent for Phase 4: dark angular NGE content plane, glass instrument plane above it.
 
-## Approach — sequence (refine in the planning session)
+## Approach — phases (fixed in the 2026-07-13 planning session)
 
-0. **Server-data repair (first cleanup task, folded in per Lewis):**
+**Phase 0 — Server-data repair** ✅ **DONE 2026-07-14** (see manifest — merge step proved unnecessary: server's resolve-by-name had already unified all split lineages, including a 6th the diagnosis missed):
    - Push the two missing template definitions (Upper X, Lower X + their exercises) to the server.
    - Backfill `template_id` on the 2 affected sessions by exact `started_at` match (deterministic — the links exist verbatim on the phone; no inference/LLM needed).
-   - Outcome: server becomes a faithful mirror, so the iOS first-login pull is clean.
-1. Decide local store: **SwiftData vs GRDB (SQLite)** — mirror the Room schema (sessions, session_exercises, sets, exercises, templates, template_snapshots).
-2. Swift `Codable` models mirroring the server DTOs (snake_case JSON; the Android `data/remote/dto/DataDtos.kt` is the reference spec).
-3. Sync layer: first-login pull (`GET /sessions|/exercises|/templates`) then push — **sessions AND templates** — with visible error surfacing + 401→re-auth (the banked design lesson). Android `SyncRepository.kt` is the reference contract.
-4. Auth: `POST /api/v1/auth/login`, token in Keychain, 30-day expiry.
-5. SwiftUI screens mirroring the Compose UX; NGE design tokens from `CLAUDE.md`.
+   - **Merge the 5 duplicate exercise lineages** (see "The invisible") — repoint `session_exercises`/`template_exercises` rows to the canonical id, delete the orphan. Must land before iOS's first pull or the split baptises into the new client.
+   - Outcome: server becomes a faithful mirror; verify row-counts against `backups/android/2026-07-13/`.
+
+**Phase 1 — Calc truth** (before any Swift, so the port reproduces the *fixed* policy):
+   - Switch e1RM for PRs/nudges/targets to raw reps (drop RIR from `effective_reps`) in `crates/calc`, server SQL, and frontend. **Skip Android** — it's retiring.
+   - Generate cross-language test vectors (JSON) from `crates/calc`; wire into Rust + TS test suites (Swift joins in Phase 2).
+   - PR displays show provenance (date + set) so a surprising PR source is inspectable.
+   - Harden server exercise name-resolution (case/whitespace-insensitive) against lineage splits.
+
+**Phase 2 — iOS skeleton** (wiring only, deliberately ugly):
+   - ~~First task: decide local store~~ **Decided: GRDB** (2026-07-14) — schema fidelity + sqlite3-diffable verifiability. Built behind a repository seam (`ios/Lightweight/Store/`) so the store stays swappable.
+   - Swift `Codable` models mirroring the server DTOs (snake_case JSON; Android `data/remote/dto/DataDtos.kt` is the reference spec).
+   - Swift calc port passing the Phase-1 test vectors.
+   - Auth: `POST /api/v1/auth/login`, token in Keychain, 30-day expiry.
+   - Sync layer: first-login pull (`GET /sessions|/exercises|/templates`) then push — **sessions AND templates** — visible error surfacing, 401→re-auth (the banked design lesson). Android `SyncRepository.kt` is the reference contract.
+   - Verifier: full round-trip against prod matches the done-condition's measurable slice.
+
+**Phase 3 — Core loop screens** (functional, unstyled): home, template start, between-sets logging with PR nudges from the fixed calc.
+
+**Phase 4 — Design**: NGE × Liquid Glass reinterpretation (see platform baseline in "The invisible"). Android styling does not survive the transition by intent — this is the fun part, done against a working prototype.
 
 ## Key references (from the 2026-07-07→13 session)
 
