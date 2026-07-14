@@ -1,0 +1,43 @@
+name: Lightweight
+options:
+  bundleIdPrefix: xyz.rigby3
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: 7.0.0
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: R8V99ZD5X9
+
+targets:
+  Lightweight:
+    type: application
+    platform: iOS
+    sources:
+      - Lightweight
+    dependencies:
+      - package: GRDB
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: xyz.rigby3.lightweight
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+    info:
+      path: Lightweight/Info.plist
+      properties:
+        CFBundleDisplayName: Lightweight
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        UIUserInterfaceStyle: Dark
