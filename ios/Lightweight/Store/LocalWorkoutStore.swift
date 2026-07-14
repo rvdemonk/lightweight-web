@@ -171,6 +171,21 @@ extension AppDatabase {
         }
     }
 
+    /// Rep record at (approximately) this exact weight — the SPR bar. Spans the
+    /// user's full history INCLUDING sets logged in the current session: PRs are
+    /// live, a record set two sets ago is the new bar. Tolerance absorbs REAL
+    /// round-trip noise on equal weights.
+    func bestRepsAtWeight(exerciseId: Int64, weightKg: Double) throws -> Int? {
+        try writer.read { db in
+            try Int.fetchOne(db, sql: """
+                SELECT MAX(st.reps) FROM sets st
+                  JOIN session_exercises se ON st.session_exercise_id = se.id
+                 WHERE se.exercise_id = ? AND st.weight_kg IS NOT NULL
+                   AND ABS(st.weight_kg - ?) < 0.01
+                """, arguments: [exerciseId, weightKg])
+        }
+    }
+
     /// Rebuild the in-memory exercise blocks for a resumed active session.
     func loadActiveExercises(sessionId: Int64) throws -> [ActiveWorkout.Exercise] {
         let blocks: [(se: SessionExerciseRecord, name: String, sets: [SetRecord])] =

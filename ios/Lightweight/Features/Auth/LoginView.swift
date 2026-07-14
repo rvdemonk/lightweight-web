@@ -25,14 +25,14 @@ struct LoginView: View {
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .keyboardType(.URL)
-                            .font(.system(.footnote, design: .monospaced))
+                            .font(.system(.body, design: .monospaced))
                     }
                 }
                 if let error {
                     Section {
                         Text(error)
                             .foregroundStyle(.red)
-                            .font(.footnote)
+                            .font(.body)
                     }
                 }
                 Section {

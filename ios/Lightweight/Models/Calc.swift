@@ -23,6 +23,18 @@ enum Calc {
         sets.compactMap { e1rm(weightKg: $0.weightKg, reps: $0.reps) }.max()
     }
 
+    /// Smallest rep count at `weightKg` whose e1RM STRICTLY beats `target`
+    /// (a tie is not a PR). nil when inputs are invalid or the answer exceeds
+    /// 30 reps — Epley is meaningless out there; pick a heavier weight.
+    static func repsToBeat(target: Double, weightKg: Double) -> Int? {
+        guard weightKg > 0, target > 0 else { return nil }
+        var reps = max(1, Int((30.0 * (target / weightKg - 1.0)).rounded(.down)) + 1)
+        // Float-edge guard: when the target sits exactly on an integer rep count,
+        // the formula above lands ON it — strictness demands one more.
+        if let e = e1rm(weightKg: weightKg, reps: reps), e <= target { reps += 1 }
+        return reps <= 30 ? reps : nil
+    }
+
     #if DEBUG
     /// Cheap self-check, run once at launch in debug builds. Not a substitute
     /// for the Phase-1 cross-language vectors — just catches gross regressions.
@@ -40,6 +52,12 @@ enum Calc {
                "raw-reps: 11×65 must beat 12×62.5")
         assert(e1rm(weightKg: nil, reps: 10) == nil, "bodyweight has no e1RM")
         assert(e1rm(weightKg: 100, reps: 0) == nil, "zero reps has no e1RM")
+        // PR-target math (the seated-incline-curl case: best 12.5×14 = 18.333)
+        let curlBest = e1rm(weightKg: 12.5, reps: 14)!
+        assert(repsToBeat(target: curlBest, weightKg: 12.5) == 15, "same weight: one more rep")
+        assert(repsToBeat(target: curlBest, weightKg: 15) == 7, "15kg: 7 reps = 18.5 > 18.33")
+        assert(repsToBeat(target: curlBest, weightKg: 5) == nil, ">30 reps → no target")
+        assert(repsToBeat(target: 50, weightKg: 100) == 1, "heavier than target e1RM: 1 rep")
     }
     #endif
 }

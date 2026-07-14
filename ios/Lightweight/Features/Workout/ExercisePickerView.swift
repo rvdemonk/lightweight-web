@@ -33,7 +33,7 @@ struct ExercisePickerView: View {
         NavigationStack {
             List {
                 if let loadError {
-                    Text(loadError).foregroundStyle(.red).font(.footnote)
+                    Text(loadError).foregroundStyle(.red).font(.body)
                 }
                 if canCreate {
                     Section {

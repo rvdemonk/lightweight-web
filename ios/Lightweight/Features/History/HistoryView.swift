@@ -62,16 +62,16 @@ struct HistoryView: View {
             EmptyView()
         case .syncing(let label):
             Label(label, systemImage: "arrow.triangle.2.circlepath")
-                .font(.footnote.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.secondary)
         case .synced(let summary):
             Label(summary, systemImage: "checkmark.circle")
-                .font(.footnote.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.green)
         case .failed(let message):
             // Sync failure is always visible — never rendered as success.
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .font(.footnote)
+                .font(.body)
                 .foregroundStyle(.red)
         }
     }
@@ -101,7 +101,7 @@ struct HistoryRow: View {
                 Spacer()
                 if item.status != "completed" {
                     Text(item.status.uppercased())
-                        .font(.caption2.monospaced())
+                        .font(.body.monospaced())
                         .foregroundStyle(.orange)
                 }
             }
@@ -109,7 +109,7 @@ struct HistoryRow: View {
                 Text(ServerDate.dayLabel(item.startedAt))
                 Text("\(item.exerciseCount) EX · \(item.setCount) SETS")
             }
-            .font(.caption.monospaced())
+            .font(.body.monospaced())
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)

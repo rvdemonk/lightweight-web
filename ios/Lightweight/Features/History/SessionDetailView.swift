@@ -21,7 +21,7 @@ struct SessionDetailView: View {
                     }
                     if let notes = detail.session.notes, !notes.isEmpty {
                         Section("NOTES") {
-                            Text(notes).font(.footnote)
+                            Text(notes).font(.body)
                         }
                     }
                 }
@@ -52,7 +52,7 @@ struct SessionDetailView: View {
         Section {
             VStack(alignment: .leading, spacing: 6) {
                 Text(ServerDate.dayLabel(detail.session.startedAt))
-                    .font(.subheadline.monospaced())
+                    .font(.body.monospaced())
                 HStack(spacing: 12) {
                     Label(ServerDate.timeLabel(detail.session.startedAt), systemImage: "clock")
                     if let dur = ServerDate.duration(
@@ -60,7 +60,7 @@ struct SessionDetailView: View {
                         Label(dur, systemImage: "timer")
                     }
                 }
-                .font(.caption.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.secondary)
             }
         }
@@ -97,7 +97,7 @@ struct SetRow: View {
                 .foregroundStyle(.secondary)
             if set.setType != "working" {
                 Text(set.setType.uppercased())
-                    .font(.caption2.monospaced())
+                    .font(.body.monospaced())
                     .foregroundStyle(.orange)
             }
             Spacer()
@@ -108,7 +108,7 @@ struct SetRow: View {
                 .frame(minWidth: 28, alignment: .trailing)
             if let rir = set.rir {
                 Text("@\(rir)")
-                    .font(.caption.monospaced())
+                    .font(.body.monospaced())
                     .foregroundStyle(.secondary)
             }
         }

@@ -47,6 +47,8 @@ struct ActiveWorkoutView: View {
                     try? workout.logSet(exerciseIndex: index, weightKg: weight, reps: reps, rir: rir)
                 } onDeleteSet: { setId in
                     try? workout.deleteSet(exerciseIndex: index, setId: setId)
+                } bestRepsAt: { w in
+                    workout.bestRepsAt(weightKg: w, exerciseId: exercise.exerciseId)
                 }
             }
 
@@ -94,6 +96,7 @@ private struct ExerciseLogCard: View {
     let exercise: ActiveWorkout.Exercise
     let onLog: (_ weightKg: Double?, _ reps: Int, _ rir: Int?) -> Void
     let onDeleteSet: (_ setId: Int64) -> Void
+    let bestRepsAt: (_ weightKg: Double) -> Int?
 
     @State private var weight = ""
     @State private var reps = ""
@@ -108,27 +111,82 @@ private struct ExerciseLogCard: View {
                 loggedSetRow(set)
             }
             entryRow
+            if let line = targetsLine {
+                Text(line)
+                    .font(.body.monospaced())
+                    .foregroundStyle(.secondary)
+            }
         } header: {
-            HStack {
-                Text(exercise.name)
-                Spacer()
-                if let best = exercise.allTimeBestE1rm {
-                    Text("BEST e1RM \(fmt(best))")
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(exercise.name).font(.headline)
+                    Spacer()
+                    if let best = exercise.allTimeBestE1rm {
+                        Text("BEST e1RM \(fmt(best))")
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let line = prTargetHeaderLine {
+                    Text(line)
+                        .font(.body.monospaced())
+                        .foregroundStyle(.orange)
                 }
             }
         }
         .onAppear(perform: prefill)
     }
 
+    // ── PR / SPR targets ──
+
+    /// Weight the targets are computed against: the live entry field, falling
+    /// back to the prefill sources (last logged set, then previous session).
+    private var targetWeight: Double? {
+        Double(weight.replacingOccurrences(of: ",", with: "."))
+            ?? exercise.sets.last?.weightKg
+            ?? exercise.previous.last?.weightKg
+    }
+
+    /// Header: concrete combos that strictly beat the all-time e1RM, at the
+    /// current weight and one plate-step up. Hidden with no weighted history —
+    /// first exposure is calibration, not a fake target.
+    private var prTargetHeaderLine: String? {
+        guard let best = exercise.allTimeBestE1rm, let w = targetWeight else { return nil }
+        var combos: [String] = []
+        if let r = Calc.repsToBeat(target: best, weightKg: w) {
+            combos.append("\(weightString(w)) × \(r)")
+        }
+        if let r = Calc.repsToBeat(target: best, weightKg: w + 2.5) {
+            combos.append("\(weightString(w + 2.5)) × \(r)")
+        }
+        guard !combos.isEmpty else { return nil }
+        return "PR TARGET  " + combos.joined(separator: "  ·  ")
+    }
+
+    /// Entry row: live targets at the weight being typed. SPR = rep record at
+    /// exactly this weight (includes this session — PRs are live); PR = reps
+    /// needed here to beat the all-time e1RM.
+    private var targetsLine: String? {
+        guard let w = targetWeight else { return nil }
+        var parts: [String] = []
+        if let bestReps = bestRepsAt(w) {
+            parts.append("SPR ≥ \(bestReps + 1) (best @\(weightString(w)): \(bestReps))")
+        }
+        if let best = exercise.allTimeBestE1rm,
+           let r = Calc.repsToBeat(target: best, weightKg: w) {
+            parts.append("PR ≥ \(r)")
+        }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: "  ·  ")
+    }
+
     private var previousRow: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("PREVIOUS\(exercise.previousLabel.map { " \u{2022} \($0)" } ?? "")")
-                .font(.caption2.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.secondary)
             Text(exercise.previous.map { setSummary($0.weightKg, $0.reps) }.joined(separator: "   "))
-                .font(.caption.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.secondary)
         }
     }
@@ -139,7 +197,7 @@ private struct ExerciseLogCard: View {
             Spacer()
             Text(setSummary(set.weightKg, set.reps))
             if let r = set.rir {
-                Text("@\(r)").font(.caption.monospaced()).foregroundStyle(.secondary)
+                Text("@\(r)").font(.body.monospaced()).foregroundStyle(.secondary)
             }
             if let e = set.e1rm {
                 Text(fmt(e))

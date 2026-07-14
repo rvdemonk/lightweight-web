@@ -94,6 +94,12 @@ final class ActiveWorkout {
 
     var totalSets: Int { exercises.reduce(0) { $0 + $1.sets.count } }
 
+    /// SPR context: most reps ever logged at this weight for this exercise
+    /// (live — includes the current session's sets, which write through).
+    func bestRepsAt(weightKg: Double, exerciseId: Int64) -> Int? {
+        try? db.bestRepsAtWeight(exerciseId: exerciseId, weightKg: weightKg)
+    }
+
     /// Mark the session completed (ended_at + status). Sets with no reps never
     /// get logged, so nothing to prune. Empty exercises are allowed but harmless.
     func finish() throws {

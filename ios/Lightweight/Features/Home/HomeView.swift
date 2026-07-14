@@ -22,7 +22,7 @@ struct HomeView: View {
                                 Label("Resume Workout", systemImage: "arrow.uturn.forward")
                                     .font(.headline)
                                 Text("Started \(ServerDate.timeLabel(resumable.startedAt))")
-                                    .font(.caption.monospaced())
+                                    .font(.body.monospaced())
                                     .foregroundStyle(.secondary)
                             }
                             .frame(minHeight: 44)
@@ -64,14 +64,14 @@ struct HomeView: View {
             EmptyView()
         case .syncing(let label):
             Label(label, systemImage: "arrow.triangle.2.circlepath")
-                .font(.footnote.monospaced()).foregroundStyle(.secondary)
+                .font(.body.monospaced()).foregroundStyle(.secondary)
         case .synced(let summary):
             Label(summary, systemImage: "checkmark.circle")
-                .font(.footnote.monospaced()).foregroundStyle(.green)
+                .font(.body.monospaced()).foregroundStyle(.green)
         case .failed(let message):
             // Never render failure as success (banked sync lesson).
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .font(.footnote).foregroundStyle(.red)
+                .font(.body).foregroundStyle(.red)
         }
     }
 }
