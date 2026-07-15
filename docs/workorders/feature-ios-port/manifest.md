@@ -2,6 +2,16 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-15 (late morning) — Reference screen settled (6 iterations) + 4-tab scaffold; prod junk incident
+
+**Reference screen final form (Lewis-approved):** single-exercise page — dropdown pill switcher (Menu+Picker, title-case menu w/ set-count subtitles; caps stay on the pill), stacked edge-reach steppers (Text w/ numericText rolling digits, TextField only on tap), bidirectional PR tiles (hairline-separated), **slot goal replaced SPR** (beat same-numbered set from last session, e1RM-normalized at current weight — raw comparison was the Android color-bar lie), labeled e1RM column w/ baseline PR badges + green log-flash, floating LOG SET, haptic log confirm (.success on PR), keyboard Done + interactive dismiss, End leading / + trailing. Rules enshrined in **ios/CLAUDE.md**; tokens in Design/Theme.swift.
+
+**Scaffold shipped:** 4 tabs (HOME/HISTORY/WORKOUTS/DATA, amber). Home: wordmark (content, not toolbar — iOS 26 clips leading toolbar text to a circle), resume banner, start menu, 30d strength/session tiles, activity heatmap, recent pills. Workouts: template list→detail→**start (spec hard req: sessions carry template_id+version into sync)**. Template create/edit deferred — ships as one unit with template PUSH or import destroys edits. Settings = cog sheet. Data = stub.
+
+**PROD INCIDENT (caught & cleaned):** keychain token survives app reinstall; the preview seam kept real creds → Ended test workout pushed junk to prod (session 100, 7 sets, incl. 1.25kg set into real PULL-UPS; junk exercise 265). Surgically removed after online backup (backups/2026-07-15/lightweight.db.pre-junk-clean); verified 82 sessions, FK clean. Fix: preview seam nils token + unroutable URL (safe only because didSet doesn't fire in init). Incidental: bench duplicate 1 vs 221 → curation list.
+
+**Commits:** 1cfe85a, a149a7d, 5a62d93, 19c1df3 (all pushed). **Next:** wireless install to Lewis's phone (sizing check) · template PUSH unit · tabViewBottomAccessory active bar · template progress bar · Data page design. Parked: RIR entry, weighted-BW e1RM semantics, pill pinning, weightToBeat backport to crates/calc.
+
 ## 2026-07-15 (morning) — Phase 4 opened: tokens + type scale settled with Lewis
 
 Interactive design session, decisions banked (all four Lewis-confirmed):
