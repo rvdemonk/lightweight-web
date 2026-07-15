@@ -22,7 +22,7 @@ extension AppDatabase {
     /// Next id for a locally-authored row: strictly negative, below any existing
     /// row. `min(0, …)` guards a table whose current MIN(id) is positive (server
     /// rows only) so we never hand back a positive id or 0.
-    private func nextLocalId(_ db: Database, _ table: String) throws -> Int64 {
+    func nextLocalId(_ db: Database, _ table: String) throws -> Int64 {
         let minId = try Int64.fetchOne(db, sql: "SELECT COALESCE(MIN(id), 0) FROM \(table)") ?? 0
         return min(0, minId) - 1
     }

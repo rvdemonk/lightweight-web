@@ -42,9 +42,17 @@ final class AppState {
         #if DEBUG
         // Screenshot-only seam: skip auth into the tabs with a seeded offline
         // catalog. Never active without the LW_UI_PREVIEW env var.
+        // MUST neutralize credentials: the keychain token survives app
+        // reinstalls, and a preview session that Ends would otherwise push
+        // junk to prod with a real token (happened 2026-07-15; session 100
+        // surgically removed). Unroutable URL = any push fails visibly.
         if ProcessInfo.processInfo.environment["LW_UI_PREVIEW"] == "1" {
             try? db.seedPreviewData()
             try? db.seedActiveWorkoutPreview()
+            token = nil
+            // Safe ONLY because didSet doesn't fire inside init — this must
+            // not persist to UserDefaults or it would sabotage real launches.
+            serverURL = "http://preview.invalid"
             phase = .loggedIn
         }
         #endif
