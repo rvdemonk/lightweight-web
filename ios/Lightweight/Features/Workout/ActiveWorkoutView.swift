@@ -93,8 +93,7 @@ struct ActiveWorkoutView: View {
                 Text(elapsedString(at: timeline.date))
                     .font(Theme.data)
                 if showRestTimer, let rest = restString(at: timeline.date) {
-                    Text("REST \(rest)")
-                        .metaLabel()
+                    Text(rest).metaLabel()
                 }
             }
         }
@@ -130,14 +129,13 @@ struct ActiveWorkoutView: View {
                     ExercisePanel(
                         exercise: exercise,
                         onLog: { weight, reps in
-                            try? workout.logSet(exerciseIndex: index, weightKg: weight, reps: reps, rir: nil)
+                            withAnimation(.snappy) {
+                                try? workout.logSet(exerciseIndex: index, weightKg: weight, reps: reps, rir: nil)
+                            }
                             lastLogAt = .now
                         },
                         onDeleteSet: { setId in
                             try? workout.deleteSet(exerciseIndex: index, setId: setId)
-                        },
-                        bestRepsAt: { w in
-                            workout.bestRepsAt(weightKg: w, exerciseId: exercise.exerciseId)
                         })
                     .id(exercise.id)   // fresh entry state + prefill per exercise
                 } else {
@@ -147,6 +145,7 @@ struct ActiveWorkoutView: View {
             .padding(.horizontal, Theme.margin)
             .padding(.vertical, Theme.grid * 2)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemBackground))
     }
 
@@ -226,10 +225,11 @@ private struct ExercisePanel: View {
     let exercise: ActiveWorkout.Exercise
     let onLog: (_ weightKg: Double?, _ reps: Int) -> Void
     let onDeleteSet: (_ setId: Int64) -> Void
-    let bestRepsAt: (_ weightKg: Double) -> Int?
 
     @State private var weightText = ""
     @State private var repsText = ""
+    @State private var logCount = 0        // haptic trigger; also gates the PR flash to fresh logs
+    @State private var lastWasPR = false
     @FocusState private var focused: Field?
     enum Field { case weight, reps }
 
@@ -250,16 +250,40 @@ private struct ExercisePanel: View {
             logButton
         }
         .onAppear(perform: prefill)
+        // The thump IS the confirmation — eyes aren't always on screen
+        // between sets. A PR gets the success pattern instead.
+        .sensoryFeedback(trigger: logCount) { _, _ in
+            lastWasPR ? .success : .impact(weight: .medium)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focused = nil }
+            }
+        }
     }
 
     private var lastSession: some View {
-        VStack(alignment: .leading, spacing: Theme.grid) {
-            Text("Last session\(exercise.previousLabel.map { " · \($0)" } ?? "")")
-                .metaLabel()
-            Text(exercise.previous.map { setSummary($0.weightKg, $0.reps, rir: $0.rir) }
-                .joined(separator: "   "))
-                .font(Theme.data)
-                .foregroundStyle(.secondary)
+        let best = Calc.bestE1rm(exercise.previous.map { (weightKg: $0.weightKg, reps: $0.reps) })
+        return VStack(alignment: .leading, spacing: Theme.grid) {
+            HStack {
+                Text("Last session\(exercise.previousLabel.map { " · \($0)" } ?? "")")
+                    .metaLabel()
+                Spacer()
+                if best != nil { Text("Best e1RM").metaLabel() }
+            }
+            HStack(alignment: .firstTextBaseline) {
+                Text(exercise.previous.map { setSummary($0.weightKg, $0.reps, rir: $0.rir) }
+                    .joined(separator: "   "))
+                    .font(Theme.data)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if let best {
+                    Text(String(format: "%.1f", best))
+                        .font(Theme.data)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -289,12 +313,25 @@ private struct ExercisePanel: View {
             stepButton("minus", action: minus)
             VStack(spacing: 0) {
                 Text(label).metaLabel()
-                TextField(placeholder, text: text)
-                    .font(Theme.heroData)
-                    .keyboardType(keyboard)
-                    .multilineTextAlignment(.center)
-                    .focused($focused, equals: field)
-                    .frame(minHeight: Theme.stepperTouch - 8)
+                // Text by default (so digits ROLL via numericText when the
+                // steppers bump); becomes a TextField only once tapped.
+                ZStack {
+                    if focused == field {
+                        TextField(placeholder, text: text)
+                            .font(Theme.heroData)
+                            .keyboardType(keyboard)
+                            .multilineTextAlignment(.center)
+                            .focused($focused, equals: field)
+                    } else {
+                        Text(text.wrappedValue.isEmpty ? placeholder : text.wrappedValue)
+                            .font(Theme.heroData)
+                            .foregroundStyle(text.wrappedValue.isEmpty ? Color(.tertiaryLabel) : .primary)
+                            .contentTransition(.numericText())
+                            .contentShape(Rectangle())
+                            .onTapGesture { focused = field }
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: Theme.stepperTouch - 8)
             }
             .frame(maxWidth: .infinity)
             stepButton("plus", action: plus)
@@ -317,13 +354,13 @@ private struct ExercisePanel: View {
         focused = nil
         let current = parsedWeight ?? exercise.sets.last?.weightKg ?? exercise.previous.last?.weightKg ?? 0
         let next = max(0, current + delta)
-        weightText = next == 0 ? "" : weightString(next)
+        withAnimation(.snappy) { weightText = next == 0 ? "" : weightString(next) }
     }
 
     private func bumpReps(_ delta: Int) {
         focused = nil
         let next = max(0, (Int(repsText) ?? 0) + delta)
-        repsText = next == 0 ? "" : String(next)
+        withAnimation(.snappy) { repsText = next == 0 ? "" : String(next) }
     }
 
     // ── Bidirectional goals ──
@@ -354,7 +391,7 @@ private struct ExercisePanel: View {
                     goalTile(label: repsGoalLabel(best), value: repsGoalValue(best))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Text(sprLine)
+                Text(slotLine)
                     .font(Theme.data)
                     .foregroundStyle(.secondary)
             }
@@ -385,16 +422,34 @@ private struct ExercisePanel: View {
             Text(value)
                 .font(Theme.titleData)
                 .foregroundStyle(value == "—" ? Color(.tertiaryLabel) : Theme.amber)
+                .contentTransition(.numericText())
         }
     }
 
-    /// SPR: rep record at exactly this weight (live — includes this session).
-    /// Placeholder when there's no record at this weight — never disappears.
-    private var sprLine: String {
-        guard let w = targetWeight, w > 0, let bestReps = bestRepsAt(w) else {
-            return "SPR —  ·  no sets at this weight"
+    /// Slot goal: beat the same-numbered set from LAST session — the working
+    /// goal for the ~80% of sets that aren't PR attempts (slot-wins compound
+    /// into PRs wherever you usually peak). Expressed as reps at the CURRENT
+    /// weight via e1RM inversion, so a weight change between sessions stays
+    /// coherent (the Android color-bar lesson). Falls back to last session's
+    /// final set when you're past its set count. Never disappears — geometry.
+    private var slotLine: String {
+        let n = exercise.sets.count + 1
+        let slotLabel = "Set \(String(format: "%02d", n))"
+        guard let slot = exercise.previous.first(where: { $0.setNumber == n })
+                ?? exercise.previous.last else {
+            return "\(slotLabel)  ·  no previous session"
         }
-        return "SPR ≥ \(bestReps + 1)  ·  best @\(weightString(w)): \(bestReps)"
+        let last = "last: \(setSummary(slot.weightKg, slot.reps, rir: nil))"
+        // Bodyweight vs bodyweight: raw reps race.
+        if slot.weightKg == nil, targetWeight == nil || targetWeight == 0 {
+            return "\(slotLabel) ≥ \(slot.reps + 1)  ·  \(last)"
+        }
+        guard let slotE = Calc.e1rm(weightKg: slot.weightKg, reps: slot.reps),
+              let w = targetWeight, w > 0,
+              let r = Calc.repsToBeat(target: slotE, weightKg: w) else {
+            return "\(slotLabel)  ·  \(last)"
+        }
+        return "\(slotLabel) ≥ \(r)  ·  \(last)"
     }
 
     // ── Logged sets ──
@@ -427,6 +482,7 @@ private struct ExercisePanel: View {
                 }
                 .frame(minHeight: Theme.minTouch)
                 .contentShape(Rectangle())
+                .modifier(PRFlash(active: logCount > 0 && isPR(set) && set.id == exercise.sets.last?.id))
                 .contextMenu {
                     Button("Delete set", systemImage: "trash", role: .destructive) {
                         onDeleteSet(set.id)
@@ -451,6 +507,10 @@ private struct ExercisePanel: View {
             guard let r = parsedReps, r > 0 else { return }
             focused = nil
             let w = parsedWeight.flatMap { $0 > 0 ? $0 : nil }
+            // PR check BEFORE the model folds this set into the live best.
+            let e = Calc.e1rm(weightKg: w, reps: r)
+            lastWasPR = e.map { new in exercise.baselineBestE1rm.map { new > $0 } ?? false } ?? false
+            logCount += 1
             onLog(w, r)
             // Keep weight/reps for a fast next set.
         } label: {
@@ -486,5 +546,24 @@ private struct ExercisePanel: View {
         w.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", w)
             : String(format: "%.2f", w).replacingOccurrences(of: "0$", with: "", options: .regularExpression)
+    }
+}
+
+/// One green pulse behind a freshly-logged PR row, fading over ~1.5s.
+/// `active` gates it to sets logged THIS screen visit — resumed history
+/// must not flash on appear.
+private struct PRFlash: ViewModifier {
+    let active: Bool
+    @State private var done = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Theme.green.opacity(active && !done ? 0.22 : 0)))
+            .onAppear {
+                guard active else { return }
+                withAnimation(.easeOut(duration: 1.5)) { done = true }
+            }
     }
 }
