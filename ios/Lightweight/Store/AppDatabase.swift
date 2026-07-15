@@ -278,6 +278,21 @@ struct AppDatabase: Sendable {
         }
     }
 
+    /// Hard-delete a session and its children. Caller is responsible for the
+    /// server side first (a server-backed row deleted only locally would be
+    /// resurrected by the next pull).
+    func deleteLocalSession(id: Int64) throws {
+        try writer.write { db in
+            try db.execute(sql: """
+                DELETE FROM sets WHERE session_exercise_id IN
+                    (SELECT id FROM session_exercises WHERE session_id = ?)
+                """, arguments: [id])
+            try db.execute(sql: "DELETE FROM session_exercises WHERE session_id = ?",
+                           arguments: [id])
+            try db.execute(sql: "DELETE FROM sessions WHERE id = ?", arguments: [id])
+        }
+    }
+
     func counts() throws -> (sessions: Int, exercises: Int, templates: Int, sets: Int) {
         try writer.read { db in
             (

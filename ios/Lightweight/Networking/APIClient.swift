@@ -61,6 +61,11 @@ struct APIClient: Sendable {
         return try await request("sessions/sync", method: "POST", body: try encoder.encode(sessions))
     }
 
+    /// Server replies 204 No Content.
+    func deleteSession(id: Int64) async throws {
+        try await requestVoid("sessions/\(id)", method: "DELETE")
+    }
+
     // ── Plumbing ──
 
     private func get<T: Decodable>(_ path: String) async throws -> T {
@@ -72,6 +77,16 @@ struct APIClient: Sendable {
     }
 
     private func request<T: Decodable>(_ path: String, method: String, body: Data?) async throws -> T {
+        let data = try await requestData(path, method: method, body: body)
+        return try Self.decoder.decode(T.self, from: data)
+    }
+
+    /// For endpoints that reply with no body (204).
+    private func requestVoid(_ path: String, method: String) async throws {
+        _ = try await requestData(path, method: method, body: nil)
+    }
+
+    private func requestData(_ path: String, method: String, body: Data?) async throws -> Data {
         guard let url = URL(string: "api/v1/" + path, relativeTo: baseURL) else {
             throw APIError.invalidURL
         }
@@ -88,7 +103,7 @@ struct APIClient: Sendable {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
         case 200..<300:
-            return try Self.decoder.decode(T.self, from: data)
+            return data
         case 401:
             throw APIError.unauthorized
         default:

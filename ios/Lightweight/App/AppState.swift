@@ -69,6 +69,21 @@ final class AppState {
         activeSession = try? db.activeLocalSession()
     }
 
+    /// Delete a workout everywhere. Server first for server-backed rows
+    /// (positive ids) — local-only delete would resurrect on the next pull.
+    /// A 404 counts as already-deleted, not failure.
+    func deleteSession(id: Int64) async throws {
+        if id > 0 {
+            guard let client else { throw APIError.invalidURL }
+            do {
+                try await client.deleteSession(id: id)
+            } catch APIError.http(let code, _) where code == 404 {
+                // Gone on the server already — proceed to local cleanup.
+            }
+        }
+        try db.deleteLocalSession(id: id)
+    }
+
     private var client: APIClient? {
         guard let url = URL(string: serverURL) else { return nil }
         return APIClient(baseURL: url, token: token)

@@ -5,6 +5,8 @@ struct HistoryView: View {
 
     @State private var items: [AppDatabase.HistoryItem] = []
     @State private var loadError: String?
+    @State private var pendingDelete: AppDatabase.HistoryItem?
+    @State private var deleteError: String?
 
     var body: some View {
         NavigationStack {
@@ -14,9 +16,41 @@ struct HistoryView: View {
                     NavigationLink(value: item.id) {
                         HistoryRow(item: item)
                     }
+                    .contextMenu {
+                        // Completed only: deleting a LIVE session would leave
+                        // the active-workout model writing to dead rows.
+                        if item.status == "completed" {
+                            Button("Delete workout", systemImage: "trash", role: .destructive) {
+                                pendingDelete = item
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("HISTORY")
+            .confirmationDialog(
+                "Delete workout?",
+                isPresented: Binding(
+                    get: { pendingDelete != nil },
+                    set: { if !$0 { pendingDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: pendingDelete
+            ) { item in
+                Button("Delete • \(item.setCount) sets", role: .destructive) {
+                    Task { await delete(item) }
+                }
+                Button("Keep", role: .cancel) {}
+            } message: { item in
+                Text("\((item.templateName ?? item.name ?? "Freeform").uppercased()) · \(ServerDate.shortDayLabel(item.startedAt)). Removed from the server too — this can't be undone.")
+            }
+            .alert("Couldn't delete", isPresented: Binding(
+                get: { deleteError != nil },
+                set: { if !$0 { deleteError = nil } })
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteError ?? "")
+            }
             .navigationDestination(for: Int64.self) { id in
                 SessionDetailView(sessionId: id)
             }
@@ -68,6 +102,15 @@ struct HistoryView: View {
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .font(Theme.body)
                 .foregroundStyle(Theme.red)
+        }
+    }
+
+    private func delete(_ item: AppDatabase.HistoryItem) async {
+        do {
+            try await appState.deleteSession(id: item.id)
+            loadItems()
+        } catch {
+            deleteError = error.localizedDescription
         }
     }
 
