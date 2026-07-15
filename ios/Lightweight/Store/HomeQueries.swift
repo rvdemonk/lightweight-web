@@ -103,38 +103,64 @@ extension AppDatabase {
         }
     }
 
-    struct RecentExercise: Identifiable, Sendable {
-        let exerciseId: Int64
-        let name: String
-        let lastDay: String     // started_at of most recent session containing it
-        var id: Int64 { exerciseId }
-    }
-
-    /// Most recently trained exercises, deduped, newest first.
-    func recentExercises(limit: Int) throws -> [RecentExercise] {
-        try writer.read { db in
-            let rows = try Row.fetchAll(db, sql: """
-                SELECT e.id AS eid, e.name AS name, MAX(s.started_at) AS last_day
-                FROM sessions s
-                JOIN session_exercises se ON se.session_id = s.id
-                JOIN exercises e ON e.id = se.exercise_id
-                WHERE s.status = 'completed'
-                GROUP BY e.id
-                ORDER BY last_day DESC
-                LIMIT ?
-                """, arguments: [limit])
-            return rows.map {
-                RecentExercise(exerciseId: $0["eid"], name: $0["name"], lastDay: $0["last_day"])
-            }
-        }
-    }
-
     func completedSessionsCount(days: Int) throws -> Int {
         try writer.read { db in
             try Int.fetchOne(db, sql: """
                 SELECT COUNT(*) FROM sessions
                 WHERE status = 'completed' AND started_at >= datetime('now', ?)
                 """, arguments: ["-\(days) days"]) ?? 0
+        }
+    }
+
+    /// Sessions + sets since a UTC cutoff (caller computes the local week
+    /// start — SQLite's 'now' knows nothing about the user's calendar).
+    func statsSince(utc: String) throws -> (sessions: Int, sets: Int) {
+        try writer.read { db in
+            let sessions = try Int.fetchOne(db, sql: """
+                SELECT COUNT(*) FROM sessions
+                WHERE status = 'completed' AND started_at >= ?
+                """, arguments: [utc]) ?? 0
+            let sets = try Int.fetchOne(db, sql: """
+                SELECT COUNT(st.id)
+                FROM sessions s
+                JOIN session_exercises se ON se.session_id = s.id
+                JOIN sets st ON st.session_exercise_id = se.id
+                WHERE s.status = 'completed' AND s.started_at >= ?
+                """, arguments: [utc]) ?? 0
+            return (sessions, sets)
+        }
+    }
+
+    /// Exercise-sessions in the trailing window whose best e1RM strictly beat
+    /// everything before that session. NULL baseline (no prior history) never
+    /// counts — first exposure is calibration, matching server detect_prs.
+    func prCount(days: Int) throws -> Int {
+        try writer.read { db in
+            try Int.fetchOne(db, sql: """
+                WITH per AS (
+                    SELECT se.exercise_id AS eid, s.id AS sid, s.started_at AS at,
+                           MAX(st.weight_kg * (1.0 + st.reps / 30.0)) AS best
+                    FROM sessions s
+                    JOIN session_exercises se ON se.session_id = s.id
+                    JOIN sets st ON st.session_exercise_id = se.id
+                    WHERE s.status = 'completed'
+                      AND st.weight_kg IS NOT NULL AND st.weight_kg > 0 AND st.reps > 0
+                    GROUP BY eid, sid
+                )
+                SELECT COUNT(*) FROM per p
+                WHERE p.at >= datetime('now', ?)
+                  AND p.best > (SELECT MAX(q.best) FROM per q
+                                 WHERE q.eid = p.eid AND q.at < p.at)
+                """, arguments: ["-\(days) days"]) ?? 0
+        }
+    }
+
+    /// started_at of the most recent completed session.
+    func lastCompletedStartedAt() throws -> String? {
+        try writer.read { db in
+            try String.fetchOne(db, sql: """
+                SELECT MAX(started_at) FROM sessions WHERE status = 'completed'
+                """)
         }
     }
 

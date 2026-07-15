@@ -1,5 +1,5 @@
 // Home: resume/start, 30-day pulse (strength growth + session count),
-// activity heatmap, recent exercises. Settings is the cog — not a tab.
+// activity heatmap, recent workouts. Settings is the cog — not a tab.
 
 import SwiftUI
 
@@ -11,9 +11,11 @@ struct HomeView: View {
     @State private var resumable: SessionRecord?
     @State private var templates: [AppDatabase.TemplateListItem] = []
     @State private var setsByDay: [String: Int] = [:]
-    @State private var growth: Double?
-    @State private var sessions30d = 0
-    @State private var recents: [AppDatabase.RecentExercise] = []
+    @State private var weekSessions = 0
+    @State private var weekSets = 0
+    @State private var prs30d = 0
+    @State private var lastTrained: String?
+    @State private var recents: [AppDatabase.HistoryItem] = []
 
     var body: some View {
         NavigationStack {
@@ -26,9 +28,10 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if resumable != nil { resumeBanner }
                     startButton
+                    lastTrainedLine
                     statsRow
                     heatmapCard
-                    if !recents.isEmpty { recentPills }
+                    if !recents.isEmpty { recentWorkouts }
                     syncFailureRow
                 }
                 .padding(.horizontal, Theme.margin)
@@ -44,6 +47,7 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(isPresented: $goToWorkout) { ActiveWorkoutView() }
+            .navigationDestination(for: Int64.self) { id in SessionDetailView(sessionId: id) }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .task { reload() }
             .onChange(of: goToWorkout) { _, isPresented in
@@ -56,9 +60,16 @@ struct HomeView: View {
         resumable = try? appState.db.activeLocalSession()
         templates = (try? appState.db.templateList()) ?? []
         setsByDay = (try? appState.db.activityByDay(days: 18 * 7)) ?? [:]
-        growth = try? appState.db.strengthGrowth30d()
-        sessions30d = (try? appState.db.completedSessionsCount(days: 30)) ?? 0
-        recents = (try? appState.db.recentExercises(limit: 8)) ?? []
+        if let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start {
+            let stats = try? appState.db.statsSince(utc: ISO8601.string(from: weekStart))
+            weekSessions = stats?.sessions ?? 0
+            weekSets = stats?.sets ?? 0
+        }
+        prs30d = (try? appState.db.prCount(days: 30)) ?? 0
+        lastTrained = try? appState.db.lastCompletedStartedAt()
+        recents = Array(((try? appState.db.historyItems()) ?? [])
+            .filter { $0.status == "completed" }
+            .prefix(3))
     }
 
     // ── Start / resume ──
@@ -124,27 +135,43 @@ struct HomeView: View {
         goToWorkout = true
     }
 
-    // ── 30-day pulse ──
+    // ── Pulse ──
 
-    private var statsRow: some View {
-        HStack(spacing: Theme.grid * 2) {
-            statTile(label: "Strength · 30d",
-                     value: growth.map { String(format: "%+.1f%%", $0) } ?? "—",
-                     valueColor: growthColor)
-            statTile(label: "Sessions · 30d",
-                     value: "\(sessions30d)",
-                     valueColor: .primary)
+    /// "Last trained 2d ago" — the single most behaviour-shaping number.
+    /// Quiet when a workout is active (the resume banner owns that state).
+    @ViewBuilder
+    private var lastTrainedLine: some View {
+        if resumable == nil, let lastTrained {
+            Text("Last trained \(daysAgoLabel(lastTrained))")
+                .font(Theme.data)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var growthColor: Color {
-        guard let growth else { return Color(.tertiaryLabel) }
-        return growth >= 0 ? Theme.green : Theme.red
+    /// Weekly tiles move day to day (30d numbers barely twitch); PRs·30d is
+    /// the one scalar worth headlining — the list of WHICH lives on Data.
+    private var statsRow: some View {
+        HStack(spacing: Theme.grid * 2) {
+            statTile(label: "Sessions · wk",
+                     value: "\(weekSessions)",
+                     valueColor: .primary)
+            statTile(label: "Sets · wk",
+                     value: "\(weekSets)",
+                     valueColor: .primary)
+            statTile(label: "PRs · 30d",
+                     value: "\(prs30d)",
+                     valueColor: prs30d > 0 ? Theme.green : .primary)
+        }
     }
 
     private func statTile(label: String, value: String, valueColor: Color) -> some View {
         VStack(alignment: .leading, spacing: Theme.grid) {
+            // Labels scale down rather than wrap — a wrapped label heightens
+            // its card against its siblings ("SESSIONS · WK" was the culprit).
             Text(label).metaLabel()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(value)
                 .font(Theme.titleData)
                 .foregroundStyle(value == "—" ? Color(.tertiaryLabel) : valueColor)
@@ -169,29 +196,46 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
     }
 
-    // ── Recent exercises ──
+    // ── Recent workouts ──
 
-    private var recentPills: some View {
+    /// Vertical stack, last three completed sessions, tap-through to detail.
+    /// (Horizontally scrolling pills are a rejected antipattern here.)
+    private var recentWorkouts: some View {
         VStack(alignment: .leading, spacing: Theme.grid * 2) {
-            Text("Recent").metaLabel()
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Theme.grid * 2) {
-                    ForEach(recents) { recent in
-                        HStack(spacing: Theme.grid) {
-                            Text(recent.name.uppercased())
-                                .font(.system(size: 17, weight: .semibold).width(.condensed))
-                            Text(daysAgo(recent.lastDay))
-                                .font(Theme.data)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal, Theme.grid * 3)
-                        .frame(minHeight: Theme.minTouch)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(Capsule())
+            Text("Recent workouts").metaLabel()
+            VStack(spacing: Theme.grid * 2) {
+                ForEach(recents) { item in
+                    NavigationLink(value: item.id) {
+                        recentWorkoutRow(item)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    private func recentWorkoutRow(_ item: AppDatabase.HistoryItem) -> some View {
+        HStack(spacing: Theme.grid * 2) {
+            VStack(alignment: .leading, spacing: Theme.grid) {
+                Text((item.templateName ?? item.name ?? "Freeform").uppercased())
+                    .font(.system(size: 17, weight: .semibold).width(.condensed))
+                Text("\(item.exerciseCount) exercises · \(item.setCount) sets")
+                    .font(Theme.data)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(daysAgo(item.startedAt))
+                .font(Theme.data)
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(Theme.margin)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
+        .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
     }
 
     private func daysAgo(_ startedAt: String) -> String {
@@ -202,6 +246,11 @@ struct HomeView: View {
         case 1: return "1d"
         default: return "\(days)d"
         }
+    }
+
+    private func daysAgoLabel(_ startedAt: String) -> String {
+        let short = daysAgo(startedAt)
+        return short == "today" ? "today" : "\(short) ago"
     }
 
     // ── Sync ──
