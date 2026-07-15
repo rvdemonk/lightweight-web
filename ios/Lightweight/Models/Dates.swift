@@ -40,6 +40,12 @@ enum ServerDate {
         return d.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).year())
     }
 
+    /// List-row date: no year (history rarely needs it; the detail page has it).
+    static func shortDayLabel(_ s: String) -> String {
+        guard let d = parse(s) else { return s }
+        return d.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+    }
+
     static func timeLabel(_ s: String) -> String {
         guard let d = parse(s) else { return "" }
         return d.formatted(.dateTime.hour().minute())

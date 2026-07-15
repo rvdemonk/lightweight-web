@@ -30,11 +30,6 @@ struct HistoryView: View {
                     }
                     .disabled(isSyncing)
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Logout", systemImage: "rectangle.portrait.and.arrow.right") {
-                        appState.logout()
-                    }
-                }
             }
             .refreshable {
                 await appState.refresh()
@@ -62,17 +57,17 @@ struct HistoryView: View {
             EmptyView()
         case .syncing(let label):
             Label(label, systemImage: "arrow.triangle.2.circlepath")
-                .font(.body.monospaced())
+                .font(Theme.body)
                 .foregroundStyle(.secondary)
         case .synced(let summary):
             Label(summary, systemImage: "checkmark.circle")
-                .font(.body.monospaced())
-                .foregroundStyle(.green)
+                .font(Theme.body)
+                .foregroundStyle(Theme.green)
         case .failed(let message):
             // Sync failure is always visible — never rendered as success.
             Label(message, systemImage: "exclamationmark.triangle.fill")
-                .font(.body)
-                .foregroundStyle(.red)
+                .font(Theme.body)
+                .foregroundStyle(Theme.red)
         }
     }
 
@@ -94,24 +89,36 @@ struct HistoryRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: Theme.grid) {
+            // Name and date carry equal weight — a workout is identified as
+            // much by WHEN as by WHAT.
+            HStack(alignment: .firstTextBaseline) {
+                Text(title.uppercased())
+                    .font(.system(size: 17, weight: .semibold).width(.condensed))
                 Spacer()
+                Text(ServerDate.shortDayLabel(item.startedAt))
+                    .font(.system(size: 17, weight: .semibold).monospacedDigit())
+            }
+            HStack(spacing: Theme.grid) {
+                Text(summary)
+                    .font(Theme.data)
+                    .foregroundStyle(.secondary)
                 if item.status != "completed" {
                     Text(item.status.uppercased())
-                        .font(.body.monospaced())
-                        .foregroundStyle(.orange)
+                        .font(Theme.label)
+                        .tracking(0.6)
+                        .foregroundStyle(Theme.amber)
                 }
             }
-            HStack(spacing: 12) {
-                Text(ServerDate.dayLabel(item.startedAt))
-                Text("\(item.exerciseCount) EX · \(item.setCount) SETS")
-            }
-            .font(.body.monospaced())
-            .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, Theme.grid)
+    }
+
+    private var summary: String {
+        var parts = ["\(item.exerciseCount) exercises", "\(item.setCount) sets"]
+        if let dur = ServerDate.duration(from: item.startedAt, to: item.endedAt) {
+            parts.append(dur)
+        }
+        return parts.joined(separator: " · ")
     }
 }

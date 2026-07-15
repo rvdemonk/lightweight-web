@@ -218,6 +218,12 @@ struct AppDatabase: Sendable {
             var name: String
             var notes: String?
             var sets: [SetRecord]
+            /// Best e1RM BEFORE this session — retrospective PR badges compare
+            /// against this (same semantics as the active screen's baseline).
+            var baselineBestE1rm: Double?
+            /// Sets of the most recent EARLIER session containing this exercise,
+            /// ordered by set_number. Drives slot-goal-beaten badges.
+            var previousSets: [SetRecord]
         }
     }
 
@@ -239,7 +245,34 @@ struct AppDatabase: Sendable {
                     .filter(sql: "session_exercise_id = ?", arguments: [se.id])
                     .order(sql: "set_number")
                     .fetchAll(db)
-                return SessionDetail.ExerciseDetail(id: se.id, name: name, notes: se.notes, sets: sets)
+                // Baseline: best e1RM across all sets logged BEFORE this session.
+                let priorRows = try Row.fetchAll(db, sql: """
+                    SELECT st.weight_kg AS w, st.reps AS r
+                    FROM sets st
+                    JOIN session_exercises pse ON st.session_exercise_id = pse.id
+                    JOIN sessions ps ON pse.session_id = ps.id
+                    WHERE pse.exercise_id = ? AND ps.id != ?
+                      AND ps.status = 'completed' AND ps.started_at < ?
+                    """, arguments: [se.exerciseId, id, session.startedAt])
+                let baseline = Calc.bestE1rm(priorRows.map { (weightKg: $0["w"], reps: $0["r"]) })
+                // Previous session's sets for this exercise (slot comparison).
+                let prevSeId = try Int64.fetchOne(db, sql: """
+                    SELECT pse.id
+                    FROM session_exercises pse
+                    JOIN sessions ps ON pse.session_id = ps.id
+                    WHERE pse.exercise_id = ? AND ps.id != ?
+                      AND ps.status = 'completed' AND ps.started_at < ?
+                    ORDER BY ps.started_at DESC LIMIT 1
+                    """, arguments: [se.exerciseId, id, session.startedAt])
+                let previous = try prevSeId.map {
+                    try SetRecord
+                        .filter(sql: "session_exercise_id = ?", arguments: [$0])
+                        .order(sql: "set_number")
+                        .fetchAll(db)
+                } ?? []
+                return SessionDetail.ExerciseDetail(
+                    id: se.id, name: name, notes: se.notes, sets: sets,
+                    baselineBestE1rm: baseline, previousSets: previous)
             }
             return SessionDetail(session: session, templateName: templateName, exercises: exercises)
         }
