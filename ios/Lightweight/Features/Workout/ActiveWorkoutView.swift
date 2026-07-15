@@ -142,9 +142,9 @@ struct ActiveWorkoutView: View {
                     let exercise = workout.exercises[index]
                     ExercisePanel(
                         exercise: exercise,
-                        onLog: { weight, reps in
+                        onLog: { weight, reps, rir in
                             withAnimation(.snappy) {
-                                try? workout.logSet(exerciseIndex: index, weightKg: weight, reps: reps, rir: nil)
+                                try? workout.logSet(exerciseIndex: index, weightKg: weight, reps: reps, rir: rir)
                             }
                             lastLogAt = .now
                         },
@@ -241,11 +241,12 @@ struct ActiveWorkoutView: View {
 /// prefilled from the last logged set (or previous session).
 private struct ExercisePanel: View {
     let exercise: ActiveWorkout.Exercise
-    let onLog: (_ weightKg: Double?, _ reps: Int) -> Void
+    let onLog: (_ weightKg: Double?, _ reps: Int, _ rir: Int?) -> Void
     let onDeleteSet: (_ setId: Int64) -> Void
 
     @State private var weightText = ""
     @State private var repsText = ""
+    @State private var selectedRIR: Int?   // optional; resets to nil after every log (deliberate-tap-only)
     @State private var logCount = 0        // haptic trigger; also gates the PR flash to fresh logs
     @State private var lastWasPR = false
     @FocusState private var focused: Field?
@@ -291,7 +292,7 @@ private struct ExercisePanel: View {
                 if best != nil { Text("Best e1RM").metaLabel() }
             }
             HStack(alignment: .firstTextBaseline) {
-                Text(exercise.previous.map { setSummary($0.weightKg, $0.reps, rir: $0.rir) }
+                Text(exercise.previous.map { setSummary($0.weightKg, $0.reps) + rirSuffix($0.rir) }
                     .joined(separator: "   "))
                     .font(Theme.data)
                     .foregroundStyle(.secondary)
@@ -320,7 +321,38 @@ private struct ExercisePanel: View {
                        keyboard: .numberPad, placeholder: "0",
                        minus: { bumpReps(-1) },
                        plus: { bumpReps(1) })
+            rirRow
         }
+    }
+
+    /// Optional RIR (reps in reserve) — a slim third stepper row. One tap rates;
+    /// tapping the selected pill clears it. Estimation is only reliable at 0–2,
+    /// so `3+` is the honest "not near failure" ceiling (stored as literal 3).
+    /// Always present (no appear/disappear jitter) and touches no math anywhere.
+    /// Resets to nil after every log: RIR drifts with fatigue, so a carried
+    /// rating would be silently wrong — every stored value must be a fresh tap.
+    private var rirRow: some View {
+        HStack(spacing: Theme.grid * 2) {
+            Text("RIR").metaLabel()
+            ForEach(rirOptions, id: \.value) { opt in
+                let selected = selectedRIR == opt.value
+                Button {
+                    withAnimation(.snappy) { selectedRIR = selected ? nil : opt.value }
+                } label: {
+                    Text(opt.label)
+                        .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                        .frame(maxWidth: .infinity, minHeight: Theme.minTouch)
+                        .background(selected ? Theme.amber : Color(.tertiarySystemFill),
+                                    in: Capsule())
+                        .foregroundStyle(selected ? .black : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var rirOptions: [(label: String, value: Int)] {
+        [("0", 0), ("1", 1), ("2", 2), ("3+", 3)]
     }
 
     private func stepperRow(label: String, text: Binding<String>, field: Field,
@@ -457,7 +489,7 @@ private struct ExercisePanel: View {
                 ?? exercise.previous.last else {
             return "\(slotLabel)  ·  no previous session"
         }
-        let last = "last: \(setSummary(slot.weightKg, slot.reps, rir: nil))"
+        let last = "last: \(setSummary(slot.weightKg, slot.reps))"
         // Bodyweight vs bodyweight: raw reps race.
         if slot.weightKg == nil, targetWeight == nil || targetWeight == 0 {
             return "\(slotLabel) ≥ \(slot.reps + 1)  ·  \(last)"
@@ -485,7 +517,8 @@ private struct ExercisePanel: View {
                     Text(String(format: "%02d", set.setNumber))
                         .font(Theme.data)
                         .foregroundStyle(.tertiary)
-                    Text(setSummary(set.weightKg, set.reps, rir: set.rir))
+                    (Text(setSummary(set.weightKg, set.reps))
+                        + Text(rirSuffix(set.rir)).foregroundStyle(.secondary))
                         .font(Theme.data)
                     Spacer()
                     if isPR(set) {
@@ -529,8 +562,9 @@ private struct ExercisePanel: View {
             let e = Calc.e1rm(weightKg: w, reps: r)
             lastWasPR = e.map { new in exercise.baselineBestE1rm.map { new > $0 } ?? false } ?? false
             logCount += 1
-            onLog(w, r)
-            // Keep weight/reps for a fast next set.
+            onLog(w, r, selectedRIR)
+            // Keep weight/reps for a fast next set; RIR does NOT carry over.
+            withAnimation(.snappy) { selectedRIR = nil }
         } label: {
             Text("LOG SET")
                 .font(.system(size: 17, weight: .semibold).width(.condensed))
@@ -556,15 +590,24 @@ private struct ExercisePanel: View {
 
     // ── formatting ──
 
-    private func setSummary(_ w: Double?, _ reps: Int, rir: Int?) -> String {
-        let base = w.map { "\(weightString($0)) × \(reps)" } ?? "BW × \(reps)"
-        return rir.map { "\(base) @\($0)" } ?? base
+    private func setSummary(_ w: Double?, _ reps: Int) -> String {
+        w.map { "\(weightString($0)) × \(reps)" } ?? "BW × \(reps)"
     }
     private func weightString(_ w: Double) -> String {
         w.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", w)
             : String(format: "%.2f", w).replacingOccurrences(of: "0$", with: "", options: .regularExpression)
     }
+}
+
+/// Trailing RIR suffix for a set summary — " · RIR n", or " · RIR 3+" for any
+/// stored value ≥ 3 (historic Android data is 0–5; the collapse is display-only,
+/// no arithmetic is ever done on RIR). Empty when nil. Appended to an existing
+/// line — never a new line — so a rated set and an unrated one share row height.
+/// Callers render it `.secondary` where the base is primary.
+func rirSuffix(_ rir: Int?) -> String {
+    guard let rir else { return "" }
+    return rir >= 3 ? " · RIR 3+" : " · RIR \(rir)"
 }
 
 /// One green pulse behind a freshly-logged PR row, fading over ~1.5s.

@@ -1,6 +1,7 @@
 // Historical workout detail. Set rows mirror the active screen's logged-set
 // rows (number · weight × reps @rir · badge · e1RM) so the two read as the
-// same surface at different points in time.
+// same surface at different points in time. RIR appends trailing as
+// "· RIR n" (secondary) when present — see rirSuffix.
 
 import SwiftUI
 
@@ -134,20 +135,16 @@ struct SetRow: View {
             : String(format: "%.1f", w)
     }
 
-    /// "80 × 8 @2" — RIR appends on the right so weight × reps holds the
-    /// same position with or without it.
-    private var summary: String {
-        var s = "\(weightLabel) × \(set.reps)"
-        if let rir = set.rir { s += " @\(rir)" }
-        return s
-    }
+    /// "80 × 8" — RIR appends trailing (secondary) via `rirSuffix`, so
+    /// weight × reps holds the same position with or without a rating.
+    private var base: String { "\(weightLabel) × \(set.reps)" }
 
     var body: some View {
         HStack(spacing: Theme.grid * 2) {
             Text(String(format: "%02d", set.setNumber))
                 .font(Theme.data)
                 .foregroundStyle(.tertiary)
-            Text(summary)
+            (Text(base) + Text(rirSuffix(set.rir)).foregroundStyle(.secondary))
                 .font(Theme.data)
             if set.setType != "working" {
                 Text(set.setType.uppercased())
