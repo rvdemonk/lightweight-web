@@ -24,6 +24,13 @@ final class AppState {
 
     var phase: Phase = .loggedOut
     var syncState: SyncState = .idle
+    /// The active-workout screen is presented app-wide (fullScreenCover on
+    /// MainTabView) — the SOLE presentation path, so the workout bar, Home's
+    /// resume/start, and minimize all share one state.
+    var workoutPresented = false
+    /// Observable mirror of the DB's active session — drives the workout bar.
+    /// Refresh at the transitions (start, minimize, finish); DB isn't observable.
+    var activeSession: SessionRecord?
     var serverURL: String {
         didSet { UserDefaults.standard.set(serverURL, forKey: "serverURL") }
     }
@@ -56,6 +63,10 @@ final class AppState {
             phase = .loggedIn
         }
         #endif
+    }
+
+    func refreshActiveSession() {
+        activeSession = try? db.activeLocalSession()
     }
 
     private var client: APIClient? {

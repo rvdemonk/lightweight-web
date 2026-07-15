@@ -6,7 +6,6 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppState.self) private var appState
 
-    @State private var goToWorkout = false
     @State private var showSettings = false
     @State private var resumable: SessionRecord?
     @State private var templates: [AppDatabase.TemplateListItem] = []
@@ -46,11 +45,10 @@ struct HomeView: View {
                     .accessibilityLabel("Settings")
                 }
             }
-            .navigationDestination(isPresented: $goToWorkout) { ActiveWorkoutView() }
             .navigationDestination(for: Int64.self) { id in SessionDetailView(sessionId: id) }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .task { reload() }
-            .onChange(of: goToWorkout) { _, isPresented in
+            .onChange(of: appState.workoutPresented) { _, isPresented in
                 if !isPresented { reload() }   // returning from the workout
             }
         }
@@ -75,7 +73,7 @@ struct HomeView: View {
     // ── Start / resume ──
 
     private var resumeBanner: some View {
-        Button { goToWorkout = true } label: {
+        Button { appState.workoutPresented = true } label: {
             HStack(spacing: Theme.grid * 2) {
                 Image(systemName: "arrow.uturn.forward")
                     .foregroundStyle(Theme.amber)
@@ -125,14 +123,15 @@ struct HomeView: View {
     }
 
     private func startFreeform() {
-        goToWorkout = true   // startOrResume creates (or resumes) on arrival
+        appState.workoutPresented = true   // startOrResume creates (or resumes) on arrival
     }
 
     private func start(_ template: TemplateRecord) {
         if resumable == nil {
             _ = try? appState.db.startTemplateSession(template: template, startedAt: ISO8601.now())
+            appState.refreshActiveSession()
         }
-        goToWorkout = true
+        appState.workoutPresented = true
     }
 
     // ── Pulse ──

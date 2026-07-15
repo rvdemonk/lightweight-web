@@ -42,6 +42,7 @@ struct ActiveWorkoutView: View {
                 do {
                     let w = try ActiveWorkout.startOrResume(db: appState.db)
                     workout = w
+                    appState.refreshActiveSession()   // the bar reads this on minimize
                     // Default focus: the exercise being worked — the last one
                     // with logged sets, else the first untouched one.
                     selectedId = (w.exercises.last(where: { !$0.sets.isEmpty }) ?? w.exercises.first)?.id
@@ -82,6 +83,14 @@ struct ActiveWorkoutView: View {
                 Image(systemName: "plus")
             }
             .accessibilityLabel("Add exercise")
+        }
+        // Minimize — the workout stays active; the bar above the tab bar is
+        // the way back in. Outermost trailing, mirroring now-playing sheets.
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.down")
+            }
+            .accessibilityLabel("Minimize workout")
         }
     }
 
@@ -207,6 +216,7 @@ struct ActiveWorkoutView: View {
         finishing = true
         do {
             try workout.finish()
+            appState.refreshActiveSession()          // bar must drop immediately
             await appState.pushCompletedSessions()   // visible result via appState.syncState
             dismiss()
         } catch {
