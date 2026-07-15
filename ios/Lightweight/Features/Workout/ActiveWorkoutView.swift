@@ -64,10 +64,21 @@ struct ActiveWorkoutView: View {
             }
         }
         .confirmationDialog("End workout?", isPresented: $confirmEnd, titleVisibility: .visible) {
-            Button("End • \(workout?.totalSets ?? 0) sets") {
-                if let workout { finish(workout) }
+            if (workout?.totalSets ?? 0) == 0 {
+                // Nothing logged → nothing worth saving. Discard, no post-mortem.
+                Button("Discard workout", role: .destructive) {
+                    if let workout { discard(workout) }
+                }
+            } else {
+                Button("End • \(workout?.totalSets ?? 0) sets") {
+                    if let workout { finish(workout) }
+                }
             }
             Button("Keep going", role: .cancel) {}
+        } message: {
+            if (workout?.totalSets ?? 0) == 0 {
+                Text("No sets logged — this workout won't be saved.")
+            }
         }
     }
 
@@ -78,9 +89,11 @@ struct ActiveWorkoutView: View {
         // End sits leading — it's the "way out", like back. + trailing, the
         // conventional side for add. Toolbar is the SOLE add-exercise entry.
         ToolbarItem(placement: .topBarLeading) {
+            // Always enabled: ending with zero sets is a legitimate exit (false
+            // alarm, testing) — it discards rather than saves.
             Button("End") { confirmEnd = true }
                 .tint(Theme.amber)
-                .disabled(finishing || (workout?.totalSets ?? 0) == 0)
+                .disabled(finishing)
         }
         ToolbarItem(placement: .principal) { clockStack }
         ToolbarItem(placement: .topBarTrailing) {
@@ -217,6 +230,20 @@ struct ActiveWorkoutView: View {
         .padding(.top, 80)
     }
 
+    /// Zero-set exit: hard-delete the local session (it's local-only — negative
+    /// id, never pushed) and dismiss the cover. No post-mortem: nothing to mourn.
+    private func discard(_ workout: ActiveWorkout) {
+        finishing = true
+        do {
+            try workout.discard()
+            appState.refreshActiveSession()   // bar drops immediately
+            dismiss()
+        } catch {
+            startError = error.localizedDescription
+        }
+        finishing = false
+    }
+
     private func finish(_ workout: ActiveWorkout) {
         finishing = true
         do {
@@ -253,11 +280,14 @@ private struct ExercisePanel: View {
     enum Field { case weight, reps }
 
     var body: some View {
-        // The card holds the exercise's state; LOG SET floats free beneath it —
-        // it's the verb, not part of the record.
+        // Reference above, controls below: the last-session card is glance-only
+        // so it lives at the top where reach doesn't matter, and splitting it
+        // out pushes the input card down toward the thumb. LOG SET floats free
+        // beneath — it's the verb, not part of the record.
         VStack(spacing: Theme.grid * 3) {
+            lastSessionCard
+
             VStack(alignment: .leading, spacing: Theme.grid * 5) {
-                if !exercise.previous.isEmpty { lastSession }
                 steppers
                 goals
                 if !exercise.sets.isEmpty { loggedSets }
@@ -282,20 +312,32 @@ private struct ExercisePanel: View {
         }
     }
 
-    private var lastSession: some View {
+    /// Reference card: last session's sets in the dense register (`65×12 @0` —
+    /// lifters' vernacular; the long `· RIR n` form wrapped this line into a
+    /// two-line mangle on device) with best e1RM at the right. Always rendered:
+    /// first exposure gets a placeholder at the same scaffolding, never a
+    /// vanishing card.
+    private var lastSessionCard: some View {
         let best = Calc.bestE1rm(exercise.previous.map { (weightKg: $0.weightKg, reps: $0.reps) })
         return VStack(alignment: .leading, spacing: Theme.grid) {
             HStack {
                 Text("Last session\(exercise.previousLabel.map { " · \($0)" } ?? "")")
                     .metaLabel()
                 Spacer()
-                if best != nil { Text("Best e1RM").metaLabel() }
+                if !exercise.previous.isEmpty { Text("Best e1RM").metaLabel() }
             }
             HStack(alignment: .firstTextBaseline) {
-                Text(exercise.previous.map { setSummary($0.weightKg, $0.reps) + rirSuffix($0.rir) }
-                    .joined(separator: "   "))
-                    .font(Theme.data)
-                    .foregroundStyle(.secondary)
+                if exercise.previous.isEmpty {
+                    Text("First exposure — no previous session")
+                        .font(Theme.data)
+                        .foregroundStyle(Color(.tertiaryLabel))
+                } else {
+                    Text(exercise.previous.map(contextSummary).joined(separator: "   "))
+                        .font(Theme.data)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
                 Spacer()
                 if let best {
                     Text(String(format: "%.1f", best))
@@ -304,6 +346,18 @@ private struct ExercisePanel: View {
                 }
             }
         }
+        .padding(Theme.margin)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
+    }
+
+    /// Dense reference register: `65×12 @0`, `BW×12`. Records elsewhere keep
+    /// the explicit `65 × 12 · RIR 0` form; reference compresses.
+    private func contextSummary(_ set: SetRecord) -> String {
+        let base = set.weightKg.map { "\(weightString($0))×\(set.reps)" } ?? "BW×\(set.reps)"
+        guard let rir = set.rir else { return base }
+        return base + (rir >= 3 ? " @3+" : " @\(rir)")
     }
 
     // ── Steppers ──
@@ -325,30 +379,47 @@ private struct ExercisePanel: View {
         }
     }
 
-    /// Optional RIR (reps in reserve) — a slim third stepper row. One tap rates;
-    /// tapping the selected pill clears it. Estimation is only reliable at 0–2,
+    /// Optional RIR (reps in reserve) — a Menu capsule, the same Menu+Picker
+    /// idiom as the exercise switcher. The pill-row trial lost on device
+    /// ("too many buttons" on an already-busy screen); the extra tap is the
+    /// cheaper commodity on iOS 26 glass. Estimation is only reliable at 0–2,
     /// so `3+` is the honest "not near failure" ceiling (stored as literal 3).
     /// Always present (no appear/disappear jitter) and touches no math anywhere.
     /// Resets to nil after every log: RIR drifts with fatigue, so a carried
     /// rating would be silently wrong — every stored value must be a fresh tap.
     private var rirRow: some View {
-        HStack(spacing: Theme.grid * 2) {
+        HStack {
             Text("RIR").metaLabel()
-            ForEach(rirOptions, id: \.value) { opt in
-                let selected = selectedRIR == opt.value
-                Button {
-                    withAnimation(.snappy) { selectedRIR = selected ? nil : opt.value }
-                } label: {
-                    Text(opt.label)
-                        .font(.system(size: 17, weight: .semibold).monospacedDigit())
-                        .frame(maxWidth: .infinity, minHeight: Theme.minTouch)
-                        .background(selected ? Theme.amber : Color(.tertiarySystemFill),
-                                    in: Capsule())
-                        .foregroundStyle(selected ? .black : .secondary)
+            Spacer()
+            Menu {
+                Picker("RIR", selection: animatedRIR) {
+                    Text("—").tag(Int?.none)
+                    ForEach(rirOptions, id: \.value) { opt in
+                        Text(opt.label).tag(Optional(opt.value))
+                    }
                 }
-                .buttonStyle(.plain)
+            } label: {
+                HStack(spacing: Theme.grid) {
+                    Text(selectedRIR.map { $0 >= 3 ? "3+" : String($0) } ?? "—")
+                        .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(selectedRIR == nil ? Color(.tertiaryLabel) : Theme.amber)
+                        .contentTransition(.numericText())
+                    Image(systemName: "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minWidth: 88, minHeight: Theme.minTouch)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(Capsule())
+                .contentShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
+    }
+
+    private var animatedRIR: Binding<Int?> {
+        Binding(get: { selectedRIR },
+                set: { new in withAnimation(.snappy) { selectedRIR = new } })
     }
 
     private var rirOptions: [(label: String, value: Int)] {

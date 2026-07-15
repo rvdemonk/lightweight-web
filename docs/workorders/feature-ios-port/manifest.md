@@ -2,6 +2,13 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-16 (mid-morning) — Device verdict: pill row DEAD → Menu capsule; last-session card; End-discard
+
+Lewis trialled on his iPhone (first device install of the day, post-mortem + RIR build): **pill row rejected — "too many buttons"** — and his real data exposed a second failure: `· RIR n` in the LAST SESSION header wrapped it into a two-line mangle. Renovations (supervisor-built inline, Lewis live):
+- **RIR = Menu capsule** (`RIR` label left, `— ▾` capsule right; Menu+Picker idiom matching the exercise switcher; amber value when set, `—` tertiary when nil; reset-after-log unchanged). Anti-pattern banked in ios/CLAUDE.md: no chip/pill rows anywhere, input or display.
+- **Last-session context split into its own card** above the input card — reference is glance-only so it lives top; controls drop toward the thumb. Dense register `65×12 @0` (`@3+` collapse) for reference lines only; logged/history rows keep explicit `· RIR n`. First exposure renders a placeholder at constant scaffolding.
+- **End always enabled**: zero sets → destructive "Discard workout" confirm → `ActiveWorkout.discard()` (hard-delete via existing `deleteLocalSession`; safe — active sessions are local-only negative-id, never pushed). No post-mortem on discard.
+
 ## 2026-07-16 (morning) — RIR ruling banked; post-mortem + quick-wins fleet in flight
 
 **RIR ruling (Lewis, 2026-07-16, revised same morning) — for the future log-form design session:** entry scale is `0 · 1 · 2 · 3+` (four pressables) — estimation is only reliable at RIR 0–2, so buttons exist only where the lifter can actually know the value; `3+` honestly means "not near failure" (e.g. a too-light 16-rep movement). **Hard set ≔ logged RIR ≤ 2** — this gates the Data page's sets-per-muscle-group volume counting; the bucket boundary IS the threshold, so every counted set is a high-confidence rating. Caveat banked: literature volume benchmarks (10–20 sets/wk) assume ~0–4 RIR sets, so our counts read slightly low vs reference bands — self-comparison over time is the real yardstick. Storage open question: `rir` is an integer column and storing "3+" as literal 3 is a lie (means *at least* 3) — needs an honest representation, decide at the log-form session. **RIR stays out of PR/target math permanently** (grinder lesson holds). Same-load RIR drift (8×100 @RIR1 → @RIR3) is real felt progression but subjective — display as soft context ("felt easier than last time"), trend it, never verdict it. Entry must be one-tap optional (segmented/pill row), skipping free — never a toll on logging speed. UI itself is a Lewis screenshot-loop, not conductable.

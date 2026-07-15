@@ -106,4 +106,11 @@ final class ActiveWorkout {
     func finish() throws {
         try db.finishLocalSession(id: sessionId, endedAt: ISO8601.now())
     }
+
+    /// Zero-set abandon: hard-delete the session and its (empty) exercise rows.
+    /// Safe because an active session is local-only — negative id-space, never
+    /// pushed — so there is no server side to orphan.
+    func discard() throws {
+        try db.deleteLocalSession(id: sessionId)
+    }
 }

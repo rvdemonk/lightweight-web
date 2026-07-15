@@ -12,6 +12,7 @@ Design language: **neoindustrial liquid glassmorphism** — iOS nativity first, 
 - **Don't compare sets across sessions by raw weight×reps** — normalize through e1RM (`Calc.repsToBeat` / `Calc.weightToBeat`). Raw slot comparison lied whenever the weight changed between sessions (the Android color-bar incoherence). Same rule for any future progress visualization.
 - **Don't hardcode small radii on chrome** — chrome is capsule/`containerConcentric`; content cards use `Theme.cardRadius`. The web brand's 4px-max-radius rule is dead on iOS; angularity survives in layout density, not corners.
 - **Don't award a PR against empty history** — first exposure is calibration (matches server `detect_prs`). PR badges compare against `baselineBestE1rm` (pre-session); live targets use `allTimeBestE1rm` (folds this session's sets — and must keep doing so on resume).
+- **Don't use chip/pill rows — for input or display.** Lewis rejected the RIR pill-button row on device ("too many buttons"); Apple ships no chip component at all. Bounded selects use the Menu+Picker capsule idiom (exercise switcher, RIR); read-only pills are a lie of affordance. On a busy screen the extra menu tap is cheaper than the clutter.
 - **Don't hide `tabViewBottomAccessory` via an empty content builder** — the system renders the bare glass container anyway. Apply the modifier itself conditionally (and lift tab selection into explicit state so it survives the structural swap).
 
 ## Interaction Rules
