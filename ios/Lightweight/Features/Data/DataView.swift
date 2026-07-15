@@ -26,7 +26,7 @@ struct DataView: View {
                 .padding(.vertical, Theme.grid * 2)
             }
             .background(Color(.systemBackground))
-            .navigationTitle("DATA")
+            .navigationTitle("Data")
             .task { reload() }
         }
     }

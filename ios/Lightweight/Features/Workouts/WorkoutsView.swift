@@ -37,8 +37,7 @@ struct WorkoutsView: View {
                 .padding(.vertical, Theme.grid * 2)
             }
             .background(Color(.systemBackground))
-            .navigationTitle("WORKOUTS")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Workouts")
             .task { reload() }
         }
     }

@@ -1,5 +1,5 @@
 // Home: resume/start, 30-day pulse (strength growth + session count),
-// activity heatmap, recent workouts. Settings is the cog — not a tab.
+// activity heatmap. Settings is the cog — not a tab.
 
 import SwiftUI
 
@@ -14,7 +14,6 @@ struct HomeView: View {
     @State private var weekSets = 0
     @State private var prs30d = 0
     @State private var lastTrained: String?
-    @State private var recents: [AppDatabase.HistoryItem] = []
 
     var body: some View {
         NavigationStack {
@@ -33,7 +32,6 @@ struct HomeView: View {
                     lastTrainedLine
                     statsRow
                     heatmapCard
-                    if !recents.isEmpty { recentWorkouts }
                     syncFailureRow
                 }
                 .padding(.horizontal, Theme.margin)
@@ -48,7 +46,6 @@ struct HomeView: View {
                     .accessibilityLabel("Settings")
                 }
             }
-            .navigationDestination(for: Int64.self) { id in SessionDetailView(sessionId: id) }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .task { reload() }
             .onChange(of: appState.workoutPresented) { _, isPresented in
@@ -68,9 +65,6 @@ struct HomeView: View {
         }
         prs30d = (try? appState.db.prCount(days: 30)) ?? 0
         lastTrained = try? appState.db.lastCompletedStartedAt()
-        recents = Array(((try? appState.db.historyItems()) ?? [])
-            .filter { $0.status == "completed" }
-            .prefix(3))
     }
 
     // ── Start / resume ──
@@ -198,47 +192,7 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
     }
 
-    // ── Recent workouts ──
-
-    /// Vertical stack, last three completed sessions, tap-through to detail.
-    /// (Horizontally scrolling pills are a rejected antipattern here.)
-    private var recentWorkouts: some View {
-        VStack(alignment: .leading, spacing: Theme.grid * 2) {
-            Text("Recent workouts").metaLabel()
-            VStack(spacing: Theme.grid * 2) {
-                ForEach(recents) { item in
-                    NavigationLink(value: item.id) {
-                        recentWorkoutRow(item)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func recentWorkoutRow(_ item: AppDatabase.HistoryItem) -> some View {
-        HStack(spacing: Theme.grid * 2) {
-            VStack(alignment: .leading, spacing: Theme.grid) {
-                Text((item.templateName ?? item.name ?? "Freeform").uppercased())
-                    .font(.system(size: 17, weight: .semibold).width(.condensed))
-                Text("\(item.exerciseCount) exercises · \(item.setCount) sets")
-                    .font(Theme.data)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Text(daysAgo(item.startedAt))
-                .font(Theme.data)
-                .foregroundStyle(.secondary)
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(Theme.margin)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
-        .contentShape(RoundedRectangle(cornerRadius: Theme.cardRadius))
-    }
+    // ── Time labels ──
 
     private func daysAgo(_ startedAt: String) -> String {
         guard let d = ServerDate.parse(startedAt) else { return "" }

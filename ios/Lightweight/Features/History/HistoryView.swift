@@ -27,7 +27,7 @@ struct HistoryView: View {
                     }
                 }
             }
-            .navigationTitle("HISTORY")
+            .navigationTitle("History")
             .confirmationDialog(
                 "Delete workout?",
                 isPresented: Binding(
