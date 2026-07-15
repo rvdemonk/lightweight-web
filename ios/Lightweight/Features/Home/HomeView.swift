@@ -25,8 +25,11 @@ struct HomeView: View {
                     Text("LIGHTWEIGHT")
                         .font(.system(size: 34, weight: .heavy).width(.condensed))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    if resumable != nil { resumeBanner }
-                    startButton
+                    if resumable != nil {
+                        resumeBanner
+                    } else {
+                        startButton
+                    }
                     lastTrainedLine
                     statsRow
                     heatmapCard
@@ -99,8 +102,8 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    /// Freeform or template. If a workout is already active, any choice
-    /// resumes it — never silently discard an active session.
+    /// Freeform or template. Only rendered when no session is active — the
+    /// resume banner owns the active state, so this never resumes.
     private var startButton: some View {
         Menu {
             Button("Freeform", systemImage: "bolt.fill") { startFreeform() }
@@ -111,7 +114,7 @@ struct HomeView: View {
                 }
             }
         } label: {
-            Text(resumable == nil ? "START WORKOUT" : "WORKOUT ACTIVE")
+            Text("START WORKOUT")
                 .font(.system(size: 17, weight: .semibold).width(.condensed))
                 .tracking(1.0)
                 .frame(maxWidth: .infinity, minHeight: 48)
