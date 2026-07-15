@@ -36,6 +36,8 @@ struct RootView: View {
             switch ProcessInfo.processInfo.environment["LW_UI_PREVIEW_SCREEN"] {
             case "workout":
                 NavigationStack { ActiveWorkoutView() }
+            case "data":
+                DataView()
             case "finish":
                 MainTabView().task { await appState.previewFinishAndPush() }
             default:

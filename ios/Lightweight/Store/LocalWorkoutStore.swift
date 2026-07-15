@@ -285,18 +285,40 @@ extension AppDatabase {
                 equipment: "Dumbbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
             try ExerciseRecord(id: 4, name: "CABLE FLY", muscleGroup: "Chest",
                 equipment: "Cable", notes: nil, archived: false, createdAt: iso(90)).insert(db)
-            // Prior completed session (server-origin) with sets on exercise 1.
-            try SessionRecord(id: 1, templateId: nil, name: "Freeform", startedAt: iso(4),
-                endedAt: iso(4), pausedDuration: 0, notes: nil, status: "completed",
-                templateVersion: nil, synced: true).insert(db)
-            try SessionExerciseRecord(id: 1, sessionId: 1, exerciseId: 1, position: 1, notes: nil).insert(db)
-            try SetRecord(id: 1, sessionExerciseId: 1, setNumber: 1, weightKg: 62.5, reps: 8,
-                setType: "working", rir: 1, completedAt: iso(4)).insert(db)
-            try SetRecord(id: 2, sessionExerciseId: 1, setNumber: 2, weightKg: 62.5, reps: 7,
-                setType: "working", rir: 0, completedAt: iso(4)).insert(db)
-            try SessionExerciseRecord(id: 2, sessionId: 1, exerciseId: 3, position: 2, notes: nil).insert(db)
-            try SetRecord(id: 3, sessionExerciseId: 2, setNumber: 1, weightKg: 22.5, reps: 10,
-                setType: "working", rir: 1, completedAt: iso(4)).insert(db)
+            // ~90 days of completed history (every 3rd day) with slow linear
+            // progression + wobble, so trends/heatmap/stats render meaningfully.
+            // Deterministic — previews must not use randomness.
+            var sid: Int64 = 1, seid: Int64 = 1, setid: Int64 = 1
+            var i = 0
+            for daysAgo in stride(from: 88, through: 4, by: -3) {
+                try SessionRecord(id: sid, templateId: nil, name: "Freeform",
+                    startedAt: iso(daysAgo), endedAt: iso(daysAgo), pausedDuration: 0,
+                    notes: nil, status: "completed", templateVersion: nil, synced: true).insert(db)
+                let repWobble = [8, 7, 9][i % 3]
+                // (exerciseId, weight, reps-per-set array, rir)
+                var plan: [(Int64, Double?, [Int], Int?)] = [
+                    (1, 57.5 + Double(i / 3) * 1.25, [repWobble, repWobble - 1, repWobble - 2], i % 2 == 0 ? 1 : nil),
+                    (3, 20.0 + Double(i / 4) * 1.25, [10, 9], 1),
+                    (2, nil, [6 + i / 5, 5 + i / 5], nil),           // pull up: bodyweight
+                ]
+                if i % 2 == 0 {
+                    plan.append((4, 15.0 + Double(i / 5) * 1.25, [12, 12], 2))
+                }
+                for (pos, entry) in plan.enumerated() {
+                    let (eid, weight, reps, rir) = entry
+                    try SessionExerciseRecord(id: seid, sessionId: sid, exerciseId: eid,
+                        position: pos + 1, notes: nil).insert(db)
+                    for (n, r) in reps.enumerated() {
+                        try SetRecord(id: setid, sessionExerciseId: seid, setNumber: n + 1,
+                            weightKg: weight, reps: r, setType: "working", rir: rir,
+                            completedAt: iso(daysAgo)).insert(db)
+                        setid += 1
+                    }
+                    seid += 1
+                }
+                sid += 1
+                i += 1
+            }
         }
     }
 
