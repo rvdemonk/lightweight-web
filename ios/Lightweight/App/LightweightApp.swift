@@ -38,6 +38,14 @@ struct RootView: View {
                 NavigationStack { ActiveWorkoutView() }
             case "data":
                 DataView()
+            case "postmortem":
+                NavigationStack { PostMortemView(sessionId: 500, mode: .review) }
+            case "postmortem-history":
+                NavigationStack { PostMortemView(sessionId: 500, mode: .history) }
+            case "history-detail":
+                NavigationStack { SessionDetailView(sessionId: 500) }
+            case "postmortem-nopr":
+                NavigationStack { PostMortemView(sessionId: 501, mode: .review) }
             case "finish":
                 MainTabView().task { await appState.previewFinishAndPush() }
             default:

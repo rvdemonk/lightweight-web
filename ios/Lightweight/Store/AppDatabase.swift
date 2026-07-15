@@ -214,7 +214,8 @@ struct AppDatabase: Sendable {
         var exercises: [ExerciseDetail]
 
         struct ExerciseDetail: Sendable, Identifiable {
-            var id: Int64
+            var id: Int64            // session_exercise id
+            var exerciseId: Int64    // catalog exercise id (keys the per-lift queries)
             var name: String
             var notes: String?
             var sets: [SetRecord]
@@ -271,7 +272,7 @@ struct AppDatabase: Sendable {
                         .fetchAll(db)
                 } ?? []
                 return SessionDetail.ExerciseDetail(
-                    id: se.id, name: name, notes: se.notes, sets: sets,
+                    id: se.id, exerciseId: se.exerciseId, name: name, notes: se.notes, sets: sets,
                     baselineBestE1rm: baseline, previousSets: previous)
             }
             return SessionDetail(session: session, templateName: templateName, exercises: exercises)

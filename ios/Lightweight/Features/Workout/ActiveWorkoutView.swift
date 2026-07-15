@@ -15,6 +15,11 @@ struct ActiveWorkoutView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
+    /// Handoff to the flow coordinator when the workout is ended — it swaps the
+    /// cover's content to the post-mortem. Defaulted so the DEBUG preview seam
+    /// (which renders ActiveWorkoutView bare) still compiles.
+    var onFinished: (Int64) -> Void = { _ in }
+
     @State private var workout: ActiveWorkout?
     @State private var startError: String?
     @State private var showPicker = false
@@ -60,7 +65,7 @@ struct ActiveWorkoutView: View {
         }
         .confirmationDialog("End workout?", isPresented: $confirmEnd, titleVisibility: .visible) {
             Button("End • \(workout?.totalSets ?? 0) sets") {
-                if let workout { Task { await finish(workout) } }
+                if let workout { finish(workout) }
             }
             Button("Keep going", role: .cancel) {}
         }
@@ -212,13 +217,16 @@ struct ActiveWorkoutView: View {
         .padding(.top, 80)
     }
 
-    private func finish(_ workout: ActiveWorkout) async {
+    private func finish(_ workout: ActiveWorkout) {
         finishing = true
         do {
             try workout.finish()
-            appState.refreshActiveSession()          // bar must drop immediately
-            await appState.pushCompletedSessions()   // visible result via appState.syncState
-            dismiss()
+            appState.refreshActiveSession()                    // bar drops immediately
+            // Fire-and-forget: the post-mortem is local-only, so the push must
+            // NOT gate the transition. Its result surfaces on Home/History via
+            // appState.syncState, never on the summary.
+            Task { await appState.pushCompletedSessions() }
+            onFinished(workout.sessionId)                      // swap the cover to the summary
         } catch {
             startError = error.localizedDescription
         }

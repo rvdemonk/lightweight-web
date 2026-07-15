@@ -56,4 +56,14 @@ enum ServerDate {
         let mins = Int(e.timeIntervalSince(s) / 60)
         return mins >= 60 ? "\(mins / 60)h \(mins % 60)m" : "\(mins)m"
     }
+
+    /// Training time: gross elapsed minus paused seconds ("time training",
+    /// the more honest number — the paused field is carried through sync).
+    /// Same format as `duration`.
+    static func duration(from start: String, to end: String?, minusPaused paused: Int64) -> String? {
+        guard let s = parse(start), let e = end.flatMap(parse) else { return nil }
+        let secs = max(0, Int(e.timeIntervalSince(s)) - Int(paused))
+        let mins = secs / 60
+        return mins >= 60 ? "\(mins / 60)h \(mins % 60)m" : "\(mins)m"
+    }
 }

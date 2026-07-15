@@ -22,7 +22,7 @@ struct MainTabView: View {
         // and the bar both flip the same flag, so minimize/re-enter can never
         // produce two live instances over one session.
         .fullScreenCover(isPresented: $appState.workoutPresented) {
-            NavigationStack { ActiveWorkoutView() }
+            WorkoutFlowView()
         }
         .task { appState.refreshActiveSession() }
         .onChange(of: scenePhase) { _, phase in

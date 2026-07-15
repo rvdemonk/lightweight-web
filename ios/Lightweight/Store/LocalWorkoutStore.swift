@@ -337,6 +337,60 @@ extension AppDatabase {
         _ = try addSessionExercise(sessionId: sid, exerciseId: 3, position: 2)
         _ = try addSessionExercise(sessionId: sid, exerciseId: 2, position: 3)
     }
+
+    /// Two completed sessions with FIXED ids, sitting AFTER the seeded linear
+    /// history so their PR outcomes are deterministic (the history's rep-wobble
+    /// makes any arbitrary session's PR status non-obvious). Env-gated,
+    /// idempotent — exists only to make the post-mortem states screenshottable:
+    ///   500 → a clean PR day (weighted e1RM PR w/ sparkline + a BW rep-PR).
+    ///   501 → a no-PR "steady work" day (everything below the current best).
+    func seedPostMortemPreview() throws {
+        try writer.write { db in
+            if (try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM sessions WHERE id = 500") ?? 0) > 0 {
+                return
+            }
+            let now = Date()
+            let cal = Calendar.current
+            func iso(_ daysAgo: Int) -> String {
+                ISO8601.string(from: cal.date(byAdding: .day, value: -daysAgo, to: now)!)
+            }
+            func isoEnd(_ daysAgo: Int, mins: Int) -> String {
+                let start = cal.date(byAdding: .day, value: -daysAgo, to: now)!
+                return ISO8601.string(from: cal.date(byAdding: .minute, value: mins, to: start)!)
+            }
+            var seid: Int64 = 900, setid: Int64 = 9000
+            // (exerciseId, weight, [reps]) — weight nil = bodyweight.
+            func seed(sessionId: Int64, daysAgo: Int, mins: Int, plan: [(Int64, Double?, [Int])]) throws {
+                try SessionRecord(id: sessionId, templateId: nil, name: "Freeform",
+                    startedAt: iso(daysAgo), endedAt: isoEnd(daysAgo, mins: mins), pausedDuration: 0,
+                    notes: nil, status: "completed", templateVersion: nil, synced: true).insert(db)
+                for (pos, entry) in plan.enumerated() {
+                    let (eid, weight, reps) = entry
+                    try SessionExerciseRecord(id: seid, sessionId: sessionId, exerciseId: eid,
+                        position: pos + 1, notes: nil).insert(db)
+                    for (n, r) in reps.enumerated() {
+                        try SetRecord(id: setid, sessionExerciseId: seid, setNumber: n + 1,
+                            weightKg: weight, reps: r, setType: "working", rir: nil,
+                            completedAt: iso(daysAgo)).insert(db)
+                        setid += 1
+                    }
+                    seid += 1
+                }
+            }
+            // 500: bench well above all history (PR + a full 12-week sparkline);
+            // pull-up 12 reps beats the BW rep baseline; DB press also a PR.
+            try seed(sessionId: 500, daysAgo: 2, mins: 58, plan: [
+                (1, 80.0, [10, 9, 8]),   // INCLINE BARBELL BENCH PRESS — big weighted PR
+                (2, nil, [12, 11]),      // PULL UP — bodyweight rep-PR
+                (3, 22.5, [10, 9]),      // SEATED DUMBBELL PRESS
+            ])
+            // 501: everything below the current best → no PRs, lighter/steady.
+            try seed(sessionId: 501, daysAgo: 1, mins: 42, plan: [
+                (1, 60.0, [8, 8]),
+                (3, 15.0, [8]),
+            ])
+        }
+    }
     #endif
 
     /// Flip pushed sessions to synced=1. Both server-"pushed" and server-"skipped"

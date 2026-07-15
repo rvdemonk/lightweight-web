@@ -56,6 +56,7 @@ final class AppState {
         if ProcessInfo.processInfo.environment["LW_UI_PREVIEW"] == "1" {
             try? db.seedPreviewData()
             try? db.seedActiveWorkoutPreview()
+            try? db.seedPostMortemPreview()
             token = nil
             // Safe ONLY because didSet doesn't fire inside init — this must
             // not persist to UserDefaults or it would sabotage real launches.

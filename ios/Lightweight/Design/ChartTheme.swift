@@ -34,6 +34,9 @@ enum ChartTheme {
     static let legendFont = Font.system(size: 13, weight: .semibold).monospacedDigit()
     static let legendDot: CGFloat = 8
     static let chartHeight: CGFloat = 240
+    /// Sparkline height — a compact in-card curve (post-mortem PR context),
+    /// well below the full chart so the summary stays one scroll.
+    static let sparkHeight: CGFloat = 88
     static let barChartHeight: CGFloat = 140
     static let barCornerRadius: CGFloat = 2
 }

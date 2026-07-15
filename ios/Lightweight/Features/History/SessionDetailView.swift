@@ -37,6 +37,19 @@ struct SessionDetailView: View {
         }
         .navigationTitle(title.uppercased())
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // A standard push with back is correct here — the user came from the
+            // set-by-set ledger and back returns to it (mode differentiates the
+            // two entries; see the post-mortem design doc §1.2).
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    PostMortemView(sessionId: sessionId, mode: .history)
+                } label: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                }
+                .accessibilityLabel("Summary")
+            }
+        }
         .task {
             do {
                 detail = try appState.db.sessionDetail(id: sessionId)
