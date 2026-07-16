@@ -329,7 +329,7 @@ extension AppDatabase {
                 equipment: "Barbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
             func seedTemplate(id: Int64, name: String, exerciseIds: [Int64], teStart: Int64) throws {
                 try TemplateRecord(id: id, name: name, notes: nil, archived: false,
-                    createdAt: iso(90), updatedAt: iso(90), version: 1).insert(db)
+                    createdAt: iso(90), updatedAt: iso(90), version: 1, synced: true).insert(db)
                 for (pos, eid) in exerciseIds.enumerated() {
                     try TemplateExerciseRecord(id: teStart + Int64(pos), templateId: id,
                         exerciseId: eid, position: pos + 1, targetSets: 3,

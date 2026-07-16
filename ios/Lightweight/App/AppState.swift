@@ -109,17 +109,32 @@ final class AppState {
         syncState = .idle
     }
 
-    // ── Push then pull (finish-workout sync) ──
+    // ── Push then pull (finish-workout / template-edit sync) ──
 
-    /// Push unsynced completed sessions, then pull to reconcile local rows to
-    /// their real server ids. Result is always visible; a 401 drops to login;
-    /// no failure is ever rendered as success (the banked sync lesson).
-    func pushCompletedSessions() async {
+    /// Push local changes, then pull to reconcile. CONVERGENCE RULE (ratified
+    /// contract, load-bearing): templates push FIRST → adopt the server's
+    /// (id, version) onto local rows and restamp sessions → THEN sessions push.
+    /// Ordering is ABORTIVE, not advisory: if the template push fails, the
+    /// session push does NOT run on this call — a session carrying an
+    /// unadopted negative/local template_id must be structurally unable to reach
+    /// the server (it would create a second template or null its link). Result
+    /// is always visible; a 401 drops to login; no failure renders as success.
+    func pushLocalChanges() async {
         guard let client else {
             syncState = .failed("Invalid server URL")
             return
         }
         do {
+            // 1. Templates FIRST. A throw here bypasses the session push below.
+            let templates = try db.localUnsyncedTemplates()
+            if !templates.isEmpty {
+                syncState = .syncing("Pushing \(templates.count) template(s)…")
+                let result = try await client.syncTemplates(templates)
+                // Adopt server (id, version) atomically; restamps unsynced sessions.
+                try db.adoptPushedTemplates(result.templates)
+            }
+
+            // 2. Sessions — now carrying adopted server template ids/versions.
             let ids = try db.unsyncedCompletedSessionIds()
             if !ids.isEmpty {
                 syncState = .syncing("Pushing \(ids.count) workout(s)…")
@@ -129,7 +144,8 @@ final class AppState {
                 try db.markSessionsSynced(ids)
                 syncState = .synced("Pushed \(result.pushed.count) · skipped \(result.skipped)")
             }
-            // Pull reconciles: synced negative-id rows are replaced by server rows.
+            // 3. Pull reconciles: synced negative-id rows are replaced by server
+            //    rows; the authoritative server templates land here.
             await refresh()
         } catch APIError.unauthorized {
             syncState = .failed("Session expired — log in again")
@@ -148,7 +164,7 @@ final class AppState {
         if let active = try? db.activeLocalSession() {
             try? db.finishLocalSession(id: active.id, endedAt: ISO8601.now())
         }
-        await pushCompletedSessions()
+        await pushLocalChanges()
     }
     #endif
 

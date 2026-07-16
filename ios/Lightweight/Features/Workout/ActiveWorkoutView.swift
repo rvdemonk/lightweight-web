@@ -252,7 +252,7 @@ struct ActiveWorkoutView: View {
             // Fire-and-forget: the post-mortem is local-only, so the push must
             // NOT gate the transition. Its result surfaces on Home/History via
             // appState.syncState, never on the summary.
-            Task { await appState.pushCompletedSessions() }
+            Task { await appState.pushLocalChanges() }
             onFinished(workout.sessionId)                      // swap the cover to the summary
         } catch {
             startError = error.localizedDescription

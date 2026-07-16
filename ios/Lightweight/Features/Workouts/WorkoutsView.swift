@@ -1,15 +1,15 @@
-// Templates: list → detail → start. Read-only for now — template
-// creation/editing is deliberately deferred until template PUSH sync
-// exists: local edits to pulled templates would be silently lost on the
-// next wipe-and-replace import, and locally-created templates (negative
-// ids) can't link sessions the server will accept. UI and push ship
-// together as one unit.
+// Templates: list → detail → start, plus create (toolbar +) and edit (from
+// detail). Locally-created/edited templates are written synced=0 and pushed
+// via the convergence flow (templates first, adopt id/version, then sessions);
+// the write-safe import preserves them across pulls. See TemplateEditorView and
+// AppState.pushLocalChanges.
 
 import SwiftUI
 
 struct WorkoutsView: View {
     @Environment(AppState.self) private var appState
     @State private var items: [AppDatabase.TemplateListItem] = []
+    @State private var showCreate = false
 
     var body: some View {
         NavigationStack {
@@ -26,7 +26,7 @@ struct WorkoutsView: View {
                     if items.isEmpty {
                         VStack(spacing: Theme.grid * 3) {
                             Text("No templates").metaLabel()
-                            Text("Templates arrive with a server pull.")
+                            Text("Pull from the server, or tap + to build one.")
                                 .font(Theme.body)
                                 .foregroundStyle(.secondary)
                         }
@@ -38,6 +38,15 @@ struct WorkoutsView: View {
             }
             .background(Color(.systemBackground))
             .navigationTitle("Workouts")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showCreate = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("New template")
+                }
+            }
+            .sheet(isPresented: $showCreate) {
+                TemplateEditorView(mode: .create, onSaved: reload)
+            }
             .task { reload() }
         }
     }
@@ -83,6 +92,7 @@ struct TemplateDetailView: View {
     @State private var briefings: [AppDatabase.ExerciseBriefing] = []
     @State private var goToWorkout = false
     @State private var startError: String?
+    @State private var showEdit = false
 
     var body: some View {
         ScrollView {
@@ -121,9 +131,21 @@ struct TemplateDetailView: View {
         .navigationTitle(item.template.name.uppercased())
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $goToWorkout) { ActiveWorkoutView() }
-        .task {
-            briefings = (try? appState.db.templateBriefings(templateId: item.template.id)) ?? []
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Edit") { showEdit = true }
+            }
         }
+        .sheet(isPresented: $showEdit) {
+            TemplateEditorView(
+                mode: .edit(templateId: item.template.id, name: item.template.name),
+                onSaved: reload)
+        }
+        .task { reload() }
+    }
+
+    private func reload() {
+        briefings = (try? appState.db.templateBriefings(templateId: item.template.id)) ?? []
     }
 
     /// If a workout is already active, navigating resumes it (never silently

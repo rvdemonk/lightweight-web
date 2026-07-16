@@ -10,6 +10,7 @@ struct LightweightApp: App {
         if ProcessInfo.processInfo.environment["LW_IMPORT_SELFTEST"] == "1" {
             ImportSafetySelfTest.run()
         }
+        ConvergenceSelfTest.runIfRequested()
         #endif
         let db = try! AppDatabase.makeShared()
         _appState = State(initialValue: AppState(db: db))
@@ -46,6 +47,10 @@ struct RootView: View {
                 NavigationStack { SessionDetailView(sessionId: 500) }
             case "postmortem-nopr":
                 NavigationStack { PostMortemView(sessionId: 501, mode: .review) }
+            case "tpl-create":
+                TemplateEditorView(mode: .create)
+            case "tpl-edit":
+                TemplateEditorView(mode: .edit(templateId: 1, name: "PUSH DAY"))
             case "briefing":
                 NavigationStack { BriefingPreview(templateName: "PUSH DAY") }
             case "briefing-first":

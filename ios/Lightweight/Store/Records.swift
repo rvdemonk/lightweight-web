@@ -31,6 +31,7 @@ struct TemplateRecord: Codable, FetchableRecord, PersistableRecord {
     var createdAt: String
     var updatedAt: String
     var version: Int
+    var synced: Bool          // false = locally created/edited, not yet adopted from the server
 }
 
 struct TemplateExerciseRecord: Codable, FetchableRecord, PersistableRecord {

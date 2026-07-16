@@ -61,6 +61,17 @@ struct APIClient: Sendable {
         return try await request("sessions/sync", method: "POST", body: try encoder.encode(sessions))
     }
 
+    /// Push client-authored templates (the convergence rule's FIRST step — see
+    /// AppState.pushLocalChanges). Bare JSON array; server dedups by name,
+    /// resolves exercises by name. Returns full server Templates for id adoption.
+    /// 401 surfaces as APIError.unauthorized; a 4xx (e.g. duplicate names in
+    /// batch) surfaces as APIError.http — never swallowed.
+    func syncTemplates(_ templates: [SyncTemplatePayload]) async throws -> TemplateSyncResultResponse {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        return try await request("templates/sync", method: "POST", body: try encoder.encode(templates))
+    }
+
     /// Server replies 204 No Content.
     func deleteSession(id: Int64) async throws {
         try await requestVoid("sessions/\(id)", method: "DELETE")

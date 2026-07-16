@@ -90,6 +90,14 @@ struct AppDatabase: Sendable {
                 t.add(column: "synced", .boolean).notNull().defaults(to: true)
             }
         }
+        m.registerMigration("v3-local-templates") { db in
+            // synced=0 marks a locally-created or locally-edited template that a
+            // server pull's wipe-and-replace must never delete. Existing rows are
+            // server-origin → default 1. Mirrors v2-local-sessions.
+            try db.alter(table: "templates") { t in
+                t.add(column: "synced", .boolean).notNull().defaults(to: true)
+            }
+        }
         return m
     }
 
@@ -110,10 +118,23 @@ struct AppDatabase: Sendable {
             // this is the whole point of the write-safe import. Cascade clears
             // the replaced sessions' exercises + sets.
             try db.execute(sql: "DELETE FROM sessions WHERE synced = 1")
-            // Templates are never locally authored today; sessions.template_id
-            // carries no FK, so a wholesale replace is safe.
-            try db.execute(sql: "DELETE FROM template_exercises")
-            try db.execute(sql: "DELETE FROM templates")
+            // Replace ONLY server-origin templates. synced=0 rows are local work
+            // that must survive the pull: a locally-CREATED template (negative id,
+            // never in the server payload) or a locally-EDITED pulled template
+            // (positive id, edit in flight). Cascade clears the replaced
+            // templates' template_exercises.
+            try db.execute(sql: """
+                DELETE FROM template_exercises WHERE template_id IN
+                    (SELECT id FROM templates WHERE synced = 1)
+                """)
+            try db.execute(sql: "DELETE FROM templates WHERE synced = 1")
+            // Ids of locally-edited templates that survived (positive id, synced=0).
+            // The server payload still carries the pre-edit copy of each — inserting
+            // it would PK-collide with, and semantically clobber, the local edit, so
+            // we SKIP it. The edit is reconciled to the authoritative server version
+            // on the next push→adopt→pull (see adoptPushedTemplates).
+            let editedIds = try Int64.fetchSet(db, sql:
+                "SELECT id FROM templates WHERE synced = 0")
 
             // Exercises are UPSERTed by id, NEVER bulk-deleted: an active local
             // session references server exercises, and session_exercises.exercise_id
@@ -126,10 +147,12 @@ struct AppDatabase: Sendable {
                 ).upsert(db)
             }
             for t in templates {
+                // Skip the server's copy of a template being edited locally.
+                if editedIds.contains(t.id) { continue }
                 try TemplateRecord(
                     id: t.id, name: t.name, notes: t.notes,
                     archived: t.archived ?? false, createdAt: t.createdAt,
-                    updatedAt: t.updatedAt, version: t.version ?? 1
+                    updatedAt: t.updatedAt, version: t.version ?? 1, synced: true
                 ).insert(db)
                 for te in t.exercises ?? [] {
                     try TemplateExerciseRecord(
