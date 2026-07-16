@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    routing::get,
+    routing::{get, post},
     Extension, Json, Router,
 };
 use std::sync::Arc;
@@ -13,6 +13,7 @@ use lightweight_core::models::*;
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/templates", get(list_templates).post(create_template))
+        .route("/templates/sync", post(sync_templates))
         .route("/templates/:id", get(get_template).put(update_template).delete(archive_template))
         .route("/templates/:id/versions", get(list_versions))
         .route("/templates/:id/versions/:version", get(get_version))
@@ -90,6 +91,22 @@ async fn get_version(
         .map_err(|e| match e {
             lightweight_core::error::AppError::NotFound => StatusCode::NOT_FOUND,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
+        })
+}
+
+async fn sync_templates(
+    State(state): State<Arc<AppState>>,
+    Extension(UserId(user_id)): Extension<UserId>,
+    Json(body): Json<Vec<SyncTemplate>>,
+) -> Result<Json<TemplateSyncResult>, (StatusCode, Json<serde_json::Value>)> {
+    lightweight_core::templates::sync_templates(&state.db, user_id, body)
+        .map(Json)
+        .map_err(|e| {
+            let (status, msg) = match &e {
+                lightweight_core::error::AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+            };
+            (status, Json(serde_json::json!({ "error": msg })))
         })
 }
 

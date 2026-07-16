@@ -90,6 +90,42 @@ pub struct UpdateTemplate {
     pub exercises: Option<Vec<CreateTemplateExercise>>,
 }
 
+// ── Template sync (client push) ──
+
+/// A client-authored template pushed to the server. Exercises are referenced by
+/// name (resolved against the user's catalog, auto-created if absent) — the
+/// client has no server exercise ids for freshly-created movements, mirroring
+/// SyncExercise. `version` is advisory only; the server owns version numbers.
+#[derive(Debug, Deserialize)]
+pub struct SyncTemplate {
+    pub name: String,
+    pub notes: Option<String>,
+    pub version: Option<i64>,
+    #[serde(default)]
+    pub exercises: Vec<SyncTemplateExercise>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SyncTemplateExercise {
+    pub name: String,
+    pub position: i32,
+    pub target_sets: Option<i32>,
+    pub target_reps_min: Option<i32>,
+    pub target_reps_max: Option<i32>,
+    pub rest_seconds: Option<i32>,
+    pub notes: Option<String>,
+}
+
+/// Returns the full server Template for every input template — created, updated,
+/// or unchanged — keyed by name. This is the id-mapping channel: the client
+/// matches responses to its local templates by name and adopts the server
+/// (id, version) before stamping and pushing sessions.
+#[derive(Debug, Serialize)]
+pub struct TemplateSyncResult {
+    pub templates: Vec<Template>,
+    pub exercises_created: Vec<String>,
+}
+
 // ── Sessions ──
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

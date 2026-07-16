@@ -695,7 +695,7 @@ fn parse_import_date(date: &str) -> Result<String, AppError> {
     Ok(format!("{} 00:00:00", date))
 }
 
-fn resolve_exercise(conn: &rusqlite::Connection, user_id: i64, name: &str, warnings: &mut Vec<String>) -> Result<Option<(i64, String)>, AppError> {
+pub(crate) fn resolve_exercise(conn: &rusqlite::Connection, user_id: i64, name: &str, warnings: &mut Vec<String>) -> Result<Option<(i64, String)>, AppError> {
     // Phase 1: exact case-insensitive match scoped to user
     let exact: Result<(i64, String), _> = conn.query_row(
         "SELECT id, name FROM exercises WHERE LOWER(name) = LOWER(?1) AND archived = 0 AND user_id = ?2",
