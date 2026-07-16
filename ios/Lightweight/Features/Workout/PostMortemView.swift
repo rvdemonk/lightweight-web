@@ -161,12 +161,16 @@ struct PostMortemView: View {
 
     /// Never frame a PR as a loss — a non-positive in-window delta still landed
     /// a peak this week, so it reads "new peak", not a negative number.
+    /// Both registers: kg is visceral but lift-relative (+3kg curl ≫ +3kg
+    /// deadlift); % self-normalizes and matches the Data tab's growth language.
+    /// Each covers the other's blind spot on big vs small lifts.
     private func sparkDelta(_ points: [PostMortem.WeeklyPoint]) -> String {
         guard let first = points.first, let last = points.last else { return "new peak" }
         let delta = last.e1rm - first.e1rm
-        guard delta > 0 else { return "new peak" }
+        guard delta > 0, first.e1rm > 0 else { return "new peak" }
         let month = first.weekStart.formatted(.dateTime.month(.abbreviated))
-        return "+\(Int(delta))kg since \(month)"
+        let pct = Int((delta / first.e1rm * 100).rounded())
+        return "+\(Int(delta))kg (+\(pct)%) since \(month)"
     }
 
     private func evidenceLabel(_ set: SetRecord?) -> String? {
