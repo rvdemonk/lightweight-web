@@ -388,33 +388,35 @@ private struct ExercisePanel: View {
     /// Resets to nil after every log: RIR drifts with fatigue, so a carried
     /// rating would be silently wrong — every stored value must be a fresh tap.
     private var rirRow: some View {
-        HStack {
-            Text("RIR").metaLabel()
-            Spacer()
-            Menu {
-                Picker("RIR", selection: animatedRIR) {
-                    Text("—").tag(Int?.none)
-                    ForEach(rirOptions, id: \.value) { opt in
-                        Text(opt.label).tag(Optional(opt.value))
-                    }
+        // Self-labeled capsule (like the exercise switcher), centered on the
+        // card's axis so it shares the WEIGHT/REPS column rhythm — an external
+        // label + edge-pinned capsule left a strange dead gap between them.
+        Menu {
+            Picker("RIR", selection: animatedRIR) {
+                Text("—").tag(Int?.none)
+                ForEach(rirOptions, id: \.value) { opt in
+                    Text(opt.label).tag(Optional(opt.value))
                 }
-            } label: {
-                HStack(spacing: Theme.grid) {
-                    Text(selectedRIR.map { $0 >= 3 ? "3+" : String($0) } ?? "—")
-                        .font(.system(size: 17, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(selectedRIR == nil ? Color(.tertiaryLabel) : Theme.amber)
-                        .contentTransition(.numericText())
-                    Image(systemName: "chevron.down")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(minWidth: 88, minHeight: Theme.minTouch)
-                .background(Color(.tertiarySystemFill))
-                .clipShape(Capsule())
-                .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
+        } label: {
+            HStack(spacing: Theme.grid) {
+                Text("RIR").metaLabel()
+                Text(selectedRIR.map { $0 >= 3 ? "3+" : String($0) } ?? "—")
+                    .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(selectedRIR == nil ? Color(.tertiaryLabel) : Theme.amber)
+                    .contentTransition(.numericText())
+                Image(systemName: "chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, Theme.grid * 3)
+            .frame(minWidth: 112, minHeight: Theme.minTouch)
+            .background(Color(.tertiarySystemFill))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
     }
 
     private var animatedRIR: Binding<Int?> {
