@@ -2,6 +2,16 @@
 
 Running log for the iOS Swift client workorder. Status lives in `spec.md`. Newest entry = current state.
 
+## 2026-07-16 (midday) — Briefing + template-push fleet; wire contract RATIFIED
+
+**Pre-workout briefing (Lewis):** template detail page becomes the briefing sheet — per exercise: INCUMBENT (best e1RM + achieving set + date), TO BEAT (bidirectional targets at last top weight, amber), LAST (dense register). First exposure = calibration placeholder, no fake targets. Rationale: mental rehearsal / implementation intentions — Lewis visualizes targets hours pre-session. Worker in flight.
+
+**Template push wire contract RATIFIED (supervisor, 2026-07-16):** `POST /api/v1/templates/sync`, Vec<SyncTemplate> (exercises by name), response = full server Templates for every input (the id-mapping channel). Dedup key = case-insensitive name (renames = new template, accepted v1; renames can later use PUT). Idempotent content-diff: absent→create, differs→update (version+1 + snapshot), identical→unchanged. **Versioning server-authoritative; client version advisory. CLIENT CONVERGENCE RULE (load-bearing for the iOS template worker): push templates FIRST → adopt returned (id, version) → stamp sessions with SERVER version → then push sessions.** Exercises resolve via existing resolve_exercise; unknown→auto-create (accepts sessions-path typo risk); ambiguous→BadRequest whole-batch rollback. Archived-name match → un-archive+update. Duplicate names in batch → refuse. No schema migration. Worker implementing; tests incl. create-then-resolve-in-one-transaction.
+
+**Sequencing:** worker C (iOS template create/edit UI + push wiring + write-safe template import w/ synced flag) briefed only after briefing + tpl-server land — contends on Features/Workouts/ with the briefing worker.
+
+**Lewis programming note:** switching Upper X/Arms → Push/Pull (headline lift per day: bench opens push, row opens pull; arms folded in). Supervisor's training-partner read: motivational architecture, not interference management — endorsed. New template_ids will show "no prior session" comparability gaps for one run each; PR lineages unaffected (they follow the lift).
+
 ## 2026-07-16 (mid-morning) — Device verdict: pill row DEAD → Menu capsule; last-session card; End-discard
 
 Lewis trialled on his iPhone (first device install of the day, post-mortem + RIR build): **pill row rejected — "too many buttons"** — and his real data exposed a second failure: `· RIR n` in the LAST SESSION header wrapped it into a two-line mangle. Renovations (supervisor-built inline, Lewis live):

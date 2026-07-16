@@ -46,6 +46,10 @@ struct RootView: View {
                 NavigationStack { SessionDetailView(sessionId: 500) }
             case "postmortem-nopr":
                 NavigationStack { PostMortemView(sessionId: 501, mode: .review) }
+            case "briefing":
+                NavigationStack { BriefingPreview(templateName: "PUSH DAY") }
+            case "briefing-first":
+                NavigationStack { BriefingPreview(templateName: "FRESH START") }
             case "finish":
                 MainTabView().task { await appState.previewFinishAndPush() }
             default:
@@ -57,3 +61,20 @@ struct RootView: View {
         }
     }
 }
+
+#if DEBUG
+/// Screenshot seam: jump straight into a seeded template's briefing by name.
+private struct BriefingPreview: View {
+    @Environment(AppState.self) private var appState
+    let templateName: String
+
+    var body: some View {
+        if let item = (try? appState.db.templateList())?
+            .first(where: { $0.template.name == templateName }) {
+            TemplateDetailView(item: item)
+        } else {
+            ProgressView()
+        }
+    }
+}
+#endif

@@ -319,6 +319,25 @@ extension AppDatabase {
                 sid += 1
                 i += 1
             }
+            // Templates for the briefing (template-detail) preview. Exercises 5/6
+            // carry NO session history on purpose — their cards exercise the
+            // first-exposure calibration placeholder. PUSH DAY mixes weighted
+            // lifts with a bodyweight one (PULL UP → rep-record incumbent).
+            try ExerciseRecord(id: 5, name: "STANDING OVERHEAD PRESS", muscleGroup: "Shoulders",
+                equipment: "Barbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
+            try ExerciseRecord(id: 6, name: "BARBELL ROW", muscleGroup: "Back",
+                equipment: "Barbell", notes: nil, archived: false, createdAt: iso(90)).insert(db)
+            func seedTemplate(id: Int64, name: String, exerciseIds: [Int64], teStart: Int64) throws {
+                try TemplateRecord(id: id, name: name, notes: nil, archived: false,
+                    createdAt: iso(90), updatedAt: iso(90), version: 1).insert(db)
+                for (pos, eid) in exerciseIds.enumerated() {
+                    try TemplateExerciseRecord(id: teStart + Int64(pos), templateId: id,
+                        exerciseId: eid, position: pos + 1, targetSets: 3,
+                        targetRepsMin: 8, targetRepsMax: 12, restSeconds: nil, notes: nil).insert(db)
+                }
+            }
+            try seedTemplate(id: 1, name: "PUSH DAY", exerciseIds: [1, 3, 4, 2], teStart: 1)
+            try seedTemplate(id: 2, name: "FRESH START", exerciseIds: [5, 6], teStart: 10)
         }
     }
 
